@@ -9,6 +9,6 @@ export const environment = {
   	messagingSenderId: "384076369178",
   	appId: "1:384076369178:web:185892b784af3c0ba370a3"
   },
-  firestoreDatabaseId: "credencial",
+  firestoreDatabaseId: "(default)",
   functionsRegion: "us-central1",
 };

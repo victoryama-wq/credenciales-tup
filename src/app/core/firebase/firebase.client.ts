@@ -9,7 +9,10 @@ import { environment } from '../../../environments/environment';
 const app = initializeApp(environment.firebase);
 
 export const auth = getAuth(app);
-export const db = getFirestore(app, environment.firestoreDatabaseId);
+export const db =
+  environment.firestoreDatabaseId === '(default)'
+    ? getFirestore(app)
+    : getFirestore(app, environment.firestoreDatabaseId);
 export const storage = getStorage(app);
 export const functions = getFunctions(app, environment.functionsRegion);
 

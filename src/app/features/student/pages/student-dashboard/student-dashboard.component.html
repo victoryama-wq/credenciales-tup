@@ -1,4 +1,154 @@
-<div class="p-8">
-  <h1 class="text-3xl font-bold">Portal del Estudiante</h1>
-  <p class="mt-2 text-slate-600">Aquí irá la solicitud de credencial.</p>
-</div>
+<main class="min-h-screen bg-slate-100 px-4 py-6 md:px-8">
+  <div class="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[minmax(0,1fr)_420px]">
+    <section>
+      <div class="mb-6">
+        <p class="text-sm font-medium uppercase tracking-wide text-slate-500">Portal estudiante</p>
+        <h1 class="text-3xl font-bold text-slate-900">Solicitud de credencial</h1>
+      </div>
+
+      <mat-card class="!rounded-lg !shadow-md">
+        <mat-card-header>
+          <mat-card-title>Datos de solicitud</mat-card-title>
+          <mat-card-subtitle>Completa tu informacion y adjunta archivos legibles.</mat-card-subtitle>
+        </mat-card-header>
+
+        <mat-card-content class="pt-6">
+          <form [formGroup]="form" (ngSubmit)="submit()" class="grid gap-4 md:grid-cols-2">
+            <mat-form-field appearance="outline" class="w-full">
+              <mat-label>Matricula</mat-label>
+              <input matInput formControlName="studentId" autocomplete="off" />
+              @if (form.controls.studentId.hasError('required')) {
+                <mat-error>La matricula es obligatoria.</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="w-full">
+              <mat-label>Nombre completo</mat-label>
+              <input matInput formControlName="name" autocomplete="name" />
+              @if (form.controls.name.hasError('required')) {
+                <mat-error>El nombre es obligatorio.</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="w-full">
+              <mat-label>Programa academico</mat-label>
+              <mat-select formControlName="career">
+                @for (career of careers; track career) {
+                  <mat-option [value]="career">{{ career }}</mat-option>
+                }
+              </mat-select>
+              @if (form.controls.career.hasError('required')) {
+                <mat-error>Selecciona un programa.</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="w-full">
+              <mat-label>Ciclo</mat-label>
+              <mat-select formControlName="cycle">
+                @for (cycle of cycles; track cycle) {
+                  <mat-option [value]="cycle">{{ cycle }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="w-full md:col-span-2">
+              <mat-label>Telefono</mat-label>
+              <input matInput formControlName="phone" autocomplete="tel" />
+              @if (form.controls.phone.hasError('required')) {
+                <mat-error>El telefono es obligatorio.</mat-error>
+              }
+            </mat-form-field>
+
+            <div class="rounded-lg border border-dashed border-slate-300 bg-white p-4">
+              <label class="block text-sm font-semibold text-slate-700">Foto JPG/PNG max. 2 MB</label>
+              <input class="mt-3 w-full text-sm" type="file" accept="image/png,image/jpeg" (change)="setFile($event, 'photo')" />
+              @if (photoFile) {
+                <p class="mt-2 text-sm text-emerald-700">{{ photoFile.name }}</p>
+              }
+            </div>
+
+            <div class="rounded-lg border border-dashed border-slate-300 bg-white p-4">
+              <label class="block text-sm font-semibold text-slate-700">Evidencia JPG/PNG/PDF max. 5 MB</label>
+              <input class="mt-3 w-full text-sm" type="file" accept="image/png,image/jpeg,application/pdf" (change)="setFile($event, 'evidence')" />
+              @if (evidenceFile) {
+                <p class="mt-2 text-sm text-emerald-700">{{ evidenceFile.name }}</p>
+              }
+            </div>
+
+            @if (errorMessage) {
+              <p class="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 md:col-span-2">{{ errorMessage }}</p>
+            }
+
+            @if (successMessage) {
+              <p class="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-700 md:col-span-2">{{ successMessage }}</p>
+            }
+
+            <div class="md:col-span-2">
+              <button mat-flat-button color="primary" type="submit" [disabled]="submitting" class="!h-11">
+                @if (submitting) {
+                  <mat-progress-spinner diameter="22" mode="indeterminate"></mat-progress-spinner>
+                } @else {
+                  Enviar solicitud
+                }
+              </button>
+            </div>
+          </form>
+        </mat-card-content>
+      </mat-card>
+    </section>
+
+    <aside>
+      <mat-card class="!rounded-lg !shadow-md">
+        <mat-card-header>
+          <mat-card-title>Mis solicitudes</mat-card-title>
+          <mat-card-subtitle>Seguimiento en tiempo real</mat-card-subtitle>
+        </mat-card-header>
+
+        <mat-card-content class="pt-4">
+          @if (loading) {
+            <div class="grid py-10 place-items-center">
+              <mat-progress-spinner diameter="32" mode="indeterminate"></mat-progress-spinner>
+            </div>
+          } @else if (!requests.length) {
+            <p class="rounded-md bg-slate-50 p-4 text-sm text-slate-600">Aun no tienes solicitudes registradas.</p>
+          } @else {
+            <div class="space-y-4">
+              @for (request of requests; track request.id) {
+                <article class="rounded-lg border border-slate-200 bg-white p-4">
+                  <div class="flex items-start justify-between gap-3">
+                    <div>
+                      <p class="font-semibold text-slate-900">{{ request.studentId }}</p>
+                      <p class="text-sm text-slate-600">{{ request.career }} - {{ request.cycle }}</p>
+                    </div>
+                    <span class="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+                      {{ statusLabels[request.status] }}
+                    </span>
+                  </div>
+
+                  <mat-divider class="!my-3"></mat-divider>
+
+                  <ol class="space-y-2">
+                    @for (event of request.timeline; track event.timestamp.seconds) {
+                      <li class="text-sm text-slate-700">
+                        <span class="font-medium">{{ statusLabels[event.status] }}</span>
+                        @if (event.note) {
+                          <span> - {{ event.note }}</span>
+                        }
+                      </li>
+                    }
+                  </ol>
+
+                  @if (request.rejectionReason) {
+                    <p class="mt-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+                      {{ request.rejectionReason }}
+                    </p>
+                  }
+                </article>
+              }
+            </div>
+          }
+        </mat-card-content>
+      </mat-card>
+    </aside>
+  </div>
+</main>

@@ -1,4 +1,157 @@
-<div class="p-8">
-  <h1 class="text-3xl font-bold">Portal Administrativo</h1>
-  <p class="mt-2 text-slate-600">Aquí irá la bandeja de solicitudes.</p>
-</div>
+<main class="min-h-screen bg-slate-100 px-4 py-6 md:px-8">
+  <div class="mx-auto max-w-7xl">
+    <div class="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+      <div>
+        <p class="text-sm font-medium uppercase tracking-wide text-slate-500">Portal administrativo</p>
+        <h1 class="text-3xl font-bold text-slate-900">Bandeja de solicitudes</h1>
+      </div>
+
+      <mat-form-field appearance="outline" class="w-full md:w-72">
+        <mat-label>Filtrar por estatus</mat-label>
+        <mat-select [(value)]="statusFilter">
+          <mat-option value="ALL">Todas</mat-option>
+          @for (status of statuses; track status) {
+            <mat-option [value]="status">{{ statusLabels[status] }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    </div>
+
+    <section class="mb-6 grid gap-3 md:grid-cols-4">
+      @for (status of statuses; track status) {
+        <article class="rounded-lg border border-slate-200 bg-white p-4">
+          <p class="text-xs font-semibold uppercase text-slate-500">{{ statusLabels[status] }}</p>
+          <p class="mt-2 text-2xl font-bold text-slate-900">{{ countByStatus(status) }}</p>
+        </article>
+      }
+    </section>
+
+    @if (errorMessage) {
+      <p class="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{{ errorMessage }}</p>
+    }
+
+    @if (loading) {
+      <div class="grid place-items-center py-16">
+        <mat-progress-spinner diameter="42" mode="indeterminate"></mat-progress-spinner>
+      </div>
+    } @else if (!filteredRequests.length) {
+      <mat-card class="!rounded-lg !shadow-md">
+        <mat-card-content class="py-8">
+          <p class="text-center text-slate-600">No hay solicitudes con este filtro.</p>
+        </mat-card-content>
+      </mat-card>
+    } @else {
+      <section class="grid gap-4">
+        @for (request of filteredRequests; track request.id) {
+          <mat-card class="!rounded-lg !shadow-md">
+            <mat-card-content class="grid gap-5 p-5 lg:grid-cols-[160px_minmax(0,1fr)_320px]">
+              <div>
+                <img
+                  [src]="request.photoUrl"
+                  [alt]="request.name"
+                  class="aspect-[3/4] w-full rounded-md border border-slate-200 object-cover"
+                />
+              </div>
+
+              <div>
+                <div class="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                  <div>
+                    <h2 class="text-xl font-bold text-slate-900">{{ request.name }}</h2>
+                    <p class="text-sm text-slate-600">{{ request.email }}</p>
+                    <p class="mt-2 text-sm text-slate-700">
+                      Matricula: <strong>{{ request.studentId }}</strong>
+                    </p>
+                    <p class="text-sm text-slate-700">{{ request.career }} - {{ request.cycle }}</p>
+                    <p class="text-sm text-slate-700">Telefono: {{ request.phone }}</p>
+                  </div>
+
+                  <span class="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+                    {{ statusLabels[request.status] }}
+                  </span>
+                </div>
+
+                <mat-divider class="!my-4"></mat-divider>
+
+                <div class="flex flex-wrap gap-2">
+                  @for (document of request.documents; track document.storagePath) {
+                    <a
+                      mat-stroked-button
+                      color="primary"
+                      [href]="document.url"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Ver {{ document.type === 'photo' ? 'foto' : 'evidencia' }}
+                    </a>
+                  }
+                </div>
+
+                @if (request.credentialNumber) {
+                  <p class="mt-4 rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+                    Folio: {{ request.credentialNumber }}
+                  </p>
+                }
+
+                @if (request.rejectionReason) {
+                  <p class="mt-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+                    Rechazo: {{ request.rejectionReason }}
+                  </p>
+                }
+              </div>
+
+              <div class="rounded-lg bg-slate-50 p-4">
+                <mat-form-field appearance="outline" class="w-full">
+                  <mat-label>Notas / motivo</mat-label>
+                  <textarea
+                    matInput
+                    rows="4"
+                    [value]="notes[request.id] || ''"
+                    (input)="updateNote(request.id, $event)"
+                  ></textarea>
+                </mat-form-field>
+
+                <div class="grid gap-2">
+                  @if (canMove(request, 'UNDER_REVIEW')) {
+                    <button mat-stroked-button color="primary" [disabled]="savingId === request.id" (click)="move(request, 'UNDER_REVIEW')">
+                      Tomar revision
+                    </button>
+                  }
+
+                  @if (canMove(request, 'APPROVED_FOR_PRINT')) {
+                    <button mat-flat-button color="primary" [disabled]="savingId === request.id" (click)="move(request, 'APPROVED_FOR_PRINT')">
+                      Aprobar impresion
+                    </button>
+                  }
+
+                  @if (canMove(request, 'REJECTED')) {
+                    <button mat-stroked-button color="warn" [disabled]="savingId === request.id" (click)="move(request, 'REJECTED')">
+                      Rechazar
+                    </button>
+                  }
+
+                  @if (canMove(request, 'PRINTED')) {
+                    <button mat-flat-button color="primary" [disabled]="savingId === request.id" (click)="move(request, 'PRINTED')">
+                      Marcar impresa
+                    </button>
+                  }
+
+                  @if (canMove(request, 'READY_FOR_PICKUP')) {
+                    <button mat-flat-button color="primary" [disabled]="savingId === request.id" (click)="move(request, 'READY_FOR_PICKUP')">
+                      Lista para entrega
+                    </button>
+                  }
+
+                  @if (canMove(request, 'DELIVERED')) {
+                    <button mat-flat-button color="primary" [disabled]="savingId === request.id" (click)="move(request, 'DELIVERED')">
+                      Confirmar entrega
+                    </button>
+                  }
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        }
+      </section>
+    }
+  </div>
+</main>
