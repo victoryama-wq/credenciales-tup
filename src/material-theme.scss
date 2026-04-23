@@ -13,10 +13,23 @@ html {
         primary: mat.$azure-palette,
         tertiary: mat.$blue-palette,
       ),
-      typography: Roboto,
+      typography: Arvo,
       density: 0,
     )
   );
+
+  --mat-sys-primary: #252a86;
+  --mat-sys-on-primary: #ffffff;
+  --mat-sys-primary-container: #eef0ff;
+  --mat-sys-on-primary-container: #271e5d;
+  --mat-sys-secondary: #271e5d;
+  --mat-sys-on-secondary: #ffffff;
+  --mat-sys-surface: #f6f7fb;
+  --mat-sys-surface-container: #ffffff;
+  --mat-sys-outline: #d7d9e5;
+  --mat-sys-outline-variant: #e3e5ee;
+  --mat-sys-on-surface: #17172f;
+  --mat-sys-on-surface-variant: #666879;
 }
 
 body {

@@ -1,9 +1,14 @@
-<main class="min-h-screen bg-slate-100 px-4 py-6 md:px-8">
+<main class="app-shell px-4 py-6 md:px-8">
   <div class="mx-auto max-w-7xl">
-    <div class="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-      <div>
-        <p class="text-sm font-medium uppercase tracking-wide text-slate-500">Portal administrativo</p>
-        <h1 class="text-3xl font-bold text-slate-900">Bandeja de solicitudes</h1>
+    <header class="institution-header mb-6 flex flex-col gap-4 rounded-lg px-5 py-4 md:flex-row md:items-center md:justify-between">
+      <div class="flex items-center gap-4">
+        <div class="grid h-14 w-32 place-items-center rounded-md bg-white p-2 shadow-sm">
+          <img src="/logo-tup.png" alt="TUP" class="logo-mark h-full w-full" />
+        </div>
+        <div>
+          <p class="eyebrow">Portal administrativo</p>
+          <h1 class="text-2xl font-bold text-[var(--tup-ink)] md:text-3xl">Bandeja de solicitudes</h1>
+        </div>
       </div>
 
       <mat-form-field appearance="outline" class="w-full md:w-72">
@@ -15,13 +20,13 @@
           }
         </mat-select>
       </mat-form-field>
-    </div>
+    </header>
 
     <section class="mb-6 grid gap-3 md:grid-cols-4">
       @for (status of statuses; track status) {
-        <article class="rounded-lg border border-slate-200 bg-white p-4">
-          <p class="text-xs font-semibold uppercase text-slate-500">{{ statusLabels[status] }}</p>
-          <p class="mt-2 text-2xl font-bold text-slate-900">{{ countByStatus(status) }}</p>
+        <article class="metric-card rounded-lg p-4">
+          <p class="text-xs font-semibold uppercase text-[var(--tup-gray)]">{{ statusLabels[status] }}</p>
+          <p class="mt-2 text-2xl font-bold text-[var(--tup-ink)]">{{ countByStatus(status) }}</p>
         </article>
       }
     </section>
@@ -35,37 +40,37 @@
         <mat-progress-spinner diameter="42" mode="indeterminate"></mat-progress-spinner>
       </div>
     } @else if (!filteredRequests.length) {
-      <mat-card class="!rounded-lg !shadow-md">
+      <mat-card class="institution-card !rounded-lg !shadow-none">
         <mat-card-content class="py-8">
-          <p class="text-center text-slate-600">No hay solicitudes con este filtro.</p>
+          <p class="text-center text-[var(--tup-muted)]">No hay solicitudes con este filtro.</p>
         </mat-card-content>
       </mat-card>
     } @else {
       <section class="grid gap-4">
         @for (request of filteredRequests; track request.id) {
-          <mat-card class="!rounded-lg !shadow-md">
-            <mat-card-content class="grid gap-5 p-5 lg:grid-cols-[160px_minmax(0,1fr)_320px]">
+          <mat-card class="institution-card !rounded-lg !shadow-none">
+            <mat-card-content class="admin-request-card">
               <div>
                 <img
                   [src]="request.photoUrl"
                   [alt]="request.name"
-                  class="aspect-[3/4] w-full rounded-md border border-slate-200 object-cover"
+                  class="request-photo w-full rounded-md border border-[var(--tup-line)]"
                 />
               </div>
 
               <div>
                 <div class="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
                   <div>
-                    <h2 class="text-xl font-bold text-slate-900">{{ request.name }}</h2>
-                    <p class="text-sm text-slate-600">{{ request.email }}</p>
-                    <p class="mt-2 text-sm text-slate-700">
+                    <h2 class="text-xl font-bold text-[var(--tup-ink)]">{{ request.name }}</h2>
+                    <p class="text-sm text-[var(--tup-muted)]">{{ request.email }}</p>
+                    <p class="mt-2 text-sm text-[var(--tup-ink)]">
                       Matricula: <strong>{{ request.studentId }}</strong>
                     </p>
-                    <p class="text-sm text-slate-700">{{ request.career }} - {{ request.cycle }}</p>
-                    <p class="text-sm text-slate-700">Telefono: {{ request.phone }}</p>
+                    <p class="text-sm text-[var(--tup-muted)]">{{ request.career }} - {{ request.cycle }}</p>
+                    <p class="text-sm text-[var(--tup-muted)]">Telefono: {{ request.phone }}</p>
                   </div>
 
-                  <span class="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+                  <span class="status-pill rounded-full px-3 py-1 text-xs font-semibold">
                     {{ statusLabels[request.status] }}
                   </span>
                 </div>
@@ -77,6 +82,7 @@
                     <a
                       mat-stroked-button
                       color="primary"
+                      class="link-button"
                       [href]="document.url"
                       target="_blank"
                       rel="noreferrer"
@@ -99,7 +105,7 @@
                 }
               </div>
 
-              <div class="rounded-lg bg-slate-50 p-4">
+              <div class="muted-panel rounded-lg p-4">
                 <mat-form-field appearance="outline" class="w-full">
                   <mat-label>Notas / motivo</mat-label>
                   <textarea
@@ -112,37 +118,37 @@
 
                 <div class="grid gap-2">
                   @if (canMove(request, 'UNDER_REVIEW')) {
-                    <button mat-stroked-button color="primary" [disabled]="savingId === request.id" (click)="move(request, 'UNDER_REVIEW')">
+                    <button mat-stroked-button color="primary" class="!rounded-md" [disabled]="savingId === request.id" (click)="move(request, 'UNDER_REVIEW')">
                       Tomar revision
                     </button>
                   }
 
                   @if (canMove(request, 'APPROVED_FOR_PRINT')) {
-                    <button mat-flat-button color="primary" [disabled]="savingId === request.id" (click)="move(request, 'APPROVED_FOR_PRINT')">
+                    <button mat-flat-button color="primary" class="!rounded-md" [disabled]="savingId === request.id" (click)="move(request, 'APPROVED_FOR_PRINT')">
                       Aprobar impresion
                     </button>
                   }
 
                   @if (canMove(request, 'REJECTED')) {
-                    <button mat-stroked-button color="warn" [disabled]="savingId === request.id" (click)="move(request, 'REJECTED')">
+                    <button mat-stroked-button color="warn" class="!rounded-md" [disabled]="savingId === request.id" (click)="move(request, 'REJECTED')">
                       Rechazar
                     </button>
                   }
 
                   @if (canMove(request, 'PRINTED')) {
-                    <button mat-flat-button color="primary" [disabled]="savingId === request.id" (click)="move(request, 'PRINTED')">
+                    <button mat-flat-button color="primary" class="!rounded-md" [disabled]="savingId === request.id" (click)="move(request, 'PRINTED')">
                       Marcar impresa
                     </button>
                   }
 
                   @if (canMove(request, 'READY_FOR_PICKUP')) {
-                    <button mat-flat-button color="primary" [disabled]="savingId === request.id" (click)="move(request, 'READY_FOR_PICKUP')">
+                    <button mat-flat-button color="primary" class="!rounded-md" [disabled]="savingId === request.id" (click)="move(request, 'READY_FOR_PICKUP')">
                       Lista para entrega
                     </button>
                   }
 
                   @if (canMove(request, 'DELIVERED')) {
-                    <button mat-flat-button color="primary" [disabled]="savingId === request.id" (click)="move(request, 'DELIVERED')">
+                    <button mat-flat-button color="primary" class="!rounded-md" [disabled]="savingId === request.id" (click)="move(request, 'DELIVERED')">
                       Confirmar entrega
                     </button>
                   }
