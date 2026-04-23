@@ -23,6 +23,21 @@
       ]
     }
   ],
+  "hosting": {
+    "site": "credencial-tup",
+    "public": "dist/credenciales-escolares/browser",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  },
   "storage": {
     "rules": "storage.rules"
   },
