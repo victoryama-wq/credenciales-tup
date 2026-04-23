@@ -11,7 +11,12 @@
         </div>
       </div>
 
-      <span class="status-pill rounded-full px-4 py-2 text-sm font-semibold">Cuenta institucional</span>
+      <div class="flex flex-wrap items-center gap-3">
+        <span class="status-pill rounded-full px-4 py-2 text-sm font-semibold">Cuenta institucional</span>
+        <button mat-stroked-button color="primary" class="link-button !rounded-md" (click)="logout()">
+          Cerrar sesion
+        </button>
+      </div>
     </header>
 
     <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_420px]">

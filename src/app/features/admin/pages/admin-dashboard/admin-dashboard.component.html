@@ -11,15 +11,21 @@
         </div>
       </div>
 
-      <mat-form-field appearance="outline" class="w-full md:w-72">
-        <mat-label>Filtrar por estatus</mat-label>
-        <mat-select [(value)]="statusFilter">
-          <mat-option value="ALL">Todas</mat-option>
-          @for (status of statuses; track status) {
-            <mat-option [value]="status">{{ statusLabels[status] }}</mat-option>
-          }
-        </mat-select>
-      </mat-form-field>
+      <div class="flex w-full flex-col gap-3 md:w-auto md:flex-row md:items-center">
+        <mat-form-field appearance="outline" class="w-full md:w-72">
+          <mat-label>Filtrar por estatus</mat-label>
+          <mat-select [(value)]="statusFilter">
+            <mat-option value="ALL">Todas</mat-option>
+            @for (status of statuses; track status) {
+              <mat-option [value]="status">{{ statusLabels[status] }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <button mat-stroked-button color="primary" class="link-button !rounded-md" (click)="logout()">
+          Cerrar sesion
+        </button>
+      </div>
     </header>
 
     <section class="mb-6 grid gap-3 md:grid-cols-4">

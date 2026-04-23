@@ -1,59 +1,43 @@
-# CredencialesEscolares
+# Credenciales Escolares TUP
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.2.7.
+Aplicacion web para solicitudes de credenciales escolares del Tecnologico
+Universitario Playacar. El frontend usa Angular, Reactive Forms, Angular
+Material y Tailwind. El backend usa Firebase Authentication, Firestore,
+Storage y Cloud Functions.
 
-## Development server
+## MVP actual
 
-To start a local development server, run:
+- Inicio de sesion por correo y contrasena.
+- Rutas protegidas por rol para estudiante y administrador.
+- Portal estudiante para capturar solicitud, foto y evidencia.
+- Portal administrativo para revisar solicitudes y mover estatus.
+- Validacion de transiciones de estatus en Cloud Functions.
+- Control de duplicados activos por usuario/ciclo y matricula/ciclo.
+- Generacion de folio y token QR en backend.
+- Auditoria en `audit_logs`.
+- Cola de notificaciones en `notifications` y documentos compatibles con la
+  extension Trigger Email en `mail`.
 
-```bash
-ng serve
-```
-
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
-
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
-```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+## Comandos utiles
 
 ```bash
-ng generate --help
+npm run build
+npm test -- --watch=false
+npm --prefix functions run build
+npm --prefix functions run lint
+firebase emulators:start
 ```
 
-## Building
+## Correo transaccional
 
-To build the project run:
+Las Functions escriben documentos en `mail/{id}` con `to` y `message`. Para que
+los correos salgan realmente, instala y configura la extension oficial de
+Firebase **Trigger Email** apuntando a la coleccion `mail`.
+
+## Despliegue
 
 ```bash
-ng build
+firebase deploy --only firestore,storage,functions,hosting
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+El proyecto Firebase configurado es `credencial-tup`.

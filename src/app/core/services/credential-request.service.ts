@@ -3,26 +3,42 @@ import {
   DocumentData,
   Query,
   QueryDocumentSnapshot,
-  Timestamp,
-  addDoc,
-  arrayUnion,
   collection,
-  doc,
   onSnapshot,
   query,
-  updateDoc,
   where,
 } from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { Observable } from 'rxjs';
-import { db, storage } from '../firebase/firebase.client';
+import { db, functions, storage } from '../firebase/firebase.client';
 import {
   CreateCredentialRequestInput,
   CredentialDocument,
   CredentialRequest,
   CredentialRequestStatus,
-  CredentialTimelineEvent,
 } from '../models/credential-request.model';
+
+interface CreateCredentialRequestPayload {
+  email: string;
+  studentId: string;
+  name: string;
+  career: string;
+  cycle: string;
+  phone: string;
+  photo: CredentialDocument;
+  evidence: CredentialDocument;
+}
+
+interface CreateCredentialRequestResponse {
+  requestId: string;
+}
+
+interface UpdateCredentialRequestStatusPayload {
+  requestId: string;
+  status: CredentialRequestStatus;
+  note?: string;
+}
 
 @Injectable({
   providedIn: 'root',
@@ -42,7 +58,6 @@ export class CredentialRequestService {
   }
 
   async createRequest(input: CreateCredentialRequestInput): Promise<string> {
-    const now = Timestamp.now();
     const basePath = `credential-requests/${input.uid}/${Date.now()}`;
     const photo = await this.uploadDocument(
       `${basePath}/photo-${this.safeName(input.photo.name)}`,
@@ -54,77 +69,39 @@ export class CredentialRequestService {
       input.evidence,
       'evidence'
     );
-
-    const timeline: CredentialTimelineEvent[] = [
-      {
-        status: 'SUBMITTED',
-        actorUid: input.uid,
-        note: 'Solicitud enviada por estudiante.',
-        timestamp: now,
-      },
-    ];
-
-    const request = await addDoc(this.collectionRef, {
-      uid: input.uid,
+    const createCredentialRequest = httpsCallable<
+      CreateCredentialRequestPayload,
+      CreateCredentialRequestResponse
+    >(functions, 'createCredentialRequest');
+    const result = await createCredentialRequest({
       email: input.email,
       studentId: input.studentId,
       name: input.name,
       career: input.career,
       cycle: input.cycle,
       phone: input.phone,
-      status: 'SUBMITTED',
-      photoUrl: photo.url,
-      documents: [photo, evidence],
-      timeline,
-      submittedAt: now,
-      updatedAt: now,
+      photo,
+      evidence,
     });
 
-    return request.id;
+    return result.data.requestId;
   }
 
   async updateStatus(
     requestId: string,
     status: CredentialRequestStatus,
-    actorUid: string,
     note?: string
   ): Promise<void> {
-    const now = Timestamp.now();
-    const requestRef = doc(db, 'credential_requests', requestId);
-    const changes: Record<string, unknown> = {
+    const updateCredentialRequestStatus = httpsCallable<
+      UpdateCredentialRequestStatusPayload,
+      { ok: boolean }
+    >(functions, 'updateCredentialRequestStatus');
+
+    await updateCredentialRequestStatus({
+      requestId,
       status,
-      updatedAt: now,
-      timeline: arrayUnion({
-        status,
-        actorUid,
-        note: note || '',
-        timestamp: now,
-      }),
-    };
-
-    if (status === 'UNDER_REVIEW' || status === 'APPROVED_FOR_PRINT' || status === 'REJECTED') {
-      changes['reviewedAt'] = now;
-      changes['reviewNotes'] = note || '';
-    }
-
-    if (status === 'REJECTED') {
-      changes['rejectionReason'] = note || 'Solicitud rechazada por administracion.';
-    }
-
-    if (status === 'APPROVED_FOR_PRINT') {
-      changes['credentialNumber'] = `CR-${new Date().getFullYear()}-${requestId.slice(0, 6).toUpperCase()}`;
-      changes['qrToken'] = crypto.randomUUID();
-    }
-
-    if (status === 'PRINTED') {
-      changes['printedAt'] = now;
-    }
-
-    if (status === 'DELIVERED') {
-      changes['deliveredAt'] = now;
-    }
-
-    await updateDoc(requestRef, changes);
+      note,
+    });
   }
 
   private async uploadDocument(

@@ -14,12 +14,24 @@ service firebase.storage {
       );
     }
 
-    match /credential-requests/{uid}/{allPaths=**} {
-      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
-      allow create, update: if signedIn()
-        && request.auth.uid == uid
+    function isPhoto(fileName) {
+      return fileName.matches('photo-.*')
+        && request.resource.size < 2 * 1024 * 1024
+        && request.resource.contentType.matches('image/(jpeg|png)');
+    }
+
+    function isEvidence(fileName) {
+      return fileName.matches('evidence-.*')
         && request.resource.size < 5 * 1024 * 1024
-        && request.resource.contentType.matches('image/.*|application/pdf');
+        && request.resource.contentType.matches('image/(jpeg|png)|application/pdf');
+    }
+
+    match /credential-requests/{uid}/{requestFolder}/{fileName} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow create: if signedIn()
+        && request.auth.uid == uid
+        && (isPhoto(fileName) || isEvidence(fileName));
+      allow update: if false;
       allow delete: if false;
     }
   }

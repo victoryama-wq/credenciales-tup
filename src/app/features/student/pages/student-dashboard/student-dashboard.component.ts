@@ -9,6 +9,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
+import { Router } from '@angular/router';
 import { AuthService } from '../../../../core/services/auth.service';
 import { CredentialRequest, statusLabels } from '../../../../core/models/credential-request.model';
 import { CredentialRequestService } from '../../../../core/services/credential-request.service';
@@ -34,6 +35,7 @@ export class StudentDashboardComponent implements OnInit {
   private authService = inject(AuthService);
   private requestService = inject(CredentialRequestService);
   private destroyRef = inject(DestroyRef);
+  private router = inject(Router);
 
   readonly statusLabels = statusLabels;
   readonly careers = [
@@ -153,6 +155,11 @@ export class StudentDashboardComponent implements OnInit {
     } finally {
       this.submitting = false;
     }
+  }
+
+  async logout(): Promise<void> {
+    await this.authService.logout();
+    await this.router.navigate(['/login']);
   }
 
   private isAllowedFile(file: File, type: 'photo' | 'evidence'): boolean {

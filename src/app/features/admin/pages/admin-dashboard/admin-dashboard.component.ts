@@ -8,9 +8,11 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
+import { Router } from '@angular/router';
 import {
   CredentialRequest,
   CredentialRequestStatus,
+  canTransitionCredentialRequestStatus,
   credentialRequestStatuses,
   statusLabels,
 } from '../../../../core/models/credential-request.model';
@@ -36,6 +38,7 @@ export class AdminDashboardComponent implements OnInit {
   private authService = inject(AuthService);
   private requestService = inject(CredentialRequestService);
   private destroyRef = inject(DestroyRef);
+  private router = inject(Router);
 
   readonly statusLabels = statusLabels;
   readonly statuses = credentialRequestStatuses;
@@ -99,7 +102,7 @@ export class AdminDashboardComponent implements OnInit {
     this.errorMessage = '';
 
     try {
-      await this.requestService.updateStatus(request.id, status, user.uid, note);
+      await this.requestService.updateStatus(request.id, status, note);
       this.notes[request.id] = '';
     } catch (error) {
       this.errorMessage =
@@ -110,16 +113,11 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   canMove(request: CredentialRequest, status: CredentialRequestStatus): boolean {
-    const allowed: Record<CredentialRequestStatus, CredentialRequestStatus[]> = {
-      SUBMITTED: ['UNDER_REVIEW', 'REJECTED'],
-      UNDER_REVIEW: ['APPROVED_FOR_PRINT', 'REJECTED'],
-      REJECTED: ['UNDER_REVIEW'],
-      APPROVED_FOR_PRINT: ['PRINTED'],
-      PRINTED: ['READY_FOR_PICKUP'],
-      READY_FOR_PICKUP: ['DELIVERED'],
-      DELIVERED: [],
-    };
+    return canTransitionCredentialRequestStatus(request.status, status);
+  }
 
-    return allowed[request.status].includes(status);
+  async logout(): Promise<void> {
+    await this.authService.logout();
+    await this.router.navigate(['/login']);
   }
 }

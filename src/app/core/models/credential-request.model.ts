@@ -29,6 +29,26 @@ export const statusLabels: Record<CredentialRequestStatus, string> = {
   DELIVERED: 'Entregada',
 };
 
+export const allowedStatusTransitions: Record<
+  CredentialRequestStatus,
+  CredentialRequestStatus[]
+> = {
+  SUBMITTED: ['UNDER_REVIEW', 'REJECTED'],
+  UNDER_REVIEW: ['APPROVED_FOR_PRINT', 'REJECTED'],
+  REJECTED: ['UNDER_REVIEW'],
+  APPROVED_FOR_PRINT: ['PRINTED'],
+  PRINTED: ['READY_FOR_PICKUP'],
+  READY_FOR_PICKUP: ['DELIVERED'],
+  DELIVERED: [],
+};
+
+export function canTransitionCredentialRequestStatus(
+  current: CredentialRequestStatus,
+  next: CredentialRequestStatus
+): boolean {
+  return allowedStatusTransitions[current].includes(next);
+}
+
 export interface CredentialDocument {
   type: 'photo' | 'evidence';
   name: string;
@@ -66,6 +86,7 @@ export interface CredentialRequest {
   updatedAt: Timestamp;
   reviewedAt?: Timestamp;
   printedAt?: Timestamp;
+  readyForPickupAt?: Timestamp;
   deliveredAt?: Timestamp;
 }
 
