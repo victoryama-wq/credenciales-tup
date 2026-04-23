@@ -7,6 +7,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Router } from '@angular/router';
+import { institutionalEmailDomain } from '../../../../core/auth/institutional-email.util';
 import { AuthService } from '../../../../core/services/auth.service';
 
 @Component({
@@ -28,13 +29,26 @@ export class LoginPageComponent {
   private authService = inject(AuthService);
   private router = inject(Router);
 
-  loading = false;
+  readonly institutionalEmailDomain = institutionalEmailDomain;
+
+  loadingMode: 'email' | 'google' | null = null;
   errorMessage = '';
 
   form = this.fb.nonNullable.group({
-    email: ['', [Validators.required, Validators.email]],
+    email: [
+      '',
+      [
+        Validators.required,
+        Validators.email,
+        Validators.pattern(/^[^\s@]+@tecplayacar\.edu\.mx$/i),
+      ],
+    ],
     password: ['', [Validators.required, Validators.minLength(6)]],
   });
+
+  get isBusy(): boolean {
+    return this.loadingMode !== null;
+  }
 
   async login() {
     if (this.form.invalid) {
@@ -42,7 +56,7 @@ export class LoginPageComponent {
       return;
     }
 
-    this.loading = true;
+    this.loadingMode = 'email';
     this.errorMessage = '';
 
     try {
@@ -52,12 +66,25 @@ export class LoginPageComponent {
 
       await this.router.navigate([role === 'admin' ? '/admin' : '/student']);
     } catch (error) {
-      this.errorMessage =
-        error instanceof Error
-          ? error.message
-          : 'No fue posible iniciar sesion.';
+      this.errorMessage = this.authService.formatAuthError(error);
     } finally {
-      this.loading = false;
+      this.loadingMode = null;
+    }
+  }
+
+  async loginWithGoogle(): Promise<void> {
+    this.loadingMode = 'google';
+    this.errorMessage = '';
+
+    try {
+      const userCredential = await this.authService.loginWithGoogle();
+      const role = await this.authService.getUserRole(userCredential.user);
+
+      await this.router.navigate([role === 'admin' ? '/admin' : '/student']);
+    } catch (error) {
+      this.errorMessage = this.authService.formatAuthError(error);
+    } finally {
+      this.loadingMode = null;
     }
   }
 }

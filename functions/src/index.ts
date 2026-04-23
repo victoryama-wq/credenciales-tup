@@ -1,5 +1,6 @@
 import {randomUUID} from "crypto";
 import {initializeApp} from "firebase-admin/app";
+import {getAuth} from "firebase-admin/auth";
 import {
   FieldValue,
   Timestamp,
@@ -45,6 +46,8 @@ interface UpdateStatusData {
   note?: string;
 }
 
+type UserRole = "admin" | "student";
+
 interface StoredCredentialRequest {
   uid: string;
   email: string;
@@ -59,7 +62,14 @@ interface StoredCredentialRequest {
 }
 
 const db = getFirestore();
+const adminAuth = getAuth();
 const requests = db.collection("credential_requests");
+const institutionalEmailDomain = "tecplayacar.edu.mx";
+const adminEmails = new Set([
+  "victor.yama@tecplayacar.edu.mx",
+  "omar.sanchez@tecplayacar.edu.mx",
+  "lizett.mendez@tecplayacar.edu.mx",
+]);
 
 const allowedTransitions: Record<
   CredentialRequestStatus,
@@ -149,6 +159,66 @@ export const createCredentialRequest = onCall(async (request) => {
   });
 
   return {requestId: requestRef.id};
+});
+
+export const syncUserSession = onCall(async (request) => {
+  const auth = request.auth;
+
+  if (!auth) {
+    throw new HttpsError("unauthenticated", "Inicia sesion.");
+  }
+
+  const email = normalizeEmail(auth.token.email as string | undefined);
+
+  if (!isInstitutionalEmail(email)) {
+    throw new HttpsError(
+      "permission-denied",
+      "Solo se permiten cuentas institucionales."
+    );
+  }
+
+  const role = resolveUserRole(email);
+  const userRecord = await adminAuth.getUser(auth.uid);
+  const customClaims = userRecord.customClaims || {};
+  const nextClaims = {
+    ...customClaims,
+    role,
+    admin: role === "admin",
+  };
+
+  if (
+    customClaims.role !== nextClaims.role ||
+    customClaims.admin !== nextClaims.admin
+  ) {
+    await adminAuth.setCustomUserClaims(auth.uid, nextClaims);
+  }
+
+  const userRef = db.collection("users").doc(auth.uid);
+  const userSnapshot = await userRef.get();
+  const now = Timestamp.now();
+  const profile = {
+    uid: auth.uid,
+    role,
+    name: resolveDisplayName(
+      auth.token.name as string | undefined,
+      userRecord.displayName,
+      email
+    ),
+    email,
+    active: true,
+    updatedAt: now,
+  };
+
+  if (userSnapshot.exists) {
+    await userRef.set(profile, {merge: true});
+  } else {
+    await userRef.set({
+      ...profile,
+      createdAt: now,
+    });
+  }
+
+  return {role};
 });
 
 export const updateCredentialRequestStatus = onCall(async (request) => {
@@ -457,6 +527,33 @@ function isAdmin(token: Record<string, unknown>): boolean {
   return token.admin === true || token.role === "admin" || token.role === "ADMIN";
 }
 
+function isInstitutionalEmail(email: string): boolean {
+  return !!email && email.endsWith(`@${institutionalEmailDomain}`);
+}
+
+function resolveUserRole(email: string): UserRole {
+  return adminEmails.has(email) ? "admin" : "student";
+}
+
+function resolveDisplayName(
+  tokenName: string | undefined,
+  userName: string | null | undefined,
+  email: string
+): string {
+  const baseName = tokenName?.trim() || userName?.trim();
+
+  if (baseName) {
+    return baseName;
+  }
+
+  return email
+    .split("@")[0]
+    .split(/[._-]+/)
+    .filter(Boolean)
+    .map((part) => part[0].toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
 function requireString(value: unknown, field: string): string {
   if (typeof value !== "string" || !value.trim()) {
     throw new HttpsError("invalid-argument", `Campo requerido: ${field}.`);
@@ -475,8 +572,8 @@ function requireStatus(value: unknown): CredentialRequestStatus {
   return value as CredentialRequestStatus;
 }
 
-function normalizeEmail(email: string): string {
-  const clean = email.trim().toLowerCase();
+function normalizeEmail(email: string | undefined): string {
+  const clean = (email || "").trim().toLowerCase();
 
   if (!clean || !clean.includes("@")) {
     throw new HttpsError("invalid-argument", "Correo invalido.");

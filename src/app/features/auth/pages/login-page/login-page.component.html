@@ -16,7 +16,54 @@
         </mat-card-header>
 
         <mat-card-content class="!px-0 !pb-0 !pt-8">
-          <form [formGroup]="form" (ngSubmit)="login()" class="space-y-4">
+          <div class="space-y-4">
+            <button
+              mat-stroked-button
+              type="button"
+              class="!h-12 w-full !rounded-md !border-[var(--tup-border)] !text-[var(--tup-ink)]"
+              [disabled]="isBusy"
+              (click)="loginWithGoogle()"
+            >
+              <span class="inline-flex items-center gap-3">
+                @if (loadingMode === 'google') {
+                  <mat-progress-spinner diameter="22" mode="indeterminate"></mat-progress-spinner>
+                } @else {
+                  <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+                    <path
+                      fill="#4285F4"
+                      d="M21.805 10.023h-9.76v3.955h5.597c-.241 1.273-.965 2.352-2.058 3.075v2.553h3.328c1.948-1.794 3.073-4.438 3.073-7.583 0-.673-.06-1.319-.18-2z"
+                    />
+                    <path
+                      fill="#34A853"
+                      d="M12.045 22c2.79 0 5.13-.925 6.84-2.514l-3.328-2.553c-.925.62-2.105.987-3.512.987-2.699 0-4.984-1.823-5.804-4.275H2.803v2.687A10.324 10.324 0 0 0 12.045 22z"
+                    />
+                    <path
+                      fill="#FBBC05"
+                      d="M6.241 13.645a6.202 6.202 0 0 1 0-3.97V6.988H2.803a10.324 10.324 0 0 0 0 9.344l3.438-2.687z"
+                    />
+                    <path
+                      fill="#EA4335"
+                      d="M12.045 6.1c1.518 0 2.883.522 3.955 1.55l2.966-2.967C17.171 2.996 14.835 2 12.045 2A10.324 10.324 0 0 0 2.803 6.988l3.438 2.687C7.061 7.923 9.346 6.1 12.045 6.1z"
+                    />
+                  </svg>
+                  <span>Continuar con Google</span>
+                }
+              </span>
+            </button>
+
+            <p class="text-center text-xs text-[var(--tup-muted)]">
+              Acceso con cuentas institucionales {{ '@' + institutionalEmailDomain }}
+            </p>
+
+            <div class="relative py-2">
+              <span class="absolute inset-x-0 top-1/2 border-t border-[var(--tup-border)]"></span>
+              <span class="relative mx-auto block w-fit bg-white px-3 text-xs text-[var(--tup-muted)]">
+                o con correo y contrasena
+              </span>
+            </div>
+          </div>
+
+          <form [formGroup]="form" (ngSubmit)="login()" class="space-y-4 pt-2">
             <mat-form-field appearance="outline" class="w-full">
               <mat-label>Correo</mat-label>
               <input
@@ -29,6 +76,8 @@
                 <mat-error>El correo es obligatorio.</mat-error>
               } @else if (form.controls.email.hasError('email')) {
                 <mat-error>Ingresa un correo valido.</mat-error>
+              } @else if (form.controls.email.hasError('pattern')) {
+                <mat-error>Usa tu correo institucional @tecplayacar.edu.mx.</mat-error>
               }
             </mat-form-field>
 
@@ -58,9 +107,9 @@
               color="primary"
               type="submit"
               class="!h-12 w-full !rounded-md"
-              [disabled]="loading || form.invalid"
+              [disabled]="isBusy || form.invalid"
             >
-              @if (loading) {
+              @if (loadingMode === 'email') {
                 <mat-progress-spinner
                   diameter="22"
                   mode="indeterminate"

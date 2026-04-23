@@ -13,7 +13,14 @@ export const roleGuard: CanActivateFn = async (route) => {
     return router.createUrlTree(['/login']);
   }
 
-  const actualRole = await authService.getUserRole(user);
+  let actualRole: UserRole;
+
+  try {
+    actualRole = await authService.getUserRole(user);
+  } catch {
+    await authService.logout();
+    return router.createUrlTree(['/login']);
+  }
 
   if (!expectedRole || actualRole === expectedRole) {
     return true;

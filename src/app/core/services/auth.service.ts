@@ -1,21 +1,55 @@
 import { Injectable } from '@angular/core';
 import {
+  GoogleAuthProvider,
   User,
   UserCredential,
-  getIdTokenResult,
+  getIdToken,
   onAuthStateChanged,
   signInWithEmailAndPassword,
+  signInWithPopup,
   signOut,
 } from 'firebase/auth';
-import { auth } from '../firebase/firebase.client';
+import { httpsCallable } from 'firebase/functions';
+import { auth, functions } from '../firebase/firebase.client';
+import {
+  isInstitutionalEmail,
+  normalizeEmailAddress,
+} from '../auth/institutional-email.util';
 import { UserRole } from '../models/user-role.model';
+
+interface SyncUserSessionResult {
+  role: UserRole;
+}
 
 @Injectable({
   providedIn: 'root',
 })
 export class AuthService {
-  login(email: string, password: string): Promise<UserCredential> {
-    return signInWithEmailAndPassword(auth, email, password);
+  private readonly syncUserSessionCallable = httpsCallable<void, SyncUserSessionResult>(
+    functions,
+    'syncUserSession'
+  );
+
+  async login(email: string, password: string): Promise<UserCredential> {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+
+    await this.ensureInstitutionalSession(userCredential.user);
+
+    return userCredential;
+  }
+
+  async loginWithGoogle(): Promise<UserCredential> {
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({
+      hd: 'tecplayacar.edu.mx',
+      prompt: 'select_account',
+    });
+
+    const userCredential = await signInWithPopup(auth, provider);
+
+    await this.ensureInstitutionalSession(userCredential.user);
+
+    return userCredential;
   }
 
   logout(): Promise<void> {
@@ -40,13 +74,62 @@ export class AuthService {
   }
 
   async getUserRole(user: User): Promise<UserRole> {
-    const token = await getIdTokenResult(user);
-    const role = token.claims['role'];
+    return this.syncUserSession(user);
+  }
 
-    if (role === 'admin' || token.claims['admin'] === true) {
-      return 'admin';
+  private async ensureInstitutionalSession(user: User): Promise<UserRole> {
+    if (!isInstitutionalEmail(user.email)) {
+      await signOut(auth);
+      throw new Error('Usa tu cuenta institucional @tecplayacar.edu.mx.');
     }
 
-    return 'student';
+    return this.syncUserSession(user);
+  }
+
+  private async syncUserSession(user: User): Promise<UserRole> {
+    if (!isInstitutionalEmail(user.email)) {
+      await signOut(auth);
+      throw new Error('Solo se permite acceso con correo institucional.');
+    }
+
+    const response = await this.syncUserSessionCallable();
+    await getIdToken(user, true);
+
+    return response.data.role;
+  }
+
+  formatAuthError(error: unknown): string {
+    const code = this.extractFirebaseErrorCode(error);
+
+    switch (code) {
+      case 'auth/invalid-credential':
+      case 'auth/wrong-password':
+      case 'auth/user-not-found':
+        return 'El correo o la contrasena no coinciden.';
+      case 'auth/popup-closed-by-user':
+        return 'Se cerro la ventana de Google antes de completar el acceso.';
+      case 'auth/popup-blocked':
+        return 'El navegador bloqueo la ventana emergente de Google.';
+      case 'auth/account-exists-with-different-credential':
+        return 'Ese correo ya existe con otro metodo de acceso.';
+      case 'functions/permission-denied':
+        return 'Solo se permite acceso con cuentas @tecplayacar.edu.mx.';
+      default:
+        if (error instanceof Error && error.message) {
+          return error.message;
+        }
+
+        return 'No fue posible iniciar sesion.';
+    }
+  }
+
+  private extractFirebaseErrorCode(error: unknown): string {
+    if (typeof error !== 'object' || error === null) {
+      return '';
+    }
+
+    const maybeCode = (error as { code?: unknown }).code;
+
+    return typeof maybeCode === 'string' ? normalizeEmailAddress(maybeCode) : '';
   }
 }
