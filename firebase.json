@@ -38,6 +38,9 @@
       }
     ]
   },
+  "extensions": {
+    "trigger-email": "firebase/firestore-send-email@0.2.8"
+  },
   "storage": {
     "rules": "storage.rules"
   },

@@ -33,6 +33,11 @@ yarn-error.log
 # Miscellaneous
 /.angular/cache
 .firebase/
+extensions/*.env
+extensions/*.env.*
+extensions/*.secret.local
+oauth2-refresh-token-helper.js
+refresh_token.txt
 .chrome-debug*/
 .sass-cache/
 /connect.lock
