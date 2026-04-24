@@ -9,6 +9,13 @@ export type CredentialRequestStatus =
   | 'READY_FOR_PICKUP'
   | 'DELIVERED';
 
+export type CredentialRequestType = 'FIRST_TIME' | 'REPLACEMENT';
+
+export const credentialRequestTypeLabels: Record<CredentialRequestType, string> = {
+  FIRST_TIME: 'Tramite por primera vez',
+  REPLACEMENT: 'Reposicion de credencial',
+};
+
 export const credentialRequestStatuses: CredentialRequestStatus[] = [
   'SUBMITTED',
   'UNDER_REVIEW',
@@ -67,6 +74,7 @@ export interface CredentialTimelineEvent {
 export interface CredentialRequest {
   id: string;
   uid: string;
+  requestType?: CredentialRequestType;
   studentId: string;
   name: string;
   email: string;
@@ -99,5 +107,6 @@ export interface CreateCredentialRequestInput {
   cycle: string;
   phone: string;
   photo: File;
-  evidence: File;
+  evidence?: File | null;
+  requestType: CredentialRequestType;
 }

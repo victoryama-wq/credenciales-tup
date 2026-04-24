@@ -3,6 +3,7 @@ import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatCardModule } from '@angular/material/card';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -11,7 +12,12 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../../core/services/auth.service';
-import { CredentialRequest, statusLabels } from '../../../../core/models/credential-request.model';
+import {
+  CredentialRequest,
+  CredentialRequestType,
+  credentialRequestTypeLabels,
+  statusLabels,
+} from '../../../../core/models/credential-request.model';
 import { CredentialRequestService } from '../../../../core/services/credential-request.service';
 
 @Component({
@@ -21,6 +27,7 @@ import { CredentialRequestService } from '../../../../core/services/credential-r
     CommonModule,
     ReactiveFormsModule,
     MatButtonModule,
+    MatButtonToggleModule,
     MatCardModule,
     MatDividerModule,
     MatFormFieldModule,
@@ -38,15 +45,46 @@ export class StudentDashboardComponent implements OnInit {
   private router = inject(Router);
 
   readonly statusLabels = statusLabels;
+  readonly requestTypeLabels = credentialRequestTypeLabels;
+  readonly requestTypes: CredentialRequestType[] = ['FIRST_TIME', 'REPLACEMENT'];
   readonly careers = [
-    'Administracion',
-    'Contaduria',
-    'Derecho',
-    'Gastronomia',
-    'Ingenieria en Sistemas',
-    'Turismo',
+    'Lic. Administración de Empresas',
+    'Lic. Administración de Empresas Turísticas',
+    'Lic. en Contaduría Pública',
+    'Lic. en Ing. en Sistemas Computacionales',
+    'Lic. en Diseño Gráfico Digital',
+    'Lic. en Comercio Internacional',
+    'Lic. en Derecho',
+    'Lic. en Criminología y Criminalística',
+    'Lic. en Mercadotecnia',
+    'Lic. en Pedagogía',
+    'Lic. en Arquitectura',
+    'Lic. en Enfermería',
+    'Lic. en Nutrición',
+    'Lic. en Psicología',
+    'Maestría en Educación',
+    'Maestría en Recursos Humanos',
+    'Maestría en Juicios Orales',
+    'Maestría en Administración de Hospitales',
+    'Maestría en Administración de Negocios',
+    'Doctorado en Educación',
+    'Especialidad en Enfermería en Cuidados Intensivos',
+    'Especialidad en Enfermería Quirúrgica',
   ];
-  readonly cycles = ['2026-A', '2026-B', '2027-A'];
+  readonly cycles = [
+    'Primer cuatrimestre',
+    'Segundo cuatrimestre',
+    'Tercer cuatrimestre',
+    'Cuarto cuatrimestre',
+    'Quinto cuatrimestre',
+    'Sexto cuatrimestre',
+    'Séptimo cuatrimestre',
+    'Octavo cuatrimestre',
+    'Noveno cuatrimestre',
+    'Décimo cuatrimestre',
+    'Onceavo cuatrimestre',
+    'Doceavo cuatrimestre',
+  ];
 
   loading = true;
   submitting = false;
@@ -57,12 +95,25 @@ export class StudentDashboardComponent implements OnInit {
   requests: CredentialRequest[] = [];
 
   form = this.fb.nonNullable.group({
+    requestType: ['FIRST_TIME' as CredentialRequestType, Validators.required],
     studentId: ['', [Validators.required, Validators.minLength(4)]],
     name: ['', [Validators.required, Validators.minLength(3)]],
     career: ['', Validators.required],
-    cycle: ['2026-A', Validators.required],
+    cycle: ['Primer cuatrimestre', Validators.required],
     phone: ['', [Validators.required, Validators.minLength(10)]],
   });
+
+  get selectedRequestType(): CredentialRequestType {
+    return this.form.controls.requestType.value;
+  }
+
+  get isReplacement(): boolean {
+    return this.selectedRequestType === 'REPLACEMENT';
+  }
+
+  get hasFirstTimeRequest(): boolean {
+    return this.requests.some((request) => request.requestType !== 'REPLACEMENT');
+  }
 
   async ngOnInit(): Promise<void> {
     const user = await this.authService.waitForCurrentUser();
@@ -77,12 +128,23 @@ export class StudentDashboardComponent implements OnInit {
       name: user.displayName || '',
     });
 
+    this.form.controls.requestType.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((requestType) => {
+        if (requestType === 'FIRST_TIME') {
+          this.evidenceFile = null;
+        }
+      });
+
     this.requestService
       .watchRequestsByUser(user.uid)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (requests) => {
           this.requests = requests;
+          if (this.hasFirstTimeRequest && this.selectedRequestType === 'FIRST_TIME') {
+            this.form.controls.requestType.setValue('REPLACEMENT');
+          }
           this.loading = false;
         },
         error: (error) => {
@@ -120,9 +182,11 @@ export class StudentDashboardComponent implements OnInit {
       return;
     }
 
-    if (this.form.invalid || !this.photoFile || !this.evidenceFile) {
+    if (this.form.invalid || !this.photoFile || (this.isReplacement && !this.evidenceFile)) {
       this.form.markAllAsTouched();
-      this.errorMessage = 'Completa el formulario y adjunta foto y evidencia.';
+      this.errorMessage = this.isReplacement
+        ? 'Completa el formulario y adjunta foto y comprobante de pago.'
+        : 'Completa el formulario y adjunta tu foto.';
       return;
     }
 
@@ -131,19 +195,22 @@ export class StudentDashboardComponent implements OnInit {
     this.successMessage = '';
 
     try {
+      const formValue = this.form.getRawValue();
+
       await this.requestService.createRequest({
         uid: user.uid,
         email: user.email || '',
-        ...this.form.getRawValue(),
+        ...formValue,
         photo: this.photoFile,
-        evidence: this.evidenceFile,
+        evidence: this.isReplacement ? this.evidenceFile : null,
       });
 
       this.form.reset({
+        requestType: formValue.requestType === 'FIRST_TIME' ? 'REPLACEMENT' : formValue.requestType,
         studentId: '',
         name: user.displayName || '',
         career: '',
-        cycle: '2026-A',
+        cycle: 'Primer cuatrimestre',
         phone: '',
       });
       this.photoFile = null;
@@ -163,7 +230,7 @@ export class StudentDashboardComponent implements OnInit {
   }
 
   private isAllowedFile(file: File, type: 'photo' | 'evidence'): boolean {
-    const maxSize = type === 'photo' ? 2_000_000 : 5_000_000;
+    const maxSize = 10 * 1024 * 1024;
     const validPhoto = ['image/jpeg', 'image/png'];
     const validEvidence = ['image/jpeg', 'image/png', 'application/pdf'];
     const validTypes = type === 'photo' ? validPhoto : validEvidence;
@@ -179,8 +246,8 @@ export class StudentDashboardComponent implements OnInit {
     if (file.size > maxSize) {
       this.errorMessage =
         type === 'photo'
-          ? 'La foto no debe superar 2 MB.'
-          : 'La evidencia no debe superar 5 MB.';
+          ? 'La foto no debe superar 10 MB.'
+          : 'El comprobante no debe superar 10 MB.';
       return false;
     }
 

@@ -21,6 +21,8 @@ type CredentialRequestStatus =
   | "READY_FOR_PICKUP"
   | "DELIVERED";
 
+type CredentialRequestType = "FIRST_TIME" | "REPLACEMENT";
+
 interface CredentialDocument {
   type: "photo" | "evidence";
   name: string;
@@ -30,6 +32,7 @@ interface CredentialDocument {
 }
 
 interface CreateCredentialRequestData {
+  requestType?: CredentialRequestType;
   email?: string;
   studentId?: string;
   name?: string;
@@ -50,6 +53,7 @@ type UserRole = "admin" | "student";
 
 interface StoredCredentialRequest {
   uid: string;
+  requestType?: CredentialRequestType;
   email: string;
   studentId: string;
   name: string;
@@ -111,28 +115,50 @@ export const createCredentialRequest = onCall(async (request) => {
         .where("uid", "==", auth.uid)
         .where("cycle", "==", input.cycle)
     );
+    const sameUser = await transaction.get(
+      requests.where("uid", "==", auth.uid)
+    );
     const sameStudentCycle = await transaction.get(
       requests
         .where("studentId", "==", input.studentId)
         .where("cycle", "==", input.cycle)
     );
+    const sameStudent = await transaction.get(
+      requests.where("studentId", "==", input.studentId)
+    );
+
+    if (
+      input.requestType === "FIRST_TIME" &&
+      (hasFirstTimeRequest(sameUser.docs) ||
+        hasFirstTimeRequest(sameStudent.docs))
+    ) {
+      throw new HttpsError(
+        "already-exists",
+        "La credencial por primera vez solo puede solicitarse una vez."
+      );
+    }
 
     if (hasActiveRequest(sameUserCycle.docs)) {
       throw new HttpsError(
         "already-exists",
-        "Ya tienes una solicitud activa para este ciclo."
+        "Ya tienes una solicitud activa para este cuatrimestre."
       );
     }
 
     if (hasActiveRequest(sameStudentCycle.docs)) {
       throw new HttpsError(
         "already-exists",
-        "La matricula ya tiene una solicitud activa para este ciclo."
+        "La matricula ya tiene una solicitud activa para este cuatrimestre."
       );
     }
 
+    const documents = input.evidence ?
+      [input.photo, input.evidence] :
+      [input.photo];
+
     const payload = {
       uid: auth.uid,
+      requestType: input.requestType,
       email: input.email,
       studentId: input.studentId,
       name: input.name,
@@ -141,7 +167,7 @@ export const createCredentialRequest = onCall(async (request) => {
       phone: input.phone,
       status: "SUBMITTED",
       photoUrl: input.photo.url,
-      documents: [input.photo, input.evidence],
+      documents,
       timeline: [
         {
           status: "SUBMITTED",
@@ -284,10 +310,14 @@ function validateCreateData(
   uid: string,
   email: string
 ) {
+  const requestType = requireRequestType(data.requestType);
   const photo = validateDocument(data.photo, "photo", uid);
-  const evidence = validateDocument(data.evidence, "evidence", uid);
+  const evidence = requestType === "REPLACEMENT" ?
+    validateDocument(data.evidence, "evidence", uid) :
+    null;
 
   return {
+    requestType,
     email: normalizeEmail(email),
     studentId: requireString(data.studentId, "studentId").toUpperCase(),
     name: requireString(data.name, "name"),
@@ -523,6 +553,16 @@ function hasActiveRequest(
   });
 }
 
+function hasFirstTimeRequest(
+  docs: FirebaseFirestore.QueryDocumentSnapshot[]
+): boolean {
+  return docs.some((doc) => {
+    const data = doc.data() as StoredCredentialRequest;
+
+    return !data.requestType || data.requestType === "FIRST_TIME";
+  });
+}
+
 function isAdmin(token: Record<string, unknown>): boolean {
   return token.admin === true || token.role === "admin" || token.role === "ADMIN";
 }
@@ -570,6 +610,14 @@ function requireStatus(value: unknown): CredentialRequestStatus {
   }
 
   return value as CredentialRequestStatus;
+}
+
+function requireRequestType(value: unknown): CredentialRequestType {
+  if (value === "FIRST_TIME" || value === "REPLACEMENT") {
+    return value;
+  }
+
+  throw new HttpsError("invalid-argument", "Tipo de tramite invalido.");
 }
 
 function normalizeEmail(email: string | undefined): string {

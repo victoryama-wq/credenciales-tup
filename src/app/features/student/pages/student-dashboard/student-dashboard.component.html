@@ -20,151 +20,198 @@
     </header>
 
     <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_420px]">
-    <section>
-      <mat-card class="institution-card !rounded-lg !shadow-none">
-        <mat-card-header>
-          <mat-card-title>Datos de solicitud</mat-card-title>
-          <mat-card-subtitle>Completa tu informacion y adjunta archivos legibles.</mat-card-subtitle>
-        </mat-card-header>
+      <section>
+        <mat-card class="institution-card student-form-card !rounded-lg !shadow-none">
+          <mat-card-header>
+            <mat-card-title>Nueva solicitud</mat-card-title>
+            <mat-card-subtitle>Completa tus datos y adjunta solo los archivos requeridos.</mat-card-subtitle>
+          </mat-card-header>
 
-        <mat-card-content class="pt-6">
-          <form [formGroup]="form" (ngSubmit)="submit()" class="grid gap-4 md:grid-cols-2">
-            <mat-form-field appearance="outline" class="w-full">
-              <mat-label>Matricula</mat-label>
-              <input matInput formControlName="studentId" autocomplete="off" />
-              @if (form.controls.studentId.hasError('required')) {
-                <mat-error>La matricula es obligatoria.</mat-error>
-              }
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="w-full">
-              <mat-label>Nombre completo</mat-label>
-              <input matInput formControlName="name" autocomplete="name" />
-              @if (form.controls.name.hasError('required')) {
-                <mat-error>El nombre es obligatorio.</mat-error>
-              }
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="w-full">
-              <mat-label>Programa academico</mat-label>
-              <mat-select formControlName="career">
-                @for (career of careers; track career) {
-                  <mat-option [value]="career">{{ career }}</mat-option>
-                }
-              </mat-select>
-              @if (form.controls.career.hasError('required')) {
-                <mat-error>Selecciona un programa.</mat-error>
-              }
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="w-full">
-              <mat-label>Ciclo</mat-label>
-              <mat-select formControlName="cycle">
-                @for (cycle of cycles; track cycle) {
-                  <mat-option [value]="cycle">{{ cycle }}</mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="w-full md:col-span-2">
-              <mat-label>Telefono</mat-label>
-              <input matInput formControlName="phone" autocomplete="tel" />
-              @if (form.controls.phone.hasError('required')) {
-                <mat-error>El telefono es obligatorio.</mat-error>
-              }
-            </mat-form-field>
-
-            <div class="file-drop rounded-lg p-4">
-              <label class="block text-sm font-semibold text-[var(--tup-ink)]">Foto JPG/PNG max. 2 MB</label>
-              <input class="mt-3 w-full text-sm" type="file" accept="image/png,image/jpeg" (change)="setFile($event, 'photo')" />
-              @if (photoFile) {
-                <p class="mt-2 text-sm text-emerald-700">{{ photoFile.name }}</p>
-              }
-            </div>
-
-            <div class="file-drop rounded-lg p-4">
-              <label class="block text-sm font-semibold text-[var(--tup-ink)]">Evidencia JPG/PNG/PDF max. 5 MB</label>
-              <input class="mt-3 w-full text-sm" type="file" accept="image/png,image/jpeg,application/pdf" (change)="setFile($event, 'evidence')" />
-              @if (evidenceFile) {
-                <p class="mt-2 text-sm text-emerald-700">{{ evidenceFile.name }}</p>
-              }
-            </div>
-
-            @if (errorMessage) {
-              <p class="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 md:col-span-2">{{ errorMessage }}</p>
-            }
-
-            @if (successMessage) {
-              <p class="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-700 md:col-span-2">{{ successMessage }}</p>
-            }
-
-            <div class="md:col-span-2">
-              <button mat-flat-button color="primary" type="submit" [disabled]="submitting" class="!h-11 !rounded-md">
-                @if (submitting) {
-                  <mat-progress-spinner diameter="22" mode="indeterminate"></mat-progress-spinner>
-                } @else {
-                  Enviar solicitud
-                }
-              </button>
-            </div>
-          </form>
-        </mat-card-content>
-      </mat-card>
-    </section>
-
-    <aside>
-      <mat-card class="institution-card !rounded-lg !shadow-none">
-        <mat-card-header>
-          <mat-card-title>Mis solicitudes</mat-card-title>
-          <mat-card-subtitle>Seguimiento en tiempo real</mat-card-subtitle>
-        </mat-card-header>
-
-        <mat-card-content class="pt-4">
-          @if (loading) {
-            <div class="grid py-10 place-items-center">
-              <mat-progress-spinner diameter="32" mode="indeterminate"></mat-progress-spinner>
-            </div>
-          } @else if (!requests.length) {
-            <p class="rounded-md bg-slate-50 p-4 text-sm text-slate-600">Aun no tienes solicitudes registradas.</p>
-          } @else {
-            <div class="space-y-4">
-              @for (request of requests; track request.id) {
-                <article class="rounded-lg border border-[var(--tup-line)] bg-white p-4">
-                  <div class="flex items-start justify-between gap-3">
-                    <div>
-                      <p class="font-semibold text-[var(--tup-ink)]">{{ request.studentId }}</p>
-                      <p class="text-sm text-[var(--tup-muted)]">{{ request.career }} - {{ request.cycle }}</p>
-                    </div>
-                    <span class="status-pill rounded-full px-3 py-1 text-xs font-semibold">
-                      {{ statusLabels[request.status] }}
-                    </span>
-                  </div>
-
-                  <mat-divider class="!my-3"></mat-divider>
-
-                  <ol class="space-y-2">
-                    @for (event of request.timeline; track event.timestamp.seconds) {
-                      <li class="text-sm text-slate-700">
-                        <span class="font-medium">{{ statusLabels[event.status] }}</span>
-                        @if (event.note) {
-                          <span> - {{ event.note }}</span>
-                        }
-                      </li>
-                    }
-                  </ol>
-
-                  @if (request.rejectionReason) {
-                    <p class="mt-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
-                      {{ request.rejectionReason }}
-                    </p>
+          <mat-card-content class="pt-6">
+            <form [formGroup]="form" (ngSubmit)="submit()" class="grid gap-5">
+              <section class="rounded-lg border border-[var(--tup-line)] bg-white p-4">
+                <p class="mb-3 text-sm font-semibold text-[var(--tup-ink)]">Tipo de tramite</p>
+                <mat-button-toggle-group
+                  formControlName="requestType"
+                  class="request-type-toggle grid w-full gap-3 md:grid-cols-2"
+                >
+                  @for (type of requestTypes; track type) {
+                    <mat-button-toggle
+                      [value]="type"
+                      [disabled]="type === 'FIRST_TIME' && hasFirstTimeRequest"
+                      class="request-type-option"
+                    >
+                      <span class="block text-left">
+                        <span class="block font-semibold">{{ requestTypeLabels[type] }}</span>
+                        <span class="mt-1 block text-xs text-[var(--tup-muted)]">
+                          @if (type === 'FIRST_TIME') {
+                            Sin comprobante de pago
+                          } @else {
+                            Requiere comprobante de pago
+                          }
+                        </span>
+                      </span>
+                    </mat-button-toggle>
                   }
-                </article>
+                </mat-button-toggle-group>
+
+                @if (hasFirstTimeRequest) {
+                  <p class="mt-3 rounded-md bg-[var(--tup-soft-blue)] px-3 py-2 text-sm text-[var(--tup-primary)]">
+                    Ya tienes una solicitud de primera vez registrada.
+                  </p>
+                }
+              </section>
+
+              <section class="student-form-grid grid gap-4 md:grid-cols-2">
+                <mat-form-field appearance="outline" class="w-full">
+                  <mat-label>Matricula</mat-label>
+                  <input matInput formControlName="studentId" autocomplete="off" />
+                  @if (form.controls.studentId.hasError('required')) {
+                    <mat-error>La matricula es obligatoria.</mat-error>
+                  }
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="w-full">
+                  <mat-label>Nombre completo</mat-label>
+                  <input matInput formControlName="name" autocomplete="name" />
+                  @if (form.controls.name.hasError('required')) {
+                    <mat-error>El nombre es obligatorio.</mat-error>
+                  }
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="w-full">
+                  <mat-label>Programa academico</mat-label>
+                  <mat-select formControlName="career">
+                    @for (career of careers; track career) {
+                      <mat-option [value]="career">{{ career }}</mat-option>
+                    }
+                  </mat-select>
+                  @if (form.controls.career.hasError('required')) {
+                    <mat-error>Selecciona un programa.</mat-error>
+                  }
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="w-full">
+                  <mat-label>Cuatrimestre</mat-label>
+                  <mat-select formControlName="cycle">
+                    @for (cycle of cycles; track cycle) {
+                      <mat-option [value]="cycle">{{ cycle }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="w-full md:col-span-2">
+                  <mat-label>Telefono</mat-label>
+                  <input matInput formControlName="phone" autocomplete="tel" />
+                  @if (form.controls.phone.hasError('required')) {
+                    <mat-error>El telefono es obligatorio.</mat-error>
+                  }
+                </mat-form-field>
+              </section>
+
+              <section class="grid gap-4 md:grid-cols-2">
+                <div class="file-drop rounded-lg p-4">
+                  <label class="block text-sm font-semibold text-[var(--tup-ink)]">Foto JPG/PNG max. 10 MB</label>
+                  <input class="mt-3 w-full text-sm" type="file" accept="image/png,image/jpeg" (change)="setFile($event, 'photo')" />
+                  @if (photoFile) {
+                    <p class="mt-2 text-sm text-emerald-700">{{ photoFile.name }}</p>
+                  }
+                </div>
+
+                @if (isReplacement) {
+                  <div class="file-drop rounded-lg p-4">
+                    <label class="block text-sm font-semibold text-[var(--tup-ink)]">Comprobante de pago max. 10 MB</label>
+                    <input class="mt-3 w-full text-sm" type="file" accept="image/png,image/jpeg,application/pdf" (change)="setFile($event, 'evidence')" />
+                    @if (evidenceFile) {
+                      <p class="mt-2 text-sm text-emerald-700">{{ evidenceFile.name }}</p>
+                    }
+                  </div>
+                } @else {
+                  <div class="rounded-lg border border-[var(--tup-line)] bg-white p-4 text-sm text-[var(--tup-muted)]">
+                    <p class="font-semibold text-[var(--tup-ink)]">Sin costo por primera vez</p>
+                    <p class="mt-2">No se solicita comprobante de pago para este tramite.</p>
+                  </div>
+                }
+              </section>
+
+              @if (errorMessage) {
+                <p class="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{{ errorMessage }}</p>
               }
-            </div>
-          }
-        </mat-card-content>
-      </mat-card>
-    </aside>
+
+              @if (successMessage) {
+                <p class="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{{ successMessage }}</p>
+              }
+
+              <div>
+                <button mat-flat-button color="primary" type="submit" [disabled]="submitting" class="!h-11 !rounded-md">
+                  @if (submitting) {
+                    <mat-progress-spinner diameter="22" mode="indeterminate"></mat-progress-spinner>
+                  } @else {
+                    Enviar solicitud
+                  }
+                </button>
+              </div>
+            </form>
+          </mat-card-content>
+        </mat-card>
+      </section>
+
+      <aside>
+        <mat-card class="institution-card !rounded-lg !shadow-none">
+          <mat-card-header>
+            <mat-card-title>Mis solicitudes</mat-card-title>
+            <mat-card-subtitle>Seguimiento en tiempo real</mat-card-subtitle>
+          </mat-card-header>
+
+          <mat-card-content class="pt-4">
+            @if (loading) {
+              <div class="grid place-items-center py-10">
+                <mat-progress-spinner diameter="32" mode="indeterminate"></mat-progress-spinner>
+              </div>
+            } @else if (!requests.length) {
+              <p class="rounded-md bg-slate-50 p-4 text-sm text-slate-600">Aun no tienes solicitudes registradas.</p>
+            } @else {
+              <div class="space-y-4">
+                @for (request of requests; track request.id) {
+                  <article class="student-request-card rounded-lg border border-[var(--tup-line)] bg-white p-4">
+                    <div class="flex items-start justify-between gap-3">
+                      <div>
+                        <p class="font-semibold text-[var(--tup-ink)]">{{ request.studentId }}</p>
+                        <p class="text-sm text-[var(--tup-muted)]">{{ request.career }}</p>
+                        <p class="mt-1 text-xs text-[var(--tup-muted)]">
+                          {{ request.requestType === 'REPLACEMENT' ? 'Reposicion' : 'Primera vez' }} - {{ request.cycle }}
+                        </p>
+                      </div>
+                      <span class="status-pill rounded-full px-3 py-1 text-xs font-semibold">
+                        {{ statusLabels[request.status] }}
+                      </span>
+                    </div>
+
+                    <mat-divider class="!my-3"></mat-divider>
+
+                    <ol class="space-y-2">
+                      @for (event of request.timeline; track event.timestamp.seconds) {
+                        <li class="text-sm text-slate-700">
+                          <span class="font-medium">{{ statusLabels[event.status] }}</span>
+                          @if (event.note) {
+                            <span> - {{ event.note }}</span>
+                          }
+                        </li>
+                      }
+                    </ol>
+
+                    @if (request.rejectionReason) {
+                      <p class="mt-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+                        {{ request.rejectionReason }}
+                      </p>
+                    }
+                  </article>
+                }
+              </div>
+            }
+          </mat-card-content>
+        </mat-card>
+      </aside>
     </div>
   </div>
 </main>

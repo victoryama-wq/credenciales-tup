@@ -17,9 +17,11 @@ import {
   CredentialDocument,
   CredentialRequest,
   CredentialRequestStatus,
+  CredentialRequestType,
 } from '../models/credential-request.model';
 
 interface CreateCredentialRequestPayload {
+  requestType: CredentialRequestType;
   email: string;
   studentId: string;
   name: string;
@@ -27,7 +29,7 @@ interface CreateCredentialRequestPayload {
   cycle: string;
   phone: string;
   photo: CredentialDocument;
-  evidence: CredentialDocument;
+  evidence?: CredentialDocument;
 }
 
 interface CreateCredentialRequestResponse {
@@ -64,16 +66,19 @@ export class CredentialRequestService {
       input.photo,
       'photo'
     );
-    const evidence = await this.uploadDocument(
-      `${basePath}/evidence-${this.safeName(input.evidence.name)}`,
-      input.evidence,
-      'evidence'
-    );
+    const evidence = input.evidence
+      ? await this.uploadDocument(
+          `${basePath}/evidence-${this.safeName(input.evidence.name)}`,
+          input.evidence,
+          'evidence'
+        )
+      : undefined;
     const createCredentialRequest = httpsCallable<
       CreateCredentialRequestPayload,
       CreateCredentialRequestResponse
     >(functions, 'createCredentialRequest');
     const result = await createCredentialRequest({
+      requestType: input.requestType,
       email: input.email,
       studentId: input.studentId,
       name: input.name,
