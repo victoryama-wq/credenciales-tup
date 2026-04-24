@@ -3,7 +3,7 @@ export const environment = {
   useEmulators: false,
   firebase: {
   	apiKey: "AIzaSyCcHd1gsCTVmo8Q_obSGhtQMOQIhi3KV6g",
-  	authDomain: "credencial-tup.firebaseapp.com",
+  	authDomain: "credencial-tup.web.app",
   	projectId: "credencial-tup",
   	storageBucket: "credencial-tup.firebasestorage.app",
   	messagingSenderId: "384076369178",
