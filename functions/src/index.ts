@@ -7,7 +7,7 @@ import {
   getFirestore,
 } from "firebase-admin/firestore";
 import {setGlobalOptions} from "firebase-functions/v2";
-import {onCall, HttpsError} from "firebase-functions/v2/https";
+import {CallableOptions, onCall, HttpsError} from "firebase-functions/v2/https";
 
 initializeApp();
 setGlobalOptions({region: "us-central1"});
@@ -69,6 +69,15 @@ const db = getFirestore();
 const adminAuth = getAuth();
 const requests = db.collection("credential_requests");
 const institutionalEmailDomain = "tecplayacar.edu.mx";
+const callableOptions: CallableOptions = {
+  cors: [
+    "https://credencial-tup.web.app",
+    "https://credencial-tup.firebaseapp.com",
+    "http://localhost:4200",
+    "http://127.0.0.1:4200",
+  ],
+  invoker: "public",
+};
 const adminEmails = new Set([
   "victor.yama@tecplayacar.edu.mx",
   "omar.sanchez@tecplayacar.edu.mx",
@@ -96,7 +105,7 @@ const activeStatuses: CredentialRequestStatus[] = [
   "READY_FOR_PICKUP",
 ];
 
-export const createCredentialRequest = onCall(async (request) => {
+export const createCredentialRequest = onCall(callableOptions, async (request) => {
   const auth = request.auth;
 
   if (!auth) {
@@ -187,7 +196,7 @@ export const createCredentialRequest = onCall(async (request) => {
   return {requestId: requestRef.id};
 });
 
-export const syncUserSession = onCall(async (request) => {
+export const syncUserSession = onCall(callableOptions, async (request) => {
   const auth = request.auth;
 
   if (!auth) {
@@ -247,7 +256,7 @@ export const syncUserSession = onCall(async (request) => {
   return {role};
 });
 
-export const updateCredentialRequestStatus = onCall(async (request) => {
+export const updateCredentialRequestStatus = onCall(callableOptions, async (request) => {
   const auth = request.auth;
 
   if (!auth) {
