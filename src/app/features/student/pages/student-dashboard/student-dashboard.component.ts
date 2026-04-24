@@ -13,8 +13,10 @@ import { MatSelectModule } from '@angular/material/select';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../../core/services/auth.service';
 import {
+  CredentialApplicantType,
   CredentialRequest,
   CredentialRequestType,
+  credentialApplicantTypeLabels,
   credentialRequestTypeLabels,
   statusLabels,
 } from '../../../../core/models/credential-request.model';
@@ -45,6 +47,7 @@ export class StudentDashboardComponent implements OnInit {
   private router = inject(Router);
 
   readonly statusLabels = statusLabels;
+  readonly applicantTypeLabels = credentialApplicantTypeLabels;
   readonly requestTypeLabels = credentialRequestTypeLabels;
   readonly requestTypes: CredentialRequestType[] = ['FIRST_TIME', 'REPLACEMENT'];
   readonly careers = [
@@ -93,8 +96,10 @@ export class StudentDashboardComponent implements OnInit {
   photoFile: File | null = null;
   evidenceFile: File | null = null;
   requests: CredentialRequest[] = [];
+  detectedApplicantType: CredentialApplicantType = 'STUDENT';
 
   form = this.fb.nonNullable.group({
+    applicantType: ['STUDENT' as CredentialApplicantType, Validators.required],
     requestType: ['FIRST_TIME' as CredentialRequestType, Validators.required],
     studentId: ['', [Validators.required, Validators.minLength(4)]],
     name: ['', [Validators.required, Validators.minLength(3)]],
@@ -105,6 +110,22 @@ export class StudentDashboardComponent implements OnInit {
 
   get selectedRequestType(): CredentialRequestType {
     return this.form.controls.requestType.value;
+  }
+
+  get selectedApplicantType(): CredentialApplicantType {
+    return this.form.controls.applicantType.value;
+  }
+
+  get isStudentApplicant(): boolean {
+    return this.selectedApplicantType === 'STUDENT';
+  }
+
+  get isTeacherApplicant(): boolean {
+    return this.selectedApplicantType === 'TEACHER';
+  }
+
+  get isStaffApplicant(): boolean {
+    return this.selectedApplicantType === 'STAFF';
   }
 
   get isReplacement(): boolean {
@@ -124,7 +145,9 @@ export class StudentDashboardComponent implements OnInit {
       return;
     }
 
+    this.detectedApplicantType = this.detectApplicantType(user.email || '');
     this.form.patchValue({
+      applicantType: this.detectedApplicantType,
       name: user.displayName || '',
     });
 
@@ -135,6 +158,14 @@ export class StudentDashboardComponent implements OnInit {
           this.evidenceFile = null;
         }
       });
+
+    this.form.controls.applicantType.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((applicantType) => {
+        this.applyApplicantValidators(applicantType);
+      });
+
+    this.applyApplicantValidators(this.detectedApplicantType);
 
     this.requestService
       .watchRequestsByUser(user.uid)
@@ -184,9 +215,7 @@ export class StudentDashboardComponent implements OnInit {
 
     if (this.form.invalid || !this.photoFile || (this.isReplacement && !this.evidenceFile)) {
       this.form.markAllAsTouched();
-      this.errorMessage = this.isReplacement
-        ? 'Completa el formulario y adjunta foto y comprobante de pago.'
-        : 'Completa el formulario y adjunta tu foto.';
+      this.errorMessage = this.buildMissingDataMessage();
       return;
     }
 
@@ -196,21 +225,32 @@ export class StudentDashboardComponent implements OnInit {
 
     try {
       const formValue = this.form.getRawValue();
+      const applicantType = this.detectedApplicantType;
+      const isStudent = applicantType === 'STUDENT';
+      const isStaff = applicantType === 'STAFF';
+      const generatedIdentifier = user.email?.split('@')[0] || user.uid;
 
       await this.requestService.createRequest({
         uid: user.uid,
         email: user.email || '',
-        ...formValue,
+        applicantType,
+        requestType: formValue.requestType,
+        studentId: isStudent ? formValue.studentId : generatedIdentifier,
+        name: formValue.name,
+        career: isStudent || isStaff ? formValue.career : 'Docente',
+        cycle: isStudent ? formValue.cycle : 'No aplica',
+        phone: isStudent ? formValue.phone : 'No aplica',
         photo: this.photoFile,
         evidence: this.isReplacement ? this.evidenceFile : null,
       });
 
       this.form.reset({
+        applicantType,
         requestType: formValue.requestType === 'FIRST_TIME' ? 'REPLACEMENT' : formValue.requestType,
         studentId: '',
         name: user.displayName || '',
-        career: '',
-        cycle: 'Primer cuatrimestre',
+        career: applicantType === 'TEACHER' ? 'Docente' : '',
+        cycle: applicantType === 'STUDENT' ? 'Primer cuatrimestre' : 'No aplica',
         phone: '',
       });
       this.photoFile = null;
@@ -227,6 +267,102 @@ export class StudentDashboardComponent implements OnInit {
   async logout(): Promise<void> {
     await this.authService.logout();
     await this.router.navigate(['/login']);
+  }
+
+  applicantLabel(type: CredentialApplicantType | undefined): string {
+    return this.applicantTypeLabels[type || 'STUDENT'];
+  }
+
+  identifierLabel(type: CredentialApplicantType | undefined = this.selectedApplicantType): string {
+    if (type === 'TEACHER') {
+      return 'No. empleado docente';
+    }
+
+    if (type === 'STAFF') {
+      return 'No. empleado';
+    }
+
+    return 'Matricula';
+  }
+
+  areaLabel(type: CredentialApplicantType | undefined = this.selectedApplicantType): string {
+    if (type === 'TEACHER') {
+      return 'Docente';
+    }
+
+    if (type === 'STAFF') {
+      return 'Puesto';
+    }
+
+    return 'Programa academico';
+  }
+
+  displayCycle(request: CredentialRequest): string {
+    return request.applicantType === 'STUDENT' || !request.applicantType
+      ? ` - ${request.cycle}`
+      : '';
+  }
+
+  private buildMissingDataMessage(): string {
+    if (this.isReplacement && !this.evidenceFile) {
+      return 'Completa el formulario y adjunta foto y comprobante de pago.';
+    }
+
+    if (this.isStaffApplicant) {
+      return 'Captura nombre completo, puesto y foto.';
+    }
+
+    if (this.isTeacherApplicant) {
+      return 'Captura nombre completo y foto.';
+    }
+
+    return 'Completa el formulario y adjunta tu foto.';
+  }
+
+  private detectApplicantType(email: string): CredentialApplicantType {
+    const cleanEmail = email.trim().toLowerCase();
+    const account = cleanEmail.split('@')[0] || '';
+
+    if (/^tup-d\d{4,}$/.test(account)) {
+      return 'TEACHER';
+    }
+
+    if (/^tup\d{4,}$/.test(account)) {
+      return 'STUDENT';
+    }
+
+    return 'STAFF';
+  }
+
+  private applyApplicantValidators(applicantType: CredentialApplicantType): void {
+    const isStudent = applicantType === 'STUDENT';
+    const isStaff = applicantType === 'STAFF';
+
+    this.form.controls.studentId.setValidators(
+      isStudent ? [Validators.required, Validators.minLength(4)] : []
+    );
+    this.form.controls.career.setValidators(
+      isStudent || isStaff ? [Validators.required, Validators.minLength(2)] : []
+    );
+    this.form.controls.cycle.setValidators(isStudent ? [Validators.required] : []);
+    this.form.controls.phone.setValidators(
+      isStudent ? [Validators.required, Validators.minLength(10)] : []
+    );
+
+    this.form.patchValue(
+      {
+        studentId: isStudent ? this.form.controls.studentId.value : '',
+        career: isStudent || isStaff ? '' : 'Docente',
+        cycle: isStudent ? 'Primer cuatrimestre' : 'No aplica',
+        phone: isStudent ? this.form.controls.phone.value : '',
+      },
+      { emitEvent: false }
+    );
+
+    this.form.controls.studentId.updateValueAndValidity({ emitEvent: false });
+    this.form.controls.career.updateValueAndValidity({ emitEvent: false });
+    this.form.controls.cycle.updateValueAndValidity({ emitEvent: false });
+    this.form.controls.phone.updateValueAndValidity({ emitEvent: false });
   }
 
   private isAllowedFile(file: File, type: 'photo' | 'evidence'): boolean {

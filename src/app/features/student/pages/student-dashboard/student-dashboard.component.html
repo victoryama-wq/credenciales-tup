@@ -6,7 +6,7 @@
           <img src="/logo-tup.png" alt="TUP" class="logo-mark h-full w-full" />
         </div>
         <div>
-          <p class="eyebrow">Portal estudiante</p>
+          <p class="eyebrow">Portal institucional</p>
           <h1 class="text-2xl font-bold text-[var(--tup-ink)] md:text-3xl">Solicitud de credencial</h1>
         </div>
       </div>
@@ -29,6 +29,18 @@
 
           <mat-card-content class="pt-6">
             <form [formGroup]="form" (ngSubmit)="submit()" class="grid gap-5">
+              <section class="rounded-lg border border-[var(--tup-line)] bg-white p-4">
+                <p class="mb-3 text-sm font-semibold text-[var(--tup-ink)]">Tipo de solicitante</p>
+                <div class="rounded-lg bg-[var(--tup-soft-blue)] px-4 py-3">
+                  <p class="font-semibold text-[var(--tup-primary)]">
+                    {{ applicantTypeLabels[detectedApplicantType] }}
+                  </p>
+                  <p class="mt-1 text-sm text-[var(--tup-muted)]">
+                    Detectado automaticamente con tu correo institucional.
+                  </p>
+                </div>
+              </section>
+
               <section class="rounded-lg border border-[var(--tup-line)] bg-white p-4">
                 <p class="mb-3 text-sm font-semibold text-[var(--tup-ink)]">Tipo de tramite</p>
                 <mat-button-toggle-group
@@ -64,14 +76,6 @@
 
               <section class="student-form-grid grid gap-4 md:grid-cols-2">
                 <mat-form-field appearance="outline" class="w-full">
-                  <mat-label>Matricula</mat-label>
-                  <input matInput formControlName="studentId" autocomplete="off" />
-                  @if (form.controls.studentId.hasError('required')) {
-                    <mat-error>La matricula es obligatoria.</mat-error>
-                  }
-                </mat-form-field>
-
-                <mat-form-field appearance="outline" class="w-full">
                   <mat-label>Nombre completo</mat-label>
                   <input matInput formControlName="name" autocomplete="name" />
                   @if (form.controls.name.hasError('required')) {
@@ -79,34 +83,54 @@
                   }
                 </mat-form-field>
 
-                <mat-form-field appearance="outline" class="w-full">
-                  <mat-label>Programa academico</mat-label>
-                  <mat-select formControlName="career">
-                    @for (career of careers; track career) {
-                      <mat-option [value]="career">{{ career }}</mat-option>
+                @if (isStudentApplicant) {
+                  <mat-form-field appearance="outline" class="w-full">
+                    <mat-label>Matricula</mat-label>
+                    <input matInput formControlName="studentId" autocomplete="off" />
+                    @if (form.controls.studentId.hasError('required')) {
+                      <mat-error>La matricula es obligatoria.</mat-error>
                     }
-                  </mat-select>
-                  @if (form.controls.career.hasError('required')) {
-                    <mat-error>Selecciona un programa.</mat-error>
-                  }
-                </mat-form-field>
+                  </mat-form-field>
 
-                <mat-form-field appearance="outline" class="w-full">
-                  <mat-label>Cuatrimestre</mat-label>
-                  <mat-select formControlName="cycle">
-                    @for (cycle of cycles; track cycle) {
-                      <mat-option [value]="cycle">{{ cycle }}</mat-option>
+                  <mat-form-field appearance="outline" class="w-full">
+                    <mat-label>Programa academico</mat-label>
+                    <mat-select formControlName="career">
+                      @for (career of careers; track career) {
+                        <mat-option [value]="career">{{ career }}</mat-option>
+                      }
+                    </mat-select>
+                    @if (form.controls.career.hasError('required')) {
+                      <mat-error>Selecciona un programa.</mat-error>
                     }
-                  </mat-select>
-                </mat-form-field>
+                  </mat-form-field>
 
-                <mat-form-field appearance="outline" class="w-full md:col-span-2">
-                  <mat-label>Telefono</mat-label>
-                  <input matInput formControlName="phone" autocomplete="tel" />
-                  @if (form.controls.phone.hasError('required')) {
-                    <mat-error>El telefono es obligatorio.</mat-error>
-                  }
-                </mat-form-field>
+                  <mat-form-field appearance="outline" class="w-full">
+                    <mat-label>Cuatrimestre</mat-label>
+                    <mat-select formControlName="cycle">
+                      @for (cycle of cycles; track cycle) {
+                        <mat-option [value]="cycle">{{ cycle }}</mat-option>
+                      }
+                    </mat-select>
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline" class="w-full">
+                    <mat-label>Telefono</mat-label>
+                    <input matInput formControlName="phone" autocomplete="tel" />
+                    @if (form.controls.phone.hasError('required')) {
+                      <mat-error>El telefono es obligatorio.</mat-error>
+                    }
+                  </mat-form-field>
+                }
+
+                @if (isStaffApplicant) {
+                  <mat-form-field appearance="outline" class="w-full">
+                    <mat-label>Puesto</mat-label>
+                    <input matInput formControlName="career" autocomplete="organization-title" />
+                    @if (form.controls.career.hasError('required')) {
+                      <mat-error>El puesto es obligatorio.</mat-error>
+                    }
+                  </mat-form-field>
+                }
               </section>
 
               <section class="grid gap-4 md:grid-cols-2">
@@ -176,10 +200,16 @@
                   <article class="student-request-card rounded-lg border border-[var(--tup-line)] bg-white p-4">
                     <div class="flex items-start justify-between gap-3">
                       <div>
-                        <p class="font-semibold text-[var(--tup-ink)]">{{ request.studentId }}</p>
-                        <p class="text-sm text-[var(--tup-muted)]">{{ request.career }}</p>
+                        <p class="font-semibold text-[var(--tup-ink)]">{{ applicantLabel(request.applicantType) }}</p>
+                        @if (request.applicantType === 'STAFF') {
+                          <p class="text-sm text-[var(--tup-muted)]">Puesto: {{ request.career }}</p>
+                        } @else if (request.applicantType === 'TEACHER') {
+                          <p class="text-sm text-[var(--tup-muted)]">Docente</p>
+                        } @else {
+                          <p class="text-sm text-[var(--tup-muted)]">{{ request.studentId }} - {{ request.career }}</p>
+                        }
                         <p class="mt-1 text-xs text-[var(--tup-muted)]">
-                          {{ request.requestType === 'REPLACEMENT' ? 'Reposicion' : 'Primera vez' }} - {{ request.cycle }}
+                          {{ request.requestType === 'REPLACEMENT' ? 'Reposicion' : 'Primera vez' }}{{ displayCycle(request) }}
                         </p>
                       </div>
                       <span class="status-pill rounded-full px-3 py-1 text-xs font-semibold">

@@ -12,6 +12,16 @@
       </div>
 
       <div class="flex w-full flex-col gap-3 md:w-auto md:flex-row md:items-center">
+        <mat-form-field appearance="outline" class="w-full md:w-60">
+          <mat-label>Tipo de solicitante</mat-label>
+          <mat-select [(value)]="applicantFilter">
+            <mat-option value="ALL">Todos</mat-option>
+            @for (type of applicantTypes; track type) {
+              <mat-option [value]="type">{{ applicantTypeLabels[type] }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
         <mat-form-field appearance="outline" class="w-full md:w-72">
           <mat-label>Filtrar por estatus</mat-label>
           <mat-select [(value)]="statusFilter">
@@ -69,11 +79,21 @@
                   <div>
                     <h2 class="text-xl font-bold text-[var(--tup-ink)]">{{ request.name }}</h2>
                     <p class="text-sm text-[var(--tup-muted)]">{{ request.email }}</p>
-                    <p class="mt-2 text-sm text-[var(--tup-ink)]">
-                      Matricula: <strong>{{ request.studentId }}</strong>
+                    <p class="mt-2 text-sm font-semibold text-[var(--tup-primary)]">
+                      {{ applicantLabel(request.applicantType) }}
                     </p>
-                    <p class="text-sm text-[var(--tup-muted)]">{{ request.career }} - {{ request.cycle }}</p>
-                    <p class="text-sm text-[var(--tup-muted)]">Telefono: {{ request.phone }}</p>
+                    @if (showIdentifier(request)) {
+                      <p class="text-sm text-[var(--tup-ink)]">
+                        {{ identifierLabel(request.applicantType) }}: <strong>{{ request.studentId }}</strong>
+                      </p>
+                    }
+                    <p class="mt-2 text-sm text-[var(--tup-ink)]">
+                      {{ detailLabel(request) }}: <strong>{{ detailValue(request) }}</strong>
+                    </p>
+                    @if (!request.applicantType || request.applicantType === 'STUDENT') {
+                      <p class="text-sm text-[var(--tup-muted)]">Cuatrimestre: {{ request.cycle }}</p>
+                      <p class="text-sm text-[var(--tup-muted)]">Telefono: {{ request.phone }}</p>
+                    }
                   </div>
 
                   <span class="status-pill rounded-full px-3 py-1 text-xs font-semibold">

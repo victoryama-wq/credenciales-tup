@@ -14,6 +14,7 @@ import { Observable } from 'rxjs';
 import { db, functions, storage } from '../firebase/firebase.client';
 import {
   CreateCredentialRequestInput,
+  CredentialApplicantType,
   CredentialDocument,
   CredentialRequest,
   CredentialRequestStatus,
@@ -21,6 +22,7 @@ import {
 } from '../models/credential-request.model';
 
 interface CreateCredentialRequestPayload {
+  applicantType: CredentialApplicantType;
   requestType: CredentialRequestType;
   email: string;
   studentId: string;
@@ -78,6 +80,7 @@ export class CredentialRequestService {
       CreateCredentialRequestResponse
     >(functions, 'createCredentialRequest');
     const result = await createCredentialRequest({
+      applicantType: input.applicantType,
       requestType: input.requestType,
       email: input.email,
       studentId: input.studentId,

@@ -22,6 +22,7 @@ type CredentialRequestStatus =
   | "DELIVERED";
 
 type CredentialRequestType = "FIRST_TIME" | "REPLACEMENT";
+type CredentialApplicantType = "STUDENT" | "TEACHER" | "STAFF";
 
 interface CredentialDocument {
   type: "photo" | "evidence";
@@ -32,6 +33,7 @@ interface CredentialDocument {
 }
 
 interface CreateCredentialRequestData {
+  applicantType?: CredentialApplicantType;
   requestType?: CredentialRequestType;
   email?: string;
   studentId?: string;
@@ -53,6 +55,7 @@ type UserRole = "admin" | "student";
 
 interface StoredCredentialRequest {
   uid: string;
+  applicantType?: CredentialApplicantType;
   requestType?: CredentialRequestType;
   email: string;
   studentId: string;
@@ -157,7 +160,7 @@ export const createCredentialRequest = onCall(callableOptions, async (request) =
     if (hasActiveRequest(sameStudentCycle.docs)) {
       throw new HttpsError(
         "already-exists",
-        "La matricula ya tiene una solicitud activa para este cuatrimestre."
+        "El identificador ya tiene una solicitud activa para este periodo."
       );
     }
 
@@ -167,6 +170,7 @@ export const createCredentialRequest = onCall(callableOptions, async (request) =
 
     const payload = {
       uid: auth.uid,
+      applicantType: input.applicantType,
       requestType: input.requestType,
       email: input.email,
       studentId: input.studentId,
@@ -181,7 +185,7 @@ export const createCredentialRequest = onCall(callableOptions, async (request) =
         {
           status: "SUBMITTED",
           actorUid: auth.uid,
-          note: "Solicitud enviada por estudiante.",
+          note: `Solicitud enviada por ${applicantTypeLabel(input.applicantType)}.`,
           timestamp: now,
         },
       ],
@@ -319,20 +323,27 @@ function validateCreateData(
   uid: string,
   email: string
 ) {
+  const normalizedEmail = normalizeEmail(email);
+  const applicantType = resolveApplicantTypeByEmail(normalizedEmail);
   const requestType = requireRequestType(data.requestType);
   const photo = validateDocument(data.photo, "photo", uid);
   const evidence = requestType === "REPLACEMENT" ?
     validateDocument(data.evidence, "evidence", uid) :
     null;
+  const isStudent = applicantType === "STUDENT";
+  const isStaff = applicantType === "STAFF";
 
   return {
+    applicantType,
     requestType,
-    email: normalizeEmail(email),
-    studentId: requireString(data.studentId, "studentId").toUpperCase(),
+    email: normalizedEmail,
+    studentId: isStudent ?
+      requireString(data.studentId, "studentId").toUpperCase() :
+      buildNonStudentIdentifier(normalizedEmail, uid),
     name: requireString(data.name, "name"),
-    career: requireString(data.career, "career"),
-    cycle: requireString(data.cycle, "cycle"),
-    phone: requireString(data.phone, "phone"),
+    career: isStudent || isStaff ? requireString(data.career, "career") : "Docente",
+    cycle: isStudent ? requireString(data.cycle, "cycle") : "No aplica",
+    phone: isStudent ? requireString(data.phone, "phone") : "No aplica",
     photo,
     evidence,
   };
@@ -413,8 +424,11 @@ function buildCredentialNumber(
   const cycle = request.cycle.replace(/[^A-Z0-9-]/gi, "").toUpperCase();
   const year = now.toDate().getFullYear();
   const suffix = randomUUID().slice(0, 8).toUpperCase();
+  const prefix = request.applicantType === "TEACHER" ?
+    "DOC" :
+    request.applicantType === "STAFF" ? "COL" : "EST";
 
-  return `CR-${cycle || year}-${suffix}`;
+  return `CR-${prefix}-${cycle || year}-${suffix}`;
 }
 
 function queueStatusNotification(
@@ -445,6 +459,7 @@ function queueStatusNotification(
       subject,
       text,
       status,
+      applicantType: request.applicantType || "STUDENT",
       studentId: request.studentId,
     },
     status: "PENDING",
@@ -627,6 +642,36 @@ function requireRequestType(value: unknown): CredentialRequestType {
   }
 
   throw new HttpsError("invalid-argument", "Tipo de tramite invalido.");
+}
+
+function buildNonStudentIdentifier(email: string, uid: string): string {
+  return (email.split("@")[0] || uid).toUpperCase();
+}
+
+function resolveApplicantTypeByEmail(email: string): CredentialApplicantType {
+  const account = email.split("@")[0] || "";
+
+  if (/^tup-d\d{4,}$/.test(account)) {
+    return "TEACHER";
+  }
+
+  if (/^tup\d{4,}$/.test(account)) {
+    return "STUDENT";
+  }
+
+  return "STAFF";
+}
+
+function applicantTypeLabel(type: CredentialApplicantType): string {
+  if (type === "TEACHER") {
+    return "docente";
+  }
+
+  if (type === "STAFF") {
+    return "colaborador";
+  }
+
+  return "estudiante";
 }
 
 function normalizeEmail(email: string | undefined): string {
