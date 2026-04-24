@@ -41,25 +41,29 @@ textarea,
 
 .login-shell {
   min-height: 100vh;
-  background: var(--tup-white);
+  background: var(--tup-soft);
 }
 
 .login-layout {
   min-height: 100vh;
-  background: var(--tup-white);
+  background: var(--tup-soft);
 }
 
 .login-form-panel {
-  background: var(--tup-white);
+  background:
+    linear-gradient(180deg, rgb(37 42 134 / 5%), rgb(255 255 255 / 0%) 44%),
+    var(--tup-soft);
 }
 
 .login-form-card {
+  border: 1px solid var(--tup-line);
+  box-shadow: 0 22px 60px rgb(39 30 93 / 14%) !important;
+  padding: clamp(2rem, 5vw, 3rem) !important;
   width: min(100%, 390px);
 }
 
-.login-brand-top {
-  left: clamp(1.25rem, 4vw, 3.25rem);
-  top: clamp(1rem, 3vw, 2rem);
+.login-form-card .mat-mdc-card-header-text {
+  margin: 0;
 }
 
 .login-art-panel {
@@ -97,12 +101,6 @@ textarea,
   inset: 0;
   position: absolute;
   z-index: -1;
-}
-
-.login-art-content {
-  background: rgb(255 255 255 / 10%);
-  border: 1px solid rgb(255 255 255 / 20%);
-  color: var(--tup-white);
 }
 
 .app-shell {
