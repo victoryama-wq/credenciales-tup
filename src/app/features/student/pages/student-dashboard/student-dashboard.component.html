@@ -133,6 +133,59 @@
                 }
               </section>
 
+              <section class="photo-guidance rounded-lg p-5">
+                <div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_170px] lg:items-center">
+                  <div>
+                    <p class="eyebrow text-[var(--tup-primary)]">Guia para fotografia</p>
+                    <h3 class="mt-2 text-xl font-bold text-[var(--tup-ink)]">
+                      Esta imagen se usara en tu credencial
+                    </h3>
+                    <p class="mt-3 text-sm leading-6 text-[var(--tup-muted)]">
+                      Sube una foto presentable, tomada de frente y sin filtros. La cara debe verse completa,
+                      sin manos en el rostro y sin cabello cubriendo ojos o facciones.
+                    </p>
+
+                    <div class="mt-4 grid gap-3 md:grid-cols-2">
+                      <div class="rounded-md bg-white/80 p-3">
+                        <p class="text-sm font-semibold text-[var(--tup-primary)]">Encuadre correcto</p>
+                        <p class="mt-1 text-sm leading-6 text-[var(--tup-muted)]">
+                          Desde arriba del pecho hasta el final de la cabeza, dejando un pequeno espacio
+                          entre tu cabeza y el borde superior de la foto.
+                        </p>
+                      </div>
+
+                      @if (isStudentApplicant) {
+                        <div class="rounded-md bg-white/80 p-3">
+                          <p class="text-sm font-semibold text-[var(--tup-primary)]">Uniforme obligatorio</p>
+                          <p class="mt-1 text-sm leading-6 text-[var(--tup-muted)]">
+                            Alumnas y alumnos de Nutricion o Enfermeria deben portar filipina blanca con logo
+                            institucional; de lo contrario la foto sera rechazada.
+                          </p>
+                        </div>
+                      }
+                    </div>
+
+                    <ul class="mt-4 grid gap-2 text-sm leading-6 text-[var(--tup-ink)] md:grid-cols-2">
+                      <li>Chicas: aretes discretos.</li>
+                      <li>Ambos: cabello recogido.</li>
+                      <li>Evita fotos de cuerpo entero.</li>
+                      <li>Mira directamente a la camara.</li>
+                    </ul>
+                  </div>
+
+                  <div class="photo-reference mx-auto">
+                    <div class="photo-reference-frame">
+                      <div class="photo-head"></div>
+                      <div class="photo-shoulders"></div>
+                      <span class="photo-top-space"></span>
+                    </div>
+                    <p class="mt-3 text-center text-xs font-semibold text-[var(--tup-primary)]">
+                      Referencia de encuadre
+                    </p>
+                  </div>
+                </div>
+              </section>
+
               <section class="grid gap-4 md:grid-cols-2">
                 <div class="file-drop rounded-lg p-4">
                   <label class="block text-sm font-semibold text-[var(--tup-ink)]">Foto JPG/PNG max. 10 MB</label>
