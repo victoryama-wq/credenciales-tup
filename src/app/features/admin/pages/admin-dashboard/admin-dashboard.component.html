@@ -33,7 +33,7 @@
         </mat-form-field>
 
         <button mat-stroked-button color="primary" class="link-button !rounded-md" (click)="logout()">
-          Cerrar sesion
+          Cerrar sesión
         </button>
       </div>
     </header>
@@ -92,7 +92,7 @@
                     </p>
                     @if (!request.applicantType || request.applicantType === 'STUDENT') {
                       <p class="text-sm text-[var(--tup-muted)]">Cuatrimestre: {{ request.cycle }}</p>
-                      <p class="text-sm text-[var(--tup-muted)]">Telefono: {{ request.phone }}</p>
+                      <p class="text-sm text-[var(--tup-muted)]">Teléfono: {{ request.phone }}</p>
                     }
                   </div>
 
@@ -145,13 +145,13 @@
                 <div class="grid gap-2">
                   @if (canMove(request, 'UNDER_REVIEW')) {
                     <button mat-stroked-button color="primary" class="!rounded-md" [disabled]="savingId === request.id" (click)="move(request, 'UNDER_REVIEW')">
-                      Tomar revision
+                      Tomar revisión
                     </button>
                   }
 
                   @if (canMove(request, 'APPROVED_FOR_PRINT')) {
                     <button mat-flat-button color="primary" class="!rounded-md" [disabled]="savingId === request.id" (click)="move(request, 'APPROVED_FOR_PRINT')">
-                      Aprobar impresion
+                      Aprobar impresión
                     </button>
                   }
 

@@ -14,7 +14,7 @@
       <div class="flex flex-wrap items-center gap-3">
         <span class="status-pill rounded-full px-4 py-2 text-sm font-semibold">Cuenta institucional</span>
         <button mat-stroked-button color="primary" class="link-button !rounded-md" (click)="logout()">
-          Cerrar sesion
+          Cerrar sesión
         </button>
       </div>
     </header>
@@ -36,13 +36,13 @@
                     {{ applicantTypeLabels[detectedApplicantType] }}
                   </p>
                   <p class="mt-1 text-sm text-[var(--tup-muted)]">
-                    Detectado automaticamente con tu correo institucional.
+                    Detectado automáticamente con tu correo institucional.
                   </p>
                 </div>
               </section>
 
               <section class="rounded-lg border border-[var(--tup-line)] bg-white p-4">
-                <p class="mb-3 text-sm font-semibold text-[var(--tup-ink)]">Tipo de tramite</p>
+                <p class="mb-3 text-sm font-semibold text-[var(--tup-ink)]">Tipo de trámite</p>
                 <mat-button-toggle-group
                   formControlName="requestType"
                   class="request-type-toggle grid w-full gap-3 md:grid-cols-2"
@@ -85,15 +85,15 @@
 
                 @if (isStudentApplicant) {
                   <mat-form-field appearance="outline" class="w-full">
-                    <mat-label>Matricula</mat-label>
+                    <mat-label>Matrícula</mat-label>
                     <input matInput formControlName="studentId" autocomplete="off" />
                     @if (form.controls.studentId.hasError('required')) {
-                      <mat-error>La matricula es obligatoria.</mat-error>
+                      <mat-error>La matrícula es obligatoria.</mat-error>
                     }
                   </mat-form-field>
 
                   <mat-form-field appearance="outline" class="w-full">
-                    <mat-label>Programa academico</mat-label>
+                    <mat-label>Programa académico</mat-label>
                     <mat-select formControlName="career">
                       @for (career of careers; track career) {
                         <mat-option [value]="career">{{ career }}</mat-option>
@@ -114,10 +114,10 @@
                   </mat-form-field>
 
                   <mat-form-field appearance="outline" class="w-full">
-                    <mat-label>Telefono</mat-label>
+                    <mat-label>Teléfono</mat-label>
                     <input matInput formControlName="phone" autocomplete="tel" />
                     @if (form.controls.phone.hasError('required')) {
-                      <mat-error>El telefono es obligatorio.</mat-error>
+                      <mat-error>El teléfono es obligatorio.</mat-error>
                     }
                   </mat-form-field>
                 }
@@ -136,9 +136,9 @@
               <section class="photo-guidance rounded-lg p-5">
                 <div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_170px] lg:items-center">
                   <div>
-                    <p class="eyebrow text-[var(--tup-primary)]">Guia para fotografia</p>
+                    <p class="eyebrow text-[var(--tup-primary)]">Guía para fotografía</p>
                     <h3 class="mt-2 text-xl font-bold text-[var(--tup-ink)]">
-                      Esta imagen se usara en tu credencial
+                      Esta imagen se usará en tu credencial
                     </h3>
                     <p class="mt-3 text-sm leading-6 text-[var(--tup-muted)]">
                       Sube una foto presentable, tomada de frente y sin filtros. La cara debe verse completa,
@@ -149,7 +149,7 @@
                       <div class="rounded-md bg-white/80 p-3">
                         <p class="text-sm font-semibold text-[var(--tup-primary)]">Encuadre correcto</p>
                         <p class="mt-1 text-sm leading-6 text-[var(--tup-muted)]">
-                          Desde arriba del pecho hasta el final de la cabeza, dejando un pequeno espacio
+                          Desde arriba del pecho hasta el final de la cabeza, dejando un pequeño espacio
                           entre tu cabeza y el borde superior de la foto.
                         </p>
                       </div>
@@ -158,8 +158,8 @@
                         <div class="rounded-md bg-white/80 p-3">
                           <p class="text-sm font-semibold text-[var(--tup-primary)]">Uniforme obligatorio</p>
                           <p class="mt-1 text-sm leading-6 text-[var(--tup-muted)]">
-                            Alumnas y alumnos de Nutricion o Enfermeria deben portar filipina blanca con logo
-                            institucional; de lo contrario la foto sera rechazada.
+                            Alumnas y alumnos de Nutrición o Enfermería deben portar filipina blanca con logo
+                            institucional; de lo contrario la foto será rechazada.
                           </p>
                         </div>
                       }
@@ -169,7 +169,7 @@
                       <li>Chicas: aretes discretos.</li>
                       <li>Ambos: cabello recogido.</li>
                       <li>Evita fotos de cuerpo entero.</li>
-                      <li>Mira directamente a la camara.</li>
+                      <li>Mira directamente a la cámara.</li>
                     </ul>
                   </div>
 
@@ -238,7 +238,7 @@
                   />
 
                   <p class="mt-3 text-xs leading-5 text-[var(--tup-muted)]">
-                    En celular puedes abrir la camara frontal o elegir una imagen guardada.
+                    En celular puedes abrir la cámara frontal o elegir una imagen guardada.
                   </p>
 
                   @if (photoFile) {
@@ -257,7 +257,7 @@
                 } @else {
                   <div class="rounded-lg border border-[var(--tup-line)] bg-white p-4 text-sm text-[var(--tup-muted)]">
                     <p class="font-semibold text-[var(--tup-ink)]">Sin costo por primera vez</p>
-                    <p class="mt-2">No se solicita comprobante de pago para este tramite.</p>
+                    <p class="mt-2">No se solicita comprobante de pago para este trámite.</p>
                   </div>
                 }
               </section>
@@ -297,7 +297,7 @@
                 <mat-progress-spinner diameter="32" mode="indeterminate"></mat-progress-spinner>
               </div>
             } @else if (!requests.length) {
-              <p class="rounded-md bg-slate-50 p-4 text-sm text-slate-600">Aun no tienes solicitudes registradas.</p>
+              <p class="rounded-md bg-slate-50 p-4 text-sm text-slate-600">Aún no tienes solicitudes registradas.</p>
             } @else {
               <div class="space-y-4">
                 @for (request of requests; track request.id) {
@@ -313,7 +313,7 @@
                           <p class="text-sm text-[var(--tup-muted)]">{{ request.studentId }} - {{ request.career }}</p>
                         }
                         <p class="mt-1 text-xs text-[var(--tup-muted)]">
-                          {{ request.requestType === 'REPLACEMENT' ? 'Reposicion' : 'Primera vez' }}{{ displayCycle(request) }}
+                          {{ request.requestType === 'REPLACEMENT' ? 'Reposición' : 'Primera vez' }}{{ displayCycle(request) }}
                         </p>
                       </div>
                       <span class="status-pill rounded-full px-3 py-1 text-xs font-semibold">

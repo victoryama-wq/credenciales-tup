@@ -112,7 +112,7 @@ export const createCredentialRequest = onCall(callableOptions, async (request) =
   const auth = request.auth;
 
   if (!auth) {
-    throw new HttpsError("unauthenticated", "Inicia sesion.");
+    throw new HttpsError("unauthenticated", "Inicia sesión.");
   }
 
   const data = request.data as CreateCredentialRequestData;
@@ -204,7 +204,7 @@ export const syncUserSession = onCall(callableOptions, async (request) => {
   const auth = request.auth;
 
   if (!auth) {
-    throw new HttpsError("unauthenticated", "Inicia sesion.");
+    throw new HttpsError("unauthenticated", "Inicia sesión.");
   }
 
   const email = normalizeEmail(auth.token.email as string | undefined);
@@ -264,7 +264,7 @@ export const updateCredentialRequestStatus = onCall(callableOptions, async (requ
   const auth = request.auth;
 
   if (!auth) {
-    throw new HttpsError("unauthenticated", "Inicia sesion.");
+    throw new HttpsError("unauthenticated", "Inicia sesión.");
   }
 
   if (!isAdmin(auth.token)) {
@@ -290,7 +290,7 @@ export const updateCredentialRequestStatus = onCall(callableOptions, async (requ
     if (!allowedTransitions[before.status]?.includes(status)) {
       throw new HttpsError(
         "failed-precondition",
-        "La transicion de estatus no esta permitida."
+        "La transición de estatus no está permitida."
       );
     }
 
@@ -355,7 +355,7 @@ function validateDocument(
   uid: string
 ): CredentialDocument {
   if (!document || document.type !== type) {
-    throw new HttpsError("invalid-argument", `Documento ${type} invalido.`);
+    throw new HttpsError("invalid-argument", `Documento ${type} inválido.`);
   }
 
   if (!document.storagePath.startsWith(`credential-requests/${uid}/`)) {
@@ -493,14 +493,14 @@ function notificationTemplate(status: CredentialRequestStatus): string | null {
 
 function notificationSubject(status: CredentialRequestStatus): string {
   const subjects: Partial<Record<CredentialRequestStatus, string>> = {
-    REJECTED: "Tu solicitud de credencial requiere correccion",
-    APPROVED_FOR_PRINT: "Tu credencial fue aprobada para impresion",
+    REJECTED: "Tu solicitud de credencial requiere corrección",
+    APPROVED_FOR_PRINT: "Tu credencial fue aprobada para impresión",
     PRINTED: "Tu credencial ya fue impresa",
-    READY_FOR_PICKUP: "Tu credencial esta lista para entrega",
+    READY_FOR_PICKUP: "Tu credencial está lista para entrega",
     DELIVERED: "Entrega de credencial confirmada",
   };
 
-  return subjects[status] || "Actualizacion de solicitud de credencial";
+  return subjects[status] || "Actualización de solicitud de credencial";
 }
 
 function notificationText(
@@ -509,14 +509,14 @@ function notificationText(
   note: string
 ): string {
   const base = `Hola ${request.name},\n\n`;
-  const footer = "\n\nTecnologico Universitario Playacar";
+  const footer = "\n\nTecnológico Universitario Playacar";
 
   if (status === "REJECTED") {
     return `${base}Tu solicitud fue rechazada. Motivo: ${note}.${footer}`;
   }
 
   if (status === "APPROVED_FOR_PRINT") {
-    return `${base}Tu solicitud fue aprobada para impresion.${footer}`;
+    return `${base}Tu solicitud fue aprobada para impresión.${footer}`;
   }
 
   if (status === "PRINTED") {
@@ -524,14 +524,14 @@ function notificationText(
   }
 
   if (status === "READY_FOR_PICKUP") {
-    return `${base}Tu credencial esta lista para entrega.${footer}`;
+    return `${base}Tu credencial está lista para entrega.${footer}`;
   }
 
   if (status === "DELIVERED") {
     return `${base}Confirmamos la entrega de tu credencial.${footer}`;
   }
 
-  return `${base}Tu solicitud cambio de estatus.${footer}`;
+  return `${base}Tu solicitud cambió de estatus.${footer}`;
 }
 
 function writeAudit(
@@ -630,7 +630,7 @@ function requireStatus(value: unknown): CredentialRequestStatus {
   const statuses = Object.keys(allowedTransitions);
 
   if (typeof value !== "string" || !statuses.includes(value)) {
-    throw new HttpsError("invalid-argument", "Estatus invalido.");
+    throw new HttpsError("invalid-argument", "Estatus inválido.");
   }
 
   return value as CredentialRequestStatus;
@@ -641,7 +641,7 @@ function requireRequestType(value: unknown): CredentialRequestType {
     return value;
   }
 
-  throw new HttpsError("invalid-argument", "Tipo de tramite invalido.");
+  throw new HttpsError("invalid-argument", "Tipo de trámite inválido.");
 }
 
 function buildNonStudentIdentifier(email: string, uid: string): string {
@@ -678,7 +678,7 @@ function normalizeEmail(email: string | undefined): string {
   const clean = (email || "").trim().toLowerCase();
 
   if (!clean || !clean.includes("@")) {
-    throw new HttpsError("invalid-argument", "Correo invalido.");
+    throw new HttpsError("invalid-argument", "Correo inválido.");
   }
 
   return clean;

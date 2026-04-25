@@ -95,7 +95,7 @@ export class AdminDashboardComponent implements OnInit {
     const user = await this.authService.waitForCurrentUser();
 
     if (!user) {
-      this.errorMessage = 'No hay sesion administrativa activa.';
+      this.errorMessage = 'No hay sesión administrativa activa.';
       return;
     }
 
@@ -129,7 +129,7 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   identifierLabel(type: CredentialApplicantType | undefined): string {
-    return type === 'STUDENT' || !type ? 'Matricula' : 'Identificador';
+    return type === 'STUDENT' || !type ? 'Matrícula' : 'Identificador';
   }
 
   showIdentifier(request: CredentialRequest): boolean {

@@ -141,7 +141,7 @@ export class StudentDashboardComponent implements OnInit {
 
     if (!user) {
       this.loading = false;
-      this.errorMessage = 'No hay sesion activa.';
+      this.errorMessage = 'No hay sesión activa.';
       return;
     }
 
@@ -209,7 +209,7 @@ export class StudentDashboardComponent implements OnInit {
     const user = await this.authService.waitForCurrentUser();
 
     if (!user) {
-      this.errorMessage = 'Inicia sesion para enviar tu solicitud.';
+      this.errorMessage = 'Inicia sesión para enviar tu solicitud.';
       return;
     }
 
@@ -282,7 +282,7 @@ export class StudentDashboardComponent implements OnInit {
       return 'No. empleado';
     }
 
-    return 'Matricula';
+    return 'Matrícula';
   }
 
   areaLabel(type: CredentialApplicantType | undefined = this.selectedApplicantType): string {
@@ -294,7 +294,7 @@ export class StudentDashboardComponent implements OnInit {
       return 'Puesto';
     }
 
-    return 'Programa academico';
+    return 'Programa académico';
   }
 
   displayCycle(request: CredentialRequest): string {

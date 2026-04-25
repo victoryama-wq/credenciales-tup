@@ -105,7 +105,7 @@ export class AuthService {
       case 'auth/invalid-credential':
       case 'auth/wrong-password':
       case 'auth/user-not-found':
-        return 'El correo o la contrasena no coinciden.';
+        return 'El correo o la contraseña no coinciden.';
       case 'auth/popup-closed-by-user':
         return 'Se cerro la ventana de Google antes de completar el acceso.';
       case 'auth/popup-blocked':
@@ -119,7 +119,7 @@ export class AuthService {
           return error.message;
         }
 
-        return 'No fue posible iniciar sesion.';
+        return 'No fue posible iniciar sesión.';
     }
   }
 

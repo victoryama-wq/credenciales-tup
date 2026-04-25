@@ -13,8 +13,8 @@ export type CredentialRequestType = 'FIRST_TIME' | 'REPLACEMENT';
 export type CredentialApplicantType = 'STUDENT' | 'TEACHER' | 'STAFF';
 
 export const credentialRequestTypeLabels: Record<CredentialRequestType, string> = {
-  FIRST_TIME: 'Tramite por primera vez',
-  REPLACEMENT: 'Reposicion de credencial',
+  FIRST_TIME: 'Trámite por primera vez',
+  REPLACEMENT: 'Reposición de credencial',
 };
 
 export const credentialApplicantTypeLabels: Record<CredentialApplicantType, string> = {
@@ -35,9 +35,9 @@ export const credentialRequestStatuses: CredentialRequestStatus[] = [
 
 export const statusLabels: Record<CredentialRequestStatus, string> = {
   SUBMITTED: 'Enviada',
-  UNDER_REVIEW: 'En revision',
+  UNDER_REVIEW: 'En revisión',
   REJECTED: 'Rechazada',
-  APPROVED_FOR_PRINT: 'Aprobada para impresion',
+  APPROVED_FOR_PRINT: 'Aprobada para impresión',
   PRINTED: 'Impresa',
   READY_FOR_PICKUP: 'Lista para entrega',
   DELIVERED: 'Entregada',
