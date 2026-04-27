@@ -321,8 +321,80 @@ textarea,
     var(--tup-soft);
   display: grid;
   gap: 1rem;
+  grid-template-areas:
+    "header"
+    "main";
+  grid-template-columns: minmax(0, 1fr);
   min-height: 100vh;
   padding: 1rem;
+}
+
+.admin-dashboard-shell.admin-sidebar-visible {
+  grid-template-areas:
+    "header"
+    "sidebar"
+    "main";
+}
+
+.admin-dashboard-header {
+  align-items: center;
+  background: rgb(255 255 255 / 92%);
+  border: 1px solid var(--tup-line);
+  border-radius: 8px;
+  box-shadow: 0 16px 34px rgb(39 30 93 / 8%);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  grid-area: header;
+  justify-content: space-between;
+  padding: 1rem;
+}
+
+.admin-header-brand {
+  align-items: center;
+  display: flex;
+  gap: 1rem;
+  width: 100%;
+}
+
+.admin-header-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.admin-menu-button {
+  align-items: center;
+  background: var(--tup-soft-blue);
+  border: 1px solid rgb(37 42 134 / 16%);
+  border-radius: 8px;
+  color: var(--tup-primary);
+  cursor: pointer;
+  display: inline-flex;
+  height: 44px;
+  justify-content: center;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease;
+  width: 44px;
+}
+
+.admin-menu-button:hover,
+.admin-menu-button-active {
+  background: var(--tup-primary);
+  border-color: var(--tup-primary);
+  color: var(--tup-white);
+}
+
+.admin-menu-icon {
+  fill: none;
+  height: 20px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-width: 2;
+  width: 20px;
 }
 
 .admin-sidebar {
@@ -332,12 +404,8 @@ textarea,
   box-shadow: 0 18px 42px rgb(39 30 93 / 10%);
   display: grid;
   gap: 1.5rem;
+  grid-area: sidebar;
   padding: 1rem;
-}
-
-.admin-sidebar-brand {
-  display: grid;
-  gap: 1rem;
 }
 
 .admin-sidebar-nav {
@@ -394,13 +462,10 @@ textarea,
   width: 20px;
 }
 
-.admin-sidebar-footer {
-  align-self: end;
-}
-
 .admin-dashboard-main {
   display: grid;
   gap: 1.25rem;
+  grid-area: main;
   min-width: 0;
 }
 
@@ -424,6 +489,21 @@ textarea,
 }
 
 @media (min-width: 768px) {
+  .admin-dashboard-header {
+    flex-direction: row;
+    padding: 1rem 1.25rem;
+  }
+
+  .admin-header-brand,
+  .admin-header-actions {
+    width: auto;
+  }
+
+  .admin-header-actions {
+    align-items: center;
+    flex-direction: row;
+  }
+
   .admin-dashboard-topbar {
     flex-direction: row;
     padding: 1.1rem 1.25rem;
@@ -437,12 +517,18 @@ textarea,
 
 @media (min-width: 1100px) {
   .admin-dashboard-shell {
-    grid-template-columns: 280px minmax(0, 1fr);
     padding: 1.25rem;
   }
 
+  .admin-dashboard-shell.admin-sidebar-visible {
+    grid-template-areas:
+      "header header"
+      "sidebar main";
+    grid-template-columns: 280px minmax(0, 1fr);
+  }
+
   .admin-sidebar {
-    min-height: calc(100vh - 2.5rem);
+    min-height: calc(100vh - 7rem);
     position: sticky;
     top: 1.25rem;
   }

@@ -77,6 +77,7 @@ export class AdminDashboardComponent implements OnInit {
   ];
 
   activeModule: AdminModule = 'requests';
+  sidebarVisible = false;
   loading = true;
   savingId = '';
   errorMessage = '';
@@ -147,10 +148,15 @@ export class AdminDashboardComponent implements OnInit {
 
   selectModule(module: AdminModule): void {
     this.setActiveModule(module);
+    this.sidebarVisible = false;
   }
 
   activeModuleLabel(): string {
     return this.modules.find((module) => module.value === this.activeModule)?.label || 'Menu';
+  }
+
+  toggleSidebar(): void {
+    this.sidebarVisible = !this.sidebarVisible;
   }
 
   countByStatus(status: CredentialRequestStatus): number {
