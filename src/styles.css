@@ -534,6 +534,73 @@ textarea,
   }
 }
 
+.saeko-layout {
+  align-items: start;
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.saeko-card,
+.saeko-side-panel,
+.saeko-card-content {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.saeko-card {
+  overflow: hidden;
+}
+
+.saeko-card .mat-mdc-card-header,
+.saeko-card .mat-mdc-card-content {
+  min-width: 0;
+}
+
+.saeko-card .mat-mdc-card-title,
+.saeko-card .mat-mdc-card-subtitle,
+.saeko-copy,
+.saeko-copy p,
+.saeko-summary,
+.saeko-message,
+.saeko-file-name {
+  overflow-wrap: anywhere;
+}
+
+.saeko-file-input {
+  min-width: 0;
+}
+
+.saeko-metrics {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  min-width: 0;
+}
+
+.saeko-table-shell {
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+}
+
+.saeko-table {
+  min-width: 820px;
+  table-layout: fixed;
+}
+
+.saeko-table th,
+.saeko-table td {
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 1024px) {
+  .saeko-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+  }
+}
+
 .saeko-preview-table th,
 .saeko-preview-table td {
   border-bottom: 1px solid var(--tup-line);
@@ -557,7 +624,9 @@ textarea,
   background: #f9fafc;
   border: 1px solid var(--tup-line);
   color: var(--tup-ink);
-  overflow: auto;
+  max-width: 100%;
+  overflow-x: auto;
+  white-space: pre;
 }
 
 .credential-card {
