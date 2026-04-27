@@ -404,6 +404,7 @@ textarea,
 }
 
 .admin-sidebar-nav {
+  align-content: start;
   display: grid;
   gap: 0.55rem;
 }
@@ -425,6 +426,7 @@ textarea,
   display: grid;
   gap: 0.65rem;
   grid-template-columns: 32px minmax(0, 1fr);
+  min-height: 68px;
   padding: 0.65rem;
   text-align: left;
   width: 100%;
