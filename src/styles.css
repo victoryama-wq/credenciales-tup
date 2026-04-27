@@ -314,3 +314,194 @@ textarea,
   border-color: rgb(37 42 134 / 24%) !important;
   color: var(--tup-primary) !important;
 }
+
+.credential-card {
+  aspect-ratio: 1.586 / 1;
+  border: 1px solid rgb(39 30 93 / 18%);
+  border-radius: 8px;
+  box-shadow: 0 12px 24px rgb(39 30 93 / 8%);
+  color: var(--tup-ink);
+  min-height: 206px;
+  overflow: hidden;
+  position: relative;
+}
+
+.credential-card-front {
+  background:
+    linear-gradient(135deg, rgb(255 255 255 / 96%), rgb(238 240 255 / 92%)),
+    var(--tup-white);
+}
+
+.credential-card-back {
+  background:
+    linear-gradient(135deg, var(--tup-secondary), var(--tup-primary));
+  color: var(--tup-white);
+}
+
+.credential-card-band {
+  background:
+    linear-gradient(90deg, var(--tup-secondary), var(--tup-primary), var(--tup-gray));
+  height: 14px;
+  inset: 0 0 auto;
+  position: absolute;
+}
+
+.credential-card-content {
+  height: 100%;
+  padding: 1rem;
+  position: relative;
+}
+
+.credential-card-logo {
+  height: 38px;
+  max-width: 128px;
+  object-fit: contain;
+}
+
+.credential-card-role {
+  border: 1px solid rgb(37 42 134 / 24%);
+  border-radius: 999px;
+  color: var(--tup-primary);
+  font-size: 0.66rem;
+  font-weight: 700;
+  padding: 0.25rem 0.55rem;
+}
+
+.credential-card-photo {
+  aspect-ratio: 3 / 4;
+  border: 1px solid var(--tup-line);
+  border-radius: 6px;
+  object-fit: cover;
+  width: 86px;
+}
+
+.credential-card-label {
+  color: var(--tup-gray);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.credential-card-name {
+  color: var(--tup-secondary);
+  font-size: clamp(1rem, 2vw, 1.3rem);
+  font-weight: 700;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.credential-card-value {
+  color: var(--tup-ink);
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.credential-card-value.muted,
+.credential-card-small {
+  color: var(--tup-muted);
+  font-size: 0.68rem;
+  line-height: 1.35;
+}
+
+.credential-card-folio {
+  color: var(--tup-primary);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.credential-card-back .credential-card-label,
+.credential-card-back .credential-card-small {
+  color: rgb(255 255 255 / 72%);
+}
+
+.credential-card-back-title {
+  color: var(--tup-white);
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.credential-card-url {
+  color: rgb(255 255 255 / 76%);
+  font-size: 0.58rem;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.credential-card-qr {
+  align-self: center;
+  background: var(--tup-white);
+  border-radius: 6px;
+  padding: 0.35rem;
+  width: 98px;
+}
+
+.verification-shell {
+  background:
+    linear-gradient(180deg, rgb(37 42 134 / 8%) 0, rgb(37 42 134 / 0%) 320px),
+    var(--tup-soft);
+}
+
+.verification-card {
+  border: 1px solid var(--tup-line);
+  box-shadow: var(--tup-shadow);
+  width: min(100%, 560px);
+}
+
+.verification-state {
+  border: 1px solid var(--tup-line);
+}
+
+.verification-state-ok {
+  background: linear-gradient(180deg, #ecfdf5, #ffffff);
+}
+
+.verification-state-warn {
+  background: linear-gradient(180deg, #fff1f2, #ffffff);
+}
+
+.verification-row {
+  border-bottom: 1px solid var(--tup-line);
+  display: grid;
+  gap: 0.4rem;
+  grid-template-columns: 130px minmax(0, 1fr);
+  padding-bottom: 0.75rem;
+}
+
+.verification-row dt {
+  color: var(--tup-muted);
+  font-weight: 700;
+}
+
+.verification-row dd {
+  color: var(--tup-ink);
+  font-weight: 700;
+}
+
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+
+  .credential-print-selected,
+  .credential-print-selected * {
+    visibility: visible !important;
+  }
+
+  .credential-print-selected {
+    display: grid !important;
+    gap: 12px !important;
+    grid-template-columns: 1fr 1fr !important;
+    left: 0;
+    padding: 16px;
+    position: absolute;
+    top: 0;
+    width: 100%;
+  }
+
+  .credential-print-selected .credential-card {
+    break-inside: avoid;
+    box-shadow: none;
+  }
+}

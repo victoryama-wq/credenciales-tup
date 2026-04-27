@@ -9,6 +9,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { Router } from '@angular/router';
+import { toDataURL } from 'qrcode';
 import {
   CredentialApplicantType,
   CredentialRequest,
@@ -52,6 +53,8 @@ export class AdminDashboardComponent implements OnInit {
   errorMessage = '';
   statusFilter: CredentialRequestStatus | 'ALL' = 'ALL';
   applicantFilter: CredentialApplicantType | 'ALL' = 'ALL';
+  printingRequestId = '';
+  qrImages: Record<string, string> = {};
   requests: CredentialRequest[] = [];
   notes: Record<string, string> = {};
 
@@ -62,6 +65,7 @@ export class AdminDashboardComponent implements OnInit {
       .subscribe({
         next: (requests) => {
           this.requests = requests;
+          void this.refreshQrImages(requests);
           this.loading = false;
         },
         error: (error) => {
@@ -162,8 +166,74 @@ export class AdminDashboardComponent implements OnInit {
       : '';
   }
 
+  credentialRoleLabel(request: CredentialRequest): string {
+    if (request.applicantType === 'TEACHER') {
+      return 'DOCENTE';
+    }
+
+    if (request.applicantType === 'STAFF') {
+      return 'COLABORADOR';
+    }
+
+    return 'ESTUDIANTE';
+  }
+
+  credentialPrimaryDetail(request: CredentialRequest): string {
+    if (request.applicantType === 'TEACHER') {
+      return 'Personal docente';
+    }
+
+    if (request.applicantType === 'STAFF') {
+      return request.career;
+    }
+
+    return request.studentId;
+  }
+
+  credentialSecondaryDetail(request: CredentialRequest): string {
+    if (request.applicantType === 'TEACHER') {
+      return 'Tecnológico Universitario Playacar';
+    }
+
+    if (request.applicantType === 'STAFF') {
+      return 'Personal administrativo';
+    }
+
+    return request.career;
+  }
+
+  verificationUrl(request: CredentialRequest): string {
+    return request.verificationUrl || (request.qrToken ? `https://credencial-tup.web.app/verify/${request.qrToken}` : '');
+  }
+
+  printCredential(request: CredentialRequest): void {
+    this.printingRequestId = request.id;
+    setTimeout(() => {
+      window.print();
+      setTimeout(() => {
+        this.printingRequestId = '';
+      });
+    });
+  }
+
   async logout(): Promise<void> {
     await this.authService.logout();
     await this.router.navigate(['/login']);
+  }
+
+  private async refreshQrImages(requests: CredentialRequest[]): Promise<void> {
+    for (const request of requests) {
+      const url = this.verificationUrl(request);
+
+      if (!request.qrToken || !url || this.qrImages[request.id]) {
+        continue;
+      }
+
+      this.qrImages[request.id] = await toDataURL(url, {
+        errorCorrectionLevel: 'M',
+        margin: 1,
+        scale: 5,
+      });
+    }
   }
 }

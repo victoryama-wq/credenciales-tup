@@ -124,6 +124,81 @@
                   </p>
                 }
 
+                @if (request.credentialNumber && request.qrToken) {
+                  <section
+                    class="credential-print-area mt-4 grid gap-3 xl:grid-cols-2"
+                    [class.credential-print-selected]="printingRequestId === request.id"
+                  >
+                    <article class="credential-card credential-card-front">
+                      <div class="credential-card-band"></div>
+                      <div class="credential-card-content">
+                        <div class="flex items-start justify-between gap-3">
+                          <img src="/logo-tup.png" alt="TUP" class="credential-card-logo" />
+                          <span class="credential-card-role">{{ credentialRoleLabel(request) }}</span>
+                        </div>
+
+                        <div class="mt-4 grid grid-cols-[86px_minmax(0,1fr)] gap-4">
+                          <img [src]="request.photoUrl" [alt]="request.name" class="credential-card-photo" />
+                          <div class="min-w-0">
+                            <p class="credential-card-label">Nombre</p>
+                            <h3 class="credential-card-name">{{ request.name }}</h3>
+                            <p class="credential-card-label mt-3">Dato institucional</p>
+                            <p class="credential-card-value">{{ credentialPrimaryDetail(request) }}</p>
+                            <p class="credential-card-value muted">{{ credentialSecondaryDetail(request) }}</p>
+                          </div>
+                        </div>
+
+                        <div class="mt-4 flex items-end justify-between gap-3">
+                          <div>
+                            <p class="credential-card-label">Folio</p>
+                            <p class="credential-card-folio">{{ request.credentialNumber }}</p>
+                          </div>
+                          <p class="credential-card-small">Válida con QR institucional</p>
+                        </div>
+                      </div>
+                    </article>
+
+                    <article class="credential-card credential-card-back">
+                      <div class="credential-card-content grid h-full grid-cols-[1fr_98px] gap-4">
+                        <div>
+                          <p class="credential-card-label">Verificación</p>
+                          <h3 class="credential-card-back-title">Escanea el QR</h3>
+                          <p class="credential-card-small mt-2">
+                            Este código confirma la validez de la credencial sin exponer datos sensibles.
+                          </p>
+                          <p class="credential-card-url mt-4">{{ verificationUrl(request) }}</p>
+                        </div>
+
+                        @if (qrImages[request.id]) {
+                          <img [src]="qrImages[request.id]" alt="QR de verificación" class="credential-card-qr" />
+                        }
+                      </div>
+                    </article>
+                  </section>
+
+                  <div class="mt-3 flex flex-wrap gap-2">
+                    <a
+                      mat-stroked-button
+                      color="primary"
+                      class="link-button"
+                      [href]="verificationUrl(request)"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Probar QR
+                    </a>
+                    <button
+                      mat-stroked-button
+                      color="primary"
+                      type="button"
+                      class="link-button"
+                      (click)="printCredential(request)"
+                    >
+                      Imprimir credencial
+                    </button>
+                  </div>
+                }
+
                 @if (request.rejectionReason) {
                   <p class="mt-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
                     Rechazo: {{ request.rejectionReason }}

@@ -51,6 +51,10 @@ interface UpdateStatusData {
   note?: string;
 }
 
+interface VerifyCredentialData {
+  token?: string;
+}
+
 type UserRole = "admin" | "student";
 
 interface StoredCredentialRequest {
@@ -66,12 +70,17 @@ interface StoredCredentialRequest {
   status: CredentialRequestStatus;
   credentialNumber?: string;
   qrToken?: string;
+  verificationUrl?: string;
+  reviewedAt?: Timestamp;
+  updatedAt?: Timestamp;
 }
 
 const db = getFirestore();
 const adminAuth = getAuth();
 const requests = db.collection("credential_requests");
+const credentialCounters = db.collection("credential_counters");
 const institutionalEmailDomain = "tecplayacar.edu.mx";
+const publicAppUrl = "https://credencial-tup.web.app";
 const callableOptions: CallableOptions = {
   cors: [
     "https://credencial-tup.web.app",
@@ -301,7 +310,17 @@ export const updateCredentialRequestStatus = onCall(callableOptions, async (requ
       );
     }
 
-    const changes = buildStatusChanges(before, status, auth.uid, note, now);
+    const credentialIdentity = status === "APPROVED_FOR_PRINT" ?
+      await ensureCredentialIdentity(transaction, before, now) :
+      null;
+    const changes = buildStatusChanges(
+      before,
+      status,
+      auth.uid,
+      note,
+      now,
+      credentialIdentity
+    );
 
     transaction.update(requestRef, changes);
     writeAudit(
@@ -316,6 +335,49 @@ export const updateCredentialRequestStatus = onCall(callableOptions, async (requ
   });
 
   return {ok: true};
+});
+
+export const verifyCredential = onCall(callableOptions, async (request) => {
+  const data = request.data as VerifyCredentialData;
+  const token = requireString(data.token, "token");
+
+  if (!/^[a-f0-9-]{20,}$/i.test(token)) {
+    throw new HttpsError("invalid-argument", "Token de verificación inválido.");
+  }
+
+  const snapshot = await requests.where("qrToken", "==", token).limit(1).get();
+
+  if (snapshot.empty) {
+    return {
+      valid: false,
+      message: "No encontramos una credencial asociada a este QR.",
+    };
+  }
+
+  const credential = snapshot.docs[0].data() as StoredCredentialRequest;
+  const validStatuses: CredentialRequestStatus[] = [
+    "APPROVED_FOR_PRINT",
+    "PRINTED",
+    "READY_FOR_PICKUP",
+    "DELIVERED",
+  ];
+  const valid = validStatuses.includes(credential.status);
+
+  return {
+    valid,
+    message: valid ?
+      "Credencial institucional válida." :
+      "La credencial no se encuentra vigente para verificación.",
+    status: credential.status,
+    credentialNumber: credential.credentialNumber || "",
+    applicantType: credential.applicantType || "STUDENT",
+    name: credential.name,
+    career: credential.applicantType === "TEACHER" ? "Docente" : credential.career,
+    cycle: credential.applicantType === "STUDENT" || !credential.applicantType ?
+      credential.cycle :
+      "",
+    verifiedAt: new Date().toISOString(),
+  };
 });
 
 function validateCreateData(
@@ -374,7 +436,12 @@ function buildStatusChanges(
   status: CredentialRequestStatus,
   actorUid: string,
   note: string,
-  now: Timestamp
+  now: Timestamp,
+  credentialIdentity?: {
+    credentialNumber: string;
+    qrToken: string;
+    verificationUrl: string;
+  } | null
 ) {
   const changes: Record<string, unknown> = {
     status,
@@ -397,9 +464,15 @@ function buildStatusChanges(
   }
 
   if (status === "APPROVED_FOR_PRINT") {
-    changes.credentialNumber =
-      before.credentialNumber || buildCredentialNumber(before, now);
-    changes.qrToken = before.qrToken || randomUUID();
+    const identity = credentialIdentity || {
+      credentialNumber: before.credentialNumber || buildCredentialNumber(before, now),
+      qrToken: before.qrToken || randomUUID(),
+      verificationUrl: before.verificationUrl || "",
+    };
+
+    changes.credentialNumber = identity.credentialNumber;
+    changes.qrToken = identity.qrToken;
+    changes.verificationUrl = identity.verificationUrl || buildVerificationUrl(identity.qrToken);
   }
 
   if (status === "PRINTED") {
@@ -417,18 +490,72 @@ function buildStatusChanges(
   return changes;
 }
 
-function buildCredentialNumber(
+async function ensureCredentialIdentity(
+  transaction: FirebaseFirestore.Transaction,
   request: StoredCredentialRequest,
   now: Timestamp
-): string {
-  const cycle = request.cycle.replace(/[^A-Z0-9-]/gi, "").toUpperCase();
+) {
   const year = now.toDate().getFullYear();
-  const suffix = randomUUID().slice(0, 8).toUpperCase();
-  const prefix = request.applicantType === "TEACHER" ?
-    "DOC" :
-    request.applicantType === "STAFF" ? "COL" : "EST";
+  const prefix = credentialPrefix(request.applicantType);
+  const qrToken = request.qrToken || randomUUID();
+  let credentialNumber = request.credentialNumber;
 
-  return `CR-${prefix}-${cycle || year}-${suffix}`;
+  if (!credentialNumber) {
+    const counterRef = credentialCounters.doc(`${year}-${prefix}`);
+    const counterSnapshot = await transaction.get(counterRef);
+    const counterData = counterSnapshot.exists ? counterSnapshot.data() : null;
+    const nextValue = typeof counterData?.nextValue === "number" ?
+      counterData.nextValue :
+      1;
+
+    credentialNumber = buildCredentialNumber(prefix, year, nextValue);
+
+    transaction.set(counterRef, {
+      prefix,
+      year,
+      nextValue: nextValue + 1,
+      updatedAt: now,
+    }, {merge: true});
+  }
+
+  return {
+    credentialNumber,
+    qrToken,
+    verificationUrl: buildVerificationUrl(qrToken),
+  };
+}
+
+function buildCredentialNumber(
+  prefixOrRequest: string | StoredCredentialRequest,
+  yearOrNow: number | Timestamp,
+  sequence?: number
+): string {
+  if (typeof prefixOrRequest === "string" && typeof yearOrNow === "number") {
+    return `TUP-${prefixOrRequest}-${yearOrNow}-${String(sequence || 1).padStart(5, "0")}`;
+  }
+
+  const request = prefixOrRequest as StoredCredentialRequest;
+  const now = yearOrNow as Timestamp;
+  const year = now.toDate().getFullYear();
+  const prefix = credentialPrefix(request.applicantType);
+
+  return `TUP-${prefix}-${year}-${randomUUID().slice(0, 8).toUpperCase()}`;
+}
+
+function credentialPrefix(type: CredentialApplicantType | undefined): string {
+  if (type === "TEACHER") {
+    return "DOC";
+  }
+
+  if (type === "STAFF") {
+    return "COL";
+  }
+
+  return "EST";
+}
+
+function buildVerificationUrl(token: string): string {
+  return `${publicAppUrl}/verify/${encodeURIComponent(token)}`;
 }
 
 function queueStatusNotification(

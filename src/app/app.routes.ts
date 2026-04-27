@@ -28,5 +28,12 @@ export const routes: Routes = [
         (m) => m.AdminDashboardComponent
       ),
   },
+  {
+    path: 'verify/:token',
+    loadComponent: () =>
+      import(
+        './features/verification/pages/credential-verification/credential-verification.component'
+      ).then((m) => m.CredentialVerificationComponent),
+  },
   { path: '**', redirectTo: 'login' },
 ];

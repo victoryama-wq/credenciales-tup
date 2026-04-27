@@ -96,6 +96,7 @@ export interface CredentialRequest {
   rejectionReason?: string;
   credentialNumber?: string;
   qrToken?: string;
+  verificationUrl?: string;
   printBatchId?: string;
   timeline: CredentialTimelineEvent[];
   submittedAt: Timestamp;
@@ -118,4 +119,16 @@ export interface CreateCredentialRequestInput {
   photo: File;
   evidence?: File | null;
   requestType: CredentialRequestType;
+}
+
+export interface CredentialVerificationResult {
+  valid: boolean;
+  message: string;
+  status?: CredentialRequestStatus;
+  credentialNumber?: string;
+  applicantType?: CredentialApplicantType;
+  name?: string;
+  career?: string;
+  cycle?: string;
+  verifiedAt?: string;
 }
