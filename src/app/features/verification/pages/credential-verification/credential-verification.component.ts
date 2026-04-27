@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, NgZone, OnInit, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -20,6 +20,8 @@ import { CredentialVerificationService } from '../../../../core/services/credent
 export class CredentialVerificationComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private verificationService = inject(CredentialVerificationService);
+  private changeDetector = inject(ChangeDetectorRef);
+  private ngZone = inject(NgZone);
 
   readonly applicantTypeLabels = credentialApplicantTypeLabels;
   readonly statusLabels = statusLabels;
@@ -36,23 +38,41 @@ export class CredentialVerificationComponent implements OnInit {
 
   async verify(): Promise<void> {
     if (!this.token) {
-      this.loading = false;
-      this.result = null;
-      this.errorMessage = 'QR inválido o incompleto.';
+      this.renderState(() => {
+        this.loading = false;
+        this.result = null;
+        this.errorMessage = 'QR inválido o incompleto.';
+      });
       return;
     }
 
-    this.loading = true;
-    this.errorMessage = '';
-    this.result = null;
+    this.renderState(() => {
+      this.loading = true;
+      this.errorMessage = '';
+      this.result = null;
+    });
 
     try {
-      this.result = await this.verificationService.verify(this.token);
+      const result = await this.verificationService.verify(this.token);
+      this.renderState(() => {
+        this.result = result;
+      });
     } catch (error) {
-      this.errorMessage =
-        error instanceof Error ? error.message : 'No fue posible verificar la credencial.';
+      this.renderState(() => {
+        this.errorMessage =
+          error instanceof Error ? error.message : 'No fue posible verificar la credencial.';
+      });
     } finally {
-      this.loading = false;
+      this.renderState(() => {
+        this.loading = false;
+      });
     }
+  }
+
+  private renderState(update: () => void): void {
+    this.ngZone.run(() => {
+      update();
+      this.changeDetector.detectChanges();
+    });
   }
 }
