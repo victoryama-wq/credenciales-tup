@@ -315,6 +315,61 @@ textarea,
   color: var(--tup-primary) !important;
 }
 
+.admin-mobile-menu-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.admin-menu-trigger {
+  justify-content: flex-start !important;
+  min-width: min(100%, 220px);
+  width: 100%;
+}
+
+.admin-menu-icon {
+  fill: none;
+  height: 20px;
+  margin-right: 0.55rem;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-width: 2;
+  width: 20px;
+}
+
+.admin-mobile-menu {
+  background: rgb(255 255 255 / 98%);
+  border: 1px solid var(--tup-line);
+  box-shadow: 0 22px 50px rgb(39 30 93 / 18%);
+  left: 0;
+  min-width: min(88vw, 320px);
+  position: absolute;
+  top: calc(100% + 0.55rem);
+  z-index: 30;
+}
+
+.admin-mobile-menu-item {
+  border: 1px solid transparent;
+  color: var(--tup-ink);
+  display: block;
+  width: 100%;
+}
+
+.admin-mobile-menu-item:hover,
+.admin-mobile-menu-item-active {
+  background: var(--tup-soft-blue);
+  border-color: rgb(37 42 134 / 18%);
+}
+
+@media (min-width: 768px) {
+  .admin-mobile-menu-wrap {
+    width: auto;
+  }
+
+  .admin-menu-trigger {
+    width: auto;
+  }
+}
+
 .saeko-preview-table th,
 .saeko-preview-table td {
   border-bottom: 1px solid var(--tup-line);

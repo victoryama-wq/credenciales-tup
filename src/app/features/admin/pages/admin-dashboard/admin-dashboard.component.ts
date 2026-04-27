@@ -61,12 +61,23 @@ export class AdminDashboardComponent implements OnInit {
   readonly academicStatusLabels = institutionalAcademicStatusLabels;
   readonly applicantTypes: CredentialApplicantType[] = ['STUDENT', 'TEACHER', 'STAFF'];
   readonly statuses = credentialRequestStatuses;
-  readonly modules: { value: AdminModule; label: string }[] = [
-    { value: 'requests', label: 'Solicitudes' },
-    { value: 'saeko', label: 'Importacion Saeko' },
+  readonly modules: { value: AdminModule; label: string; eyebrow: string; description: string }[] = [
+    {
+      value: 'requests',
+      label: 'Solicitudes',
+      eyebrow: 'Operacion',
+      description: 'Revision, estatus e impresion de credenciales.',
+    },
+    {
+      value: 'saeko',
+      label: 'Importacion Saeko',
+      eyebrow: 'Control Escolar',
+      description: 'Estatus, programa y cuatrimestre real.',
+    },
   ];
 
   activeModule: AdminModule = 'requests';
+  moduleMenuOpen = false;
   loading = true;
   savingId = '';
   errorMessage = '';
@@ -133,6 +144,19 @@ export class AdminDashboardComponent implements OnInit {
     this.errorMessage = '';
     this.importErrorMessage = '';
     this.importSuccessMessage = '';
+  }
+
+  toggleModuleMenu(): void {
+    this.moduleMenuOpen = !this.moduleMenuOpen;
+  }
+
+  selectModule(module: AdminModule): void {
+    this.setActiveModule(module);
+    this.moduleMenuOpen = false;
+  }
+
+  activeModuleLabel(): string {
+    return this.modules.find((module) => module.value === this.activeModule)?.label || 'Menu';
   }
 
   countByStatus(status: CredentialRequestStatus): number {
