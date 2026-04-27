@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
+import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ActivatedRoute } from '@angular/router';
@@ -13,7 +14,7 @@ import { CredentialVerificationService } from '../../../../core/services/credent
 @Component({
   selector: 'app-credential-verification',
   standalone: true,
-  imports: [CommonModule, MatCardModule, MatProgressSpinnerModule],
+  imports: [CommonModule, MatButtonModule, MatCardModule, MatProgressSpinnerModule],
   templateUrl: './credential-verification.component.html',
 })
 export class CredentialVerificationComponent implements OnInit {
@@ -26,18 +27,27 @@ export class CredentialVerificationComponent implements OnInit {
   loading = true;
   errorMessage = '';
   result: CredentialVerificationResult | null = null;
+  private token = '';
 
   async ngOnInit(): Promise<void> {
-    const token = this.route.snapshot.paramMap.get('token') || '';
+    this.token = this.route.snapshot.paramMap.get('token') || '';
+    await this.verify();
+  }
 
-    if (!token) {
+  async verify(): Promise<void> {
+    if (!this.token) {
       this.loading = false;
+      this.result = null;
       this.errorMessage = 'QR inválido o incompleto.';
       return;
     }
 
+    this.loading = true;
+    this.errorMessage = '';
+    this.result = null;
+
     try {
-      this.result = await this.verificationService.verify(token);
+      this.result = await this.verificationService.verify(this.token);
     } catch (error) {
       this.errorMessage =
         error instanceof Error ? error.message : 'No fue posible verificar la credencial.';
