@@ -624,15 +624,27 @@ textarea,
   white-space: pre;
 }
 
+.credential-print-area {
+  align-items: start;
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 356px));
+  justify-content: start;
+  max-width: 100%;
+}
+
 .credential-card {
   aspect-ratio: 1.586 / 1;
   border: 1px solid rgb(39 30 93 / 18%);
   border-radius: 8px;
   box-shadow: 0 12px 24px rgb(39 30 93 / 8%);
   color: var(--tup-ink);
-  min-height: 206px;
+  height: auto;
+  max-width: 356px;
+  min-height: 0;
   overflow: hidden;
   position: relative;
+  width: min(100%, 356px);
 }
 
 .credential-card-front {
