@@ -1,16 +1,6 @@
 <main class="admin-dashboard-shell" [class.admin-sidebar-visible]="sidebarVisible">
   <header class="admin-dashboard-header">
     <div class="admin-header-brand">
-      <div class="grid h-14 w-32 place-items-center rounded-md bg-white p-2 shadow-sm">
-        <img src="/logo-tup.png" alt="TUP" class="logo-mark h-full w-full" />
-      </div>
-      <div>
-        <p class="eyebrow">Portal administrativo</p>
-        <h1 class="text-2xl font-bold text-[var(--tup-ink)] md:text-3xl">Panel administrativo</h1>
-      </div>
-    </div>
-
-    <div class="admin-header-actions">
       <button
         type="button"
         class="admin-menu-button"
@@ -25,9 +15,13 @@
         </svg>
       </button>
 
-      <button mat-stroked-button color="primary" class="link-button !h-11 !rounded-md" (click)="logout()">
-        Cerrar sesion
-      </button>
+      <div class="grid h-14 w-32 place-items-center rounded-md bg-white p-2 shadow-sm">
+        <img src="/logo-tup.png" alt="TUP" class="logo-mark h-full w-full" />
+      </div>
+      <div>
+        <p class="eyebrow">Portal administrativo</p>
+        <h1 class="text-2xl font-bold text-[var(--tup-ink)] md:text-3xl">Panel administrativo</h1>
+      </div>
     </div>
   </header>
 
@@ -56,6 +50,12 @@
         </button>
       }
     </nav>
+
+    <div class="admin-sidebar-footer">
+      <button mat-stroked-button color="primary" class="link-button !h-11 !w-full !rounded-md" (click)="logout()">
+        Cerrar sesion
+      </button>
+    </div>
   </aside>
   }
 
