@@ -315,30 +315,6 @@ textarea,
   color: var(--tup-primary) !important;
 }
 
-.admin-module-button {
-  border: 1px solid var(--tup-line);
-  background: rgb(255 255 255 / 84%);
-  box-shadow: 0 12px 30px rgb(39 30 93 / 6%);
-  color: var(--tup-ink);
-  transition:
-    border-color 160ms ease,
-    box-shadow 160ms ease,
-    transform 160ms ease;
-}
-
-.admin-module-button:hover,
-.admin-module-button-active {
-  border-color: rgb(37 42 134 / 38%);
-  box-shadow: 0 18px 38px rgb(39 30 93 / 11%);
-  transform: translateY(-1px);
-}
-
-.admin-module-button-active {
-  background:
-    linear-gradient(180deg, rgb(238 240 255 / 96%), rgb(255 255 255 / 96%)),
-    var(--tup-white);
-}
-
 .saeko-preview-table th,
 .saeko-preview-table td {
   border-bottom: 1px solid var(--tup-line);

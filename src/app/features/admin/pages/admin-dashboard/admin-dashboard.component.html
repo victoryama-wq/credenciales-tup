@@ -12,6 +12,15 @@
       </div>
 
       <div class="flex w-full flex-col gap-3 md:w-auto md:flex-row md:items-center">
+        <mat-form-field appearance="outline" class="w-full md:w-64">
+          <mat-label>Modulo</mat-label>
+          <mat-select [value]="activeModule" (selectionChange)="setActiveModule($event.value)">
+            @for (module of modules; track module.value) {
+              <mat-option [value]="module.value">{{ module.label }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
         @if (activeModule === 'requests') {
           <mat-form-field appearance="outline" class="w-full md:w-60">
             <mat-label>Tipo de solicitante</mat-label>
@@ -39,30 +48,6 @@
         </button>
       </div>
     </header>
-
-    <nav class="admin-module-menu mb-6 grid gap-3 md:grid-cols-2">
-      <button
-        type="button"
-        class="admin-module-button rounded-lg p-4 text-left"
-        [class.admin-module-button-active]="activeModule === 'requests'"
-        (click)="setActiveModule('requests')"
-      >
-        <span class="eyebrow">Operacion</span>
-        <span class="mt-1 block text-lg font-bold">Solicitudes</span>
-        <span class="mt-1 block text-sm text-[var(--tup-muted)]">Revision, estatus e impresion de credenciales.</span>
-      </button>
-
-      <button
-        type="button"
-        class="admin-module-button rounded-lg p-4 text-left"
-        [class.admin-module-button-active]="activeModule === 'saeko'"
-        (click)="setActiveModule('saeko')"
-      >
-        <span class="eyebrow">Control Escolar</span>
-        <span class="mt-1 block text-lg font-bold">Importacion Saeko</span>
-        <span class="mt-1 block text-sm text-[var(--tup-muted)]">Actualiza estatus, programa y cuatrimestre real.</span>
-      </button>
-    </nav>
 
     @if (activeModule === 'requests') {
     <section class="mb-6 grid gap-3 md:grid-cols-4">

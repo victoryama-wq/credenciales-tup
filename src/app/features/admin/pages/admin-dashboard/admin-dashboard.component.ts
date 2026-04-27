@@ -61,6 +61,10 @@ export class AdminDashboardComponent implements OnInit {
   readonly academicStatusLabels = institutionalAcademicStatusLabels;
   readonly applicantTypes: CredentialApplicantType[] = ['STUDENT', 'TEACHER', 'STAFF'];
   readonly statuses = credentialRequestStatuses;
+  readonly modules: { value: AdminModule; label: string }[] = [
+    { value: 'requests', label: 'Solicitudes' },
+    { value: 'saeko', label: 'Importacion Saeko' },
+  ];
 
   activeModule: AdminModule = 'requests';
   loading = true;
