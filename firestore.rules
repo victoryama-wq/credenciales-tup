@@ -31,6 +31,14 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    match /institutional_profiles/{profileEmail} {
+      allow read: if isAdmin() || (
+        signedIn() &&
+        request.auth.token.email == profileEmail
+      );
+      allow write: if false;
+    }
+
     match /print_batches/{batchId} {
       allow read, write: if isAdmin();
     }

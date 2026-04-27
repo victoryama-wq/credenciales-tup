@@ -7,30 +7,32 @@
         </div>
         <div>
           <p class="eyebrow">Portal administrativo</p>
-          <h1 class="text-2xl font-bold text-[var(--tup-ink)] md:text-3xl">Bandeja de solicitudes</h1>
+          <h1 class="text-2xl font-bold text-[var(--tup-ink)] md:text-3xl">Panel administrativo</h1>
         </div>
       </div>
 
       <div class="flex w-full flex-col gap-3 md:w-auto md:flex-row md:items-center">
-        <mat-form-field appearance="outline" class="w-full md:w-60">
-          <mat-label>Tipo de solicitante</mat-label>
-          <mat-select [(value)]="applicantFilter">
-            <mat-option value="ALL">Todos</mat-option>
-            @for (type of applicantTypes; track type) {
-              <mat-option [value]="type">{{ applicantTypeLabels[type] }}</mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
+        @if (activeModule === 'requests') {
+          <mat-form-field appearance="outline" class="w-full md:w-60">
+            <mat-label>Tipo de solicitante</mat-label>
+            <mat-select [(value)]="applicantFilter">
+              <mat-option value="ALL">Todos</mat-option>
+              @for (type of applicantTypes; track type) {
+                <mat-option [value]="type">{{ applicantTypeLabels[type] }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
 
-        <mat-form-field appearance="outline" class="w-full md:w-72">
-          <mat-label>Filtrar por estatus</mat-label>
-          <mat-select [(value)]="statusFilter">
-            <mat-option value="ALL">Todas</mat-option>
-            @for (status of statuses; track status) {
-              <mat-option [value]="status">{{ statusLabels[status] }}</mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
+          <mat-form-field appearance="outline" class="w-full md:w-72">
+            <mat-label>Filtrar por estatus</mat-label>
+            <mat-select [(value)]="statusFilter">
+              <mat-option value="ALL">Todas</mat-option>
+              @for (status of statuses; track status) {
+                <mat-option [value]="status">{{ statusLabels[status] }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        }
 
         <button mat-stroked-button color="primary" class="link-button !rounded-md" (click)="logout()">
           Cerrar sesión
@@ -38,6 +40,31 @@
       </div>
     </header>
 
+    <nav class="admin-module-menu mb-6 grid gap-3 md:grid-cols-2">
+      <button
+        type="button"
+        class="admin-module-button rounded-lg p-4 text-left"
+        [class.admin-module-button-active]="activeModule === 'requests'"
+        (click)="setActiveModule('requests')"
+      >
+        <span class="eyebrow">Operacion</span>
+        <span class="mt-1 block text-lg font-bold">Solicitudes</span>
+        <span class="mt-1 block text-sm text-[var(--tup-muted)]">Revision, estatus e impresion de credenciales.</span>
+      </button>
+
+      <button
+        type="button"
+        class="admin-module-button rounded-lg p-4 text-left"
+        [class.admin-module-button-active]="activeModule === 'saeko'"
+        (click)="setActiveModule('saeko')"
+      >
+        <span class="eyebrow">Control Escolar</span>
+        <span class="mt-1 block text-lg font-bold">Importacion Saeko</span>
+        <span class="mt-1 block text-sm text-[var(--tup-muted)]">Actualiza estatus, programa y cuatrimestre real.</span>
+      </button>
+    </nav>
+
+    @if (activeModule === 'requests') {
     <section class="mb-6 grid gap-3 md:grid-cols-4">
       @for (status of statuses; track status) {
         <article class="metric-card rounded-lg p-4">
@@ -258,6 +285,134 @@
             </mat-card-content>
           </mat-card>
         }
+      </section>
+    }
+    } @else {
+      <section class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <mat-card class="institution-card !rounded-lg !shadow-none">
+          <mat-card-header>
+            <mat-card-title>Importacion Saeko</mat-card-title>
+            <mat-card-subtitle>Actualiza perfiles institucionales desde un archivo CSV exportado de Saeko.</mat-card-subtitle>
+          </mat-card-header>
+
+          <mat-card-content class="grid gap-5 pt-6">
+            <div class="file-drop rounded-lg p-5">
+              <label class="block text-sm font-semibold text-[var(--tup-ink)]">Archivo CSV</label>
+              <input class="mt-3 w-full text-sm" type="file" accept=".csv,text/csv" (change)="loadSaekoFile($event)" />
+              <p class="mt-3 text-xs leading-5 text-[var(--tup-muted)]">
+                Columnas sugeridas: matricula, correo, nombre, programa, cuatrimestre, estatus, puesto.
+              </p>
+              @if (selectedSaekoFileName) {
+                <p class="mt-2 text-sm text-emerald-700">{{ selectedSaekoFileName }}</p>
+              }
+            </div>
+
+            <div class="grid gap-3 md:grid-cols-3">
+              <article class="metric-card rounded-lg p-4">
+                <p class="text-xs font-semibold uppercase text-[var(--tup-gray)]">Registros</p>
+                <p class="mt-2 text-2xl font-bold text-[var(--tup-ink)]">{{ saekoRows.length }}</p>
+              </article>
+              <article class="metric-card rounded-lg p-4">
+                <p class="text-xs font-semibold uppercase text-[var(--tup-gray)]">Validos</p>
+                <p class="mt-2 text-2xl font-bold text-emerald-700">{{ validSaekoRows.length }}</p>
+              </article>
+              <article class="metric-card rounded-lg p-4">
+                <p class="text-xs font-semibold uppercase text-[var(--tup-gray)]">Observaciones</p>
+                <p class="mt-2 text-2xl font-bold text-red-700">{{ invalidSaekoRows.length }}</p>
+              </article>
+            </div>
+
+            <p class="rounded-md bg-[var(--tup-soft-blue)] px-3 py-2 text-sm text-[var(--tup-primary)]">
+              {{ saekoSummary }}
+            </p>
+
+            @if (importErrorMessage) {
+              <p class="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{{ importErrorMessage }}</p>
+            }
+
+            @if (importSuccessMessage) {
+              <p class="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{{ importSuccessMessage }}</p>
+            }
+
+            @if (saekoRows.length) {
+              <div class="saeko-preview-table overflow-auto rounded-lg border border-[var(--tup-line)] bg-white">
+                <table class="w-full min-w-[920px] text-left text-sm">
+                  <thead>
+                    <tr>
+                      <th>Fila</th>
+                      <th>Tipo</th>
+                      <th>Estatus</th>
+                      <th>Correo</th>
+                      <th>Nombre</th>
+                      <th>Matricula</th>
+                      <th>Programa / puesto</th>
+                      <th>Cuatrimestre</th>
+                      <th>Observaciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (row of saekoRows; track row.rowNumber) {
+                      <tr [class.saeko-row-error]="row.errors.length">
+                        <td>{{ row.rowNumber }}</td>
+                        <td>{{ applicantTypeLabels[row.applicantType] }}</td>
+                        <td>{{ academicStatusLabels[row.academicStatus] || 'No reconocido' }}</td>
+                        <td>{{ row.email }}</td>
+                        <td>{{ row.name || '-' }}</td>
+                        <td>{{ row.studentId || '-' }}</td>
+                        <td>{{ row.position || row.career || '-' }}</td>
+                        <td>{{ row.currentTerm || '-' }}</td>
+                        <td>{{ row.errors.length ? row.errors.join(' ') : 'Listo' }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+
+            <div>
+              <button
+                mat-flat-button
+                color="primary"
+                type="button"
+                class="!h-11 !rounded-md"
+                [disabled]="importingProfiles || !validSaekoRows.length"
+                (click)="importSaekoProfiles()"
+              >
+                @if (importingProfiles) {
+                  <mat-progress-spinner diameter="22" mode="indeterminate"></mat-progress-spinner>
+                } @else {
+                  Aplicar importacion
+                }
+              </button>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <aside class="grid gap-4 content-start">
+          <mat-card class="institution-card !rounded-lg !shadow-none">
+            <mat-card-header>
+              <mat-card-title>Formato esperado</mat-card-title>
+            </mat-card-header>
+            <mat-card-content class="grid gap-3 pt-4 text-sm leading-6 text-[var(--tup-muted)]">
+              <p>Para alumnos usa correo tipo tup1234&#64;tecplayacar.edu.mx y agrega matricula, programa y cuatrimestre.</p>
+              <p>Para docentes usa correo tipo tup-d1234&#64;tecplayacar.edu.mx. No requiere programa ni cuatrimestre.</p>
+              <p>Para colaboradores usa correo nombre.apellido&#64;tecplayacar.edu.mx y agrega puesto.</p>
+              <p>Estatus aceptados: activo, baja, egresado o suspendido.</p>
+            </mat-card-content>
+          </mat-card>
+
+          <mat-card class="institution-card !rounded-lg !shadow-none">
+            <mat-card-header>
+              <mat-card-title>Ejemplo CSV</mat-card-title>
+            </mat-card-header>
+            <mat-card-content class="pt-4">
+              <pre class="csv-example rounded-md p-3 text-xs">matricula,correo,nombre,programa,cuatrimestre,estatus,puesto
+TUP2104,tup2104&#64;tecplayacar.edu.mx,Nombre Alumno,Lic. Administracion de Empresas,Primer cuatrimestre,activo,
+,tup-d1234&#64;tecplayacar.edu.mx,Nombre Docente,,,activo,
+,zulma.martinez&#64;tecplayacar.edu.mx,Zulma Martinez,,,activo,Administracion</pre>
+            </mat-card-content>
+          </mat-card>
+        </aside>
       </section>
     }
   </div>

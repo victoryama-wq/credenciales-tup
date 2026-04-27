@@ -41,6 +41,26 @@
                 </div>
               </section>
 
+              @if (institutionalProfile; as profile) {
+                <section
+                  class="rounded-lg border p-4"
+                  [class.border-emerald-200]="canSubmitCredentialRequest"
+                  [class.bg-emerald-50]="canSubmitCredentialRequest"
+                  [class.border-red-200]="!canSubmitCredentialRequest"
+                  [class.bg-red-50]="!canSubmitCredentialRequest"
+                >
+                  <p class="text-sm font-semibold" [class.text-emerald-700]="canSubmitCredentialRequest" [class.text-red-700]="!canSubmitCredentialRequest">
+                    Perfil institucional Saeko: {{ academicStatusLabels[profile.academicStatus] }}
+                  </p>
+                  <p class="mt-2 text-sm leading-6 text-[var(--tup-muted)]">
+                    Tus datos escolares fueron precargados desde Control Escolar.
+                    @if (!canSubmitCredentialRequest) {
+                      No es posible generar una nueva solicitud con este estatus.
+                    }
+                  </p>
+                </section>
+              }
+
               <section class="rounded-lg border border-[var(--tup-line)] bg-white p-4">
                 <p class="mb-3 text-sm font-semibold text-[var(--tup-ink)]">Tipo de trámite</p>
                 <mat-button-toggle-group
@@ -271,7 +291,7 @@
               }
 
               <div>
-                <button mat-flat-button color="primary" type="submit" [disabled]="submitting" class="!h-11 !rounded-md">
+                <button mat-flat-button color="primary" type="submit" [disabled]="submitting || !canSubmitCredentialRequest" class="!h-11 !rounded-md">
                   @if (submitting) {
                     <mat-progress-spinner diameter="22" mode="indeterminate"></mat-progress-spinner>
                   } @else {

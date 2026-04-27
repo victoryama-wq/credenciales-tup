@@ -21,6 +21,11 @@ import {
   statusLabels,
 } from '../../../../core/models/credential-request.model';
 import { CredentialRequestService } from '../../../../core/services/credential-request.service';
+import {
+  InstitutionalProfile,
+  institutionalAcademicStatusLabels,
+} from '../../../../core/models/institutional-profile.model';
+import { InstitutionalProfileService } from '../../../../core/services/institutional-profile.service';
 
 @Component({
   selector: 'app-student-dashboard',
@@ -43,11 +48,13 @@ export class StudentDashboardComponent implements OnInit {
   private fb = inject(FormBuilder);
   private authService = inject(AuthService);
   private requestService = inject(CredentialRequestService);
+  private institutionalProfileService = inject(InstitutionalProfileService);
   private destroyRef = inject(DestroyRef);
   private router = inject(Router);
 
   readonly statusLabels = statusLabels;
   readonly applicantTypeLabels = credentialApplicantTypeLabels;
+  readonly academicStatusLabels = institutionalAcademicStatusLabels;
   readonly requestTypeLabels = credentialRequestTypeLabels;
   readonly requestTypes: CredentialRequestType[] = ['FIRST_TIME', 'REPLACEMENT'];
   readonly careers = [
@@ -97,6 +104,7 @@ export class StudentDashboardComponent implements OnInit {
   evidenceFile: File | null = null;
   requests: CredentialRequest[] = [];
   detectedApplicantType: CredentialApplicantType = 'STUDENT';
+  institutionalProfile: InstitutionalProfile | null = null;
 
   form = this.fb.nonNullable.group({
     applicantType: ['STUDENT' as CredentialApplicantType, Validators.required],
@@ -136,6 +144,14 @@ export class StudentDashboardComponent implements OnInit {
     return this.requests.some((request) => request.requestType !== 'REPLACEMENT');
   }
 
+  get hasInstitutionalProfile(): boolean {
+    return !!this.institutionalProfile;
+  }
+
+  get canSubmitCredentialRequest(): boolean {
+    return !this.institutionalProfile || this.institutionalProfile.academicStatus === 'ACTIVE';
+  }
+
   async ngOnInit(): Promise<void> {
     const user = await this.authService.waitForCurrentUser();
 
@@ -166,6 +182,24 @@ export class StudentDashboardComponent implements OnInit {
       });
 
     this.applyApplicantValidators(this.detectedApplicantType);
+
+    if (user.email) {
+      this.institutionalProfileService
+        .watchProfileByEmail(user.email)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: (profile) => {
+            this.institutionalProfile = profile;
+
+            if (profile) {
+              this.applyInstitutionalProfile(profile);
+            }
+          },
+          error: (error) => {
+            this.errorMessage = error.message || 'No fue posible cargar tu perfil institucional.';
+          },
+        });
+    }
 
     this.requestService
       .watchRequestsByUser(user.uid)
@@ -210,6 +244,12 @@ export class StudentDashboardComponent implements OnInit {
 
     if (!user) {
       this.errorMessage = 'Inicia sesión para enviar tu solicitud.';
+      return;
+    }
+
+    if (!this.canSubmitCredentialRequest) {
+      const status = this.institutionalProfile?.academicStatus || 'WITHDRAWN';
+      this.errorMessage = `Tu perfil institucional aparece como ${this.academicStatusLabels[status]}. Contacta a Control Escolar.`;
       return;
     }
 
@@ -301,6 +341,32 @@ export class StudentDashboardComponent implements OnInit {
     return request.applicantType === 'STUDENT' || !request.applicantType
       ? ` - ${request.cycle}`
       : '';
+  }
+
+  private applyInstitutionalProfile(profile: InstitutionalProfile): void {
+    this.detectedApplicantType = profile.applicantType;
+    this.form.controls.applicantType.setValue(profile.applicantType, { emitEvent: false });
+    this.applyApplicantValidators(profile.applicantType);
+
+    this.form.patchValue(
+      {
+        name: profile.name,
+        studentId: profile.studentId || '',
+        career:
+          profile.applicantType === 'STAFF'
+            ? profile.position || profile.career || ''
+            : profile.applicantType === 'TEACHER'
+              ? 'Docente'
+              : profile.career || '',
+        cycle: profile.applicantType === 'STUDENT' ? profile.currentTerm || '' : 'No aplica',
+      },
+      { emitEvent: false }
+    );
+
+    this.form.controls.name.disable({ emitEvent: false });
+    this.form.controls.studentId.disable({ emitEvent: false });
+    this.form.controls.career.disable({ emitEvent: false });
+    this.form.controls.cycle.disable({ emitEvent: false });
   }
 
   private buildMissingDataMessage(): string {

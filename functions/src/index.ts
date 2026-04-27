@@ -55,6 +55,43 @@ interface VerifyCredentialData {
   token?: string;
 }
 
+type InstitutionalAcademicStatus =
+  | "ACTIVE"
+  | "WITHDRAWN"
+  | "GRADUATED"
+  | "SUSPENDED";
+
+interface InstitutionalProfileImportRow {
+  rowNumber?: number;
+  email?: string;
+  applicantType?: CredentialApplicantType;
+  academicStatus?: InstitutionalAcademicStatus;
+  studentId?: string;
+  name?: string;
+  career?: string;
+  currentTerm?: string;
+  position?: string;
+}
+
+interface ImportInstitutionalProfilesData {
+  rows?: InstitutionalProfileImportRow[];
+}
+
+interface InstitutionalProfile {
+  email: string;
+  applicantType: CredentialApplicantType;
+  academicStatus: InstitutionalAcademicStatus;
+  studentId?: string;
+  name: string;
+  career?: string;
+  currentTerm?: string;
+  position?: string;
+  active: boolean;
+  source: "SAEKO";
+  importedAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
 type UserRole = "admin" | "student";
 
 interface StoredCredentialRequest {
@@ -79,6 +116,7 @@ const db = getFirestore();
 const adminAuth = getAuth();
 const requests = db.collection("credential_requests");
 const credentialCounters = db.collection("credential_counters");
+const institutionalProfiles = db.collection("institutional_profiles");
 const institutionalEmailDomain = "tecplayacar.edu.mx";
 const publicAppUrl = "https://credencial-tup.web.app";
 const callableOptions: CallableOptions = {
@@ -126,7 +164,9 @@ export const createCredentialRequest = onCall(callableOptions, async (request) =
 
   const data = request.data as CreateCredentialRequestData;
   const email = auth.token.email || data.email || "";
-  const input = validateCreateData(data, auth.uid, email);
+  const normalizedEmail = normalizeEmail(email);
+  const institutionalProfile = await getInstitutionalProfile(normalizedEmail);
+  const input = validateCreateData(data, auth.uid, normalizedEmail, institutionalProfile);
   const now = Timestamp.now();
   const requestRef = requests.doc();
 
@@ -226,6 +266,7 @@ export const syncUserSession = onCall(callableOptions, async (request) => {
   }
 
   const role = resolveUserRole(email);
+  const institutionalProfile = await getInstitutionalProfile(email);
   const userRecord = await adminAuth.getUser(auth.uid);
   const customClaims = userRecord.customClaims || {};
   const nextClaims = {
@@ -244,16 +285,25 @@ export const syncUserSession = onCall(callableOptions, async (request) => {
   const userRef = db.collection("users").doc(auth.uid);
   const userSnapshot = await userRef.get();
   const now = Timestamp.now();
-  const profile = {
-    uid: auth.uid,
-    role,
-    name: resolveDisplayName(
+  const profileName = institutionalProfile?.name ||
+    resolveDisplayName(
       auth.token.name as string | undefined,
       userRecord.displayName,
       email
-    ),
+    );
+  const profile = {
+    uid: auth.uid,
+    role,
+    name: profileName,
     email,
-    active: true,
+    active: institutionalProfile ? institutionalProfile.active : true,
+    applicantType: institutionalProfile?.applicantType || resolveApplicantTypeByEmail(email),
+    academicStatus: institutionalProfile?.academicStatus || "ACTIVE",
+    studentId: institutionalProfile?.studentId || "",
+    career: institutionalProfile?.career || "",
+    currentTerm: institutionalProfile?.currentTerm || "",
+    position: institutionalProfile?.position || "",
+    statusSource: institutionalProfile ? "SAEKO" : "EMAIL_PATTERN",
     updatedAt: now,
   };
 
@@ -355,13 +405,16 @@ export const verifyCredential = onCall(callableOptions, async (request) => {
   }
 
   const credential = snapshot.docs[0].data() as StoredCredentialRequest;
+  const profile = await getInstitutionalProfile(credential.email);
   const validStatuses: CredentialRequestStatus[] = [
     "APPROVED_FOR_PRINT",
     "PRINTED",
     "READY_FOR_PICKUP",
     "DELIVERED",
   ];
-  const valid = validStatuses.includes(credential.status);
+  const valid =
+    validStatuses.includes(credential.status) &&
+    (!profile || profile.academicStatus === "ACTIVE");
 
   return {
     valid,
@@ -380,35 +433,213 @@ export const verifyCredential = onCall(callableOptions, async (request) => {
   };
 });
 
+export const importInstitutionalProfiles = onCall(callableOptions, async (request) => {
+  const auth = request.auth;
+
+  if (!auth) {
+    throw new HttpsError("unauthenticated", "Inicia sesion.");
+  }
+
+  if (!isAdmin(auth.token)) {
+    throw new HttpsError("permission-denied", "Requiere rol administrativo.");
+  }
+
+  const data = request.data as ImportInstitutionalProfilesData;
+  const rows = Array.isArray(data.rows) ? data.rows : [];
+
+  if (!rows.length) {
+    throw new HttpsError("invalid-argument", "El archivo no contiene registros.");
+  }
+
+  if (rows.length > 3000) {
+    throw new HttpsError(
+      "invalid-argument",
+      "Importa un maximo de 3000 registros por archivo."
+    );
+  }
+
+  const now = Timestamp.now();
+  const profiles = rows.map((row, index) => validateInstitutionalProfileRow(row, index, now));
+  let batch = db.batch();
+  let pendingWrites = 0;
+  let imported = 0;
+
+  for (const profile of profiles) {
+    batch.set(institutionalProfiles.doc(profile.email), profile, {merge: true});
+    pendingWrites++;
+    imported++;
+
+    if (pendingWrites >= 450) {
+      await batch.commit();
+      batch = db.batch();
+      pendingWrites = 0;
+    }
+  }
+
+  batch.set(db.collection("audit_logs").doc(), {
+    actorUid: auth.uid,
+    action: "institutional_profiles.import",
+    entity: "institutional_profiles",
+    entityId: "saeko-import",
+    before: null,
+    after: {
+      imported,
+      total: rows.length,
+      source: "SAEKO",
+    },
+    timestamp: now,
+  });
+
+  await batch.commit();
+
+  return {
+    ok: true,
+    imported,
+    total: rows.length,
+  };
+});
+
 function validateCreateData(
   data: CreateCredentialRequestData,
   uid: string,
-  email: string
+  email: string,
+  profile: InstitutionalProfile | null
 ) {
   const normalizedEmail = normalizeEmail(email);
   const applicantType = resolveApplicantTypeByEmail(normalizedEmail);
+  const profileApplicantType = profile?.applicantType || applicantType;
+
+  if (profile && profile.academicStatus !== "ACTIVE") {
+    const statusLabel = academicStatusLabel(profile.academicStatus);
+
+    throw new HttpsError(
+      "failed-precondition",
+      `Tu perfil institucional aparece como ${statusLabel}. ` +
+        "Contacta a Control Escolar."
+    );
+  }
+
   const requestType = requireRequestType(data.requestType);
   const photo = validateDocument(data.photo, "photo", uid);
   const evidence = requestType === "REPLACEMENT" ?
     validateDocument(data.evidence, "evidence", uid) :
     null;
-  const isStudent = applicantType === "STUDENT";
-  const isStaff = applicantType === "STAFF";
+  const isStudent = profileApplicantType === "STUDENT";
+  const isStaff = profileApplicantType === "STAFF";
 
   return {
-    applicantType,
+    applicantType: profileApplicantType,
     requestType,
     email: normalizedEmail,
     studentId: isStudent ?
-      requireString(data.studentId, "studentId").toUpperCase() :
+      (profile?.studentId || requireString(data.studentId, "studentId")).toUpperCase() :
       buildNonStudentIdentifier(normalizedEmail, uid),
-    name: requireString(data.name, "name"),
-    career: isStudent || isStaff ? requireString(data.career, "career") : "Docente",
-    cycle: isStudent ? requireString(data.cycle, "cycle") : "No aplica",
+    name: profile?.name || requireString(data.name, "name"),
+    career: isStudent ?
+      profile?.career || requireString(data.career, "career") :
+      isStaff ?
+        profile?.position || profile?.career || requireString(data.career, "career") :
+        "Docente",
+    cycle: isStudent ? profile?.currentTerm || requireString(data.cycle, "cycle") : "No aplica",
     phone: isStudent ? requireString(data.phone, "phone") : "No aplica",
     photo,
     evidence,
   };
+}
+
+function validateInstitutionalProfileRow(
+  row: InstitutionalProfileImportRow,
+  index: number,
+  now: Timestamp
+): InstitutionalProfile {
+  const rowNumber = row.rowNumber || index + 2;
+  const email = normalizeEmail(row.email);
+  const applicantType = requireApplicantType(row.applicantType, email, rowNumber);
+  const academicStatus = requireAcademicStatus(row.academicStatus, rowNumber);
+  const isStudent = applicantType === "STUDENT";
+  const isStaff = applicantType === "STAFF";
+  const position = cleanOptionalString(row.position || row.career);
+  const profile: InstitutionalProfile = {
+    email,
+    applicantType,
+    academicStatus,
+    name: requireString(row.name, `nombre fila ${rowNumber}`),
+    active: academicStatus === "ACTIVE",
+    source: "SAEKO",
+    importedAt: now,
+    updatedAt: now,
+  };
+
+  if (isStudent) {
+    profile.studentId = requireString(row.studentId, `matricula fila ${rowNumber}`).toUpperCase();
+    profile.career = requireString(row.career, `programa fila ${rowNumber}`);
+    profile.currentTerm = requireString(row.currentTerm, `cuatrimestre fila ${rowNumber}`);
+  } else if (isStaff) {
+    profile.position = requireString(position, `puesto fila ${rowNumber}`);
+    profile.career = profile.position;
+  } else {
+    profile.position = "Docente";
+    profile.career = "Docente";
+  }
+
+  return profile;
+}
+
+async function getInstitutionalProfile(email: string): Promise<InstitutionalProfile | null> {
+  const normalizedEmail = normalizeEmail(email);
+  const snapshot = await institutionalProfiles.doc(normalizedEmail).get();
+
+  if (!snapshot.exists) {
+    return null;
+  }
+
+  return snapshot.data() as InstitutionalProfile;
+}
+
+function requireApplicantType(
+  value: unknown,
+  email: string,
+  rowNumber: number
+): CredentialApplicantType {
+  if (value === "STUDENT" || value === "TEACHER" || value === "STAFF") {
+    return value;
+  }
+
+  const resolved = resolveApplicantTypeByEmail(email);
+
+  if (resolved) {
+    return resolved;
+  }
+
+  throw new HttpsError("invalid-argument", `Tipo de solicitante invalido en fila ${rowNumber}.`);
+}
+
+function requireAcademicStatus(value: unknown, rowNumber: number): InstitutionalAcademicStatus {
+  if (
+    value === "ACTIVE" ||
+    value === "WITHDRAWN" ||
+    value === "GRADUATED" ||
+    value === "SUSPENDED"
+  ) {
+    return value;
+  }
+
+  throw new HttpsError("invalid-argument", `Estatus institucional invalido en fila ${rowNumber}.`);
+}
+
+function cleanOptionalString(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function academicStatusLabel(status: InstitutionalAcademicStatus): string {
+  const labels: Record<InstitutionalAcademicStatus, string> = {
+    ACTIVE: "activo",
+    WITHDRAWN: "baja",
+    GRADUATED: "egresado",
+    SUSPENDED: "suspendido",
+  };
+
+  return labels[status];
 }
 
 function validateDocument(
