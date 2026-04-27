@@ -1,52 +1,55 @@
-<main class="app-shell px-4 py-6 md:px-8">
-  <div class="mx-auto max-w-7xl">
-    <header class="institution-header mb-6 flex flex-col gap-4 rounded-lg px-5 py-4 md:flex-row md:items-center md:justify-between">
-      <div class="flex items-center gap-4">
-        <div class="grid h-14 w-32 place-items-center rounded-md bg-white p-2 shadow-sm">
-          <img src="/logo-tup.png" alt="TUP" class="logo-mark h-full w-full" />
-        </div>
-        <div>
-          <p class="eyebrow">Portal administrativo</p>
-          <h1 class="text-2xl font-bold text-[var(--tup-ink)] md:text-3xl">Panel administrativo</h1>
-        </div>
+<main class="admin-dashboard-shell">
+  <aside class="admin-sidebar">
+    <div class="admin-sidebar-brand">
+      <div class="grid h-16 w-full place-items-center rounded-md bg-white p-2 shadow-sm">
+        <img src="/logo-tup.png" alt="TUP" class="logo-mark h-full w-full" />
+      </div>
+      <div>
+        <p class="eyebrow">Portal administrativo</p>
+        <h1 class="mt-1 text-xl font-bold text-[var(--tup-ink)]">Credenciales TUP</h1>
+      </div>
+    </div>
+
+    <nav class="admin-sidebar-nav">
+      <p class="admin-sidebar-label">Modulos</p>
+      @for (module of modules; track module.value) {
+        <button
+          type="button"
+          class="admin-sidebar-link rounded-md"
+          [class.admin-sidebar-link-active]="activeModule === module.value"
+          (click)="selectModule(module.value)"
+        >
+          <span class="admin-sidebar-icon" aria-hidden="true">
+            @if (module.value === 'requests') {
+              <svg viewBox="0 0 24 24"><path d="M7 4h10a2 2 0 0 1 2 2v14H5V6a2 2 0 0 1 2-2Z" /><path d="M9 8h6M9 12h6M9 16h4" /></svg>
+            } @else {
+              <svg viewBox="0 0 24 24"><path d="M4 5h16v14H4z" /><path d="M8 5v14M4 10h16M4 15h16" /></svg>
+            }
+          </span>
+          <span>
+            <span class="block font-bold">{{ module.label }}</span>
+            <span class="mt-1 block text-xs leading-5 text-[var(--tup-muted)]">{{ module.description }}</span>
+          </span>
+        </button>
+      }
+    </nav>
+
+    <div class="admin-sidebar-footer">
+      <button mat-stroked-button color="primary" class="link-button !h-11 !w-full !rounded-md" (click)="logout()">
+        Cerrar sesion
+      </button>
+    </div>
+  </aside>
+
+  <section class="admin-dashboard-main">
+    <header class="admin-dashboard-topbar">
+      <div>
+        <p class="eyebrow">{{ activeModule === 'requests' ? 'Operacion' : 'Control Escolar' }}</p>
+        <h2 class="text-2xl font-bold text-[var(--tup-ink)] md:text-3xl">{{ activeModuleLabel() }}</h2>
       </div>
 
-      <div class="flex w-full flex-col gap-3 md:w-auto md:flex-row md:items-center">
-        <div class="admin-mobile-menu-wrap">
-          <button
-            mat-stroked-button
-            color="primary"
-            type="button"
-            class="admin-menu-trigger link-button !h-12 !rounded-md"
-            [attr.aria-expanded]="moduleMenuOpen"
-            (click)="toggleModuleMenu()"
-          >
-            <svg class="admin-menu-icon" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M4 7h16M4 12h16M4 17h16" />
-            </svg>
-            <span>{{ activeModuleLabel() }}</span>
-          </button>
-
-          @if (moduleMenuOpen) {
-            <section class="admin-mobile-menu rounded-lg p-2">
-              <p class="px-3 py-2 text-xs font-semibold uppercase text-[var(--tup-gray)]">Menu</p>
-              @for (module of modules; track module.value) {
-                <button
-                  type="button"
-                  class="admin-mobile-menu-item rounded-md p-3 text-left"
-                  [class.admin-mobile-menu-item-active]="activeModule === module.value"
-                  (click)="selectModule(module.value)"
-                >
-                  <span class="block text-xs font-semibold uppercase text-[var(--tup-gray)]">{{ module.eyebrow }}</span>
-                  <span class="mt-1 block font-bold text-[var(--tup-ink)]">{{ module.label }}</span>
-                  <span class="mt-1 block text-xs leading-5 text-[var(--tup-muted)]">{{ module.description }}</span>
-                </button>
-              }
-            </section>
-          }
-        </div>
-
-        @if (activeModule === 'requests') {
+      @if (activeModule === 'requests') {
+        <div class="admin-dashboard-filters">
           <mat-form-field appearance="outline" class="w-full md:w-60">
             <mat-label>Tipo de solicitante</mat-label>
             <mat-select [(value)]="applicantFilter">
@@ -66,12 +69,8 @@
               }
             </mat-select>
           </mat-form-field>
-        }
-
-        <button mat-stroked-button color="primary" class="link-button !rounded-md" (click)="logout()">
-          Cerrar sesion
-        </button>
-      </div>
+        </div>
+      }
     </header>
 
     @if (activeModule === 'requests') {
@@ -425,5 +424,5 @@ TUP2104,tup2104&#64;tecplayacar.edu.mx,Nombre Alumno,Lic. Administracion de Empr
         </aside>
       </section>
     }
-  </div>
+  </section>
 </main>

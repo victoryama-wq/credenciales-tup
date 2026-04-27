@@ -77,7 +77,6 @@ export class AdminDashboardComponent implements OnInit {
   ];
 
   activeModule: AdminModule = 'requests';
-  moduleMenuOpen = false;
   loading = true;
   savingId = '';
   errorMessage = '';
@@ -146,13 +145,8 @@ export class AdminDashboardComponent implements OnInit {
     this.importSuccessMessage = '';
   }
 
-  toggleModuleMenu(): void {
-    this.moduleMenuOpen = !this.moduleMenuOpen;
-  }
-
   selectModule(module: AdminModule): void {
     this.setActiveModule(module);
-    this.moduleMenuOpen = false;
   }
 
   activeModuleLabel(): string {
