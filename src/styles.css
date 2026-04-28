@@ -831,6 +831,139 @@ textarea,
   width: 36.5%;
 }
 
+.template-designer-content {
+  display: grid !important;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
+.template-designer-toolbar {
+  align-items: start;
+  display: grid;
+  gap: 0.8rem;
+}
+
+.template-designer-workbench {
+  align-items: start;
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.template-designer-preview {
+  background:
+    linear-gradient(180deg, rgb(37 42 134 / 5%), rgb(255 255 255 / 85%)),
+    var(--tup-white);
+  border: 1px solid var(--tup-line);
+  border-radius: 8px;
+  display: grid;
+  justify-items: center;
+  min-width: 0;
+  padding: 1rem;
+}
+
+.template-designer-card {
+  max-width: 340px;
+  width: min(100%, 340px);
+}
+
+.template-editor-item {
+  align-items: center;
+  background: rgb(255 255 255 / 56%);
+  border: 1px dashed rgb(255 255 255 / 76%);
+  color: var(--tup-ink);
+  cursor: move;
+  display: flex;
+  font: inherit;
+  justify-content: center;
+  line-height: 1;
+  margin: 0;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  text-align: center;
+  touch-action: none;
+}
+
+.template-editor-item-active {
+  border-color: #facc15;
+  box-shadow: 0 0 0 3px rgb(250 204 21 / 32%);
+}
+
+.template-editor-item img {
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.template-editor-item span {
+  display: block;
+  font-size: clamp(0.62rem, 4cqw, 1rem);
+  font-weight: 700;
+  max-width: 100%;
+  overflow: hidden;
+  padding: 0.15rem;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.template-designer-controls {
+  display: grid;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.template-field-panel {
+  background: var(--tup-white);
+  border: 1px solid var(--tup-line);
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.85rem;
+}
+
+.template-field-panel-active {
+  border-color: rgb(37 42 134 / 36%);
+  box-shadow: 0 10px 24px rgb(39 30 93 / 8%);
+}
+
+.template-field-grid {
+  display: grid;
+  gap: 0.6rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.template-field-grid label {
+  color: var(--tup-muted);
+  display: grid;
+  font-size: 0.72rem;
+  font-weight: 700;
+  gap: 0.25rem;
+  text-transform: uppercase;
+}
+
+.template-field-grid input {
+  background: #f9fafc;
+  border: 1px solid var(--tup-line);
+  border-radius: 6px;
+  color: var(--tup-ink);
+  font: inherit;
+  min-width: 0;
+  padding: 0.45rem 0.5rem;
+}
+
+@media (min-width: 768px) {
+  .template-designer-toolbar {
+    grid-template-columns: 220px 180px auto;
+  }
+}
+
+@media (min-width: 1100px) {
+  .template-designer-workbench {
+    grid-template-columns: minmax(320px, 430px) minmax(280px, 1fr);
+  }
+}
+
 .verification-shell {
   background:
     linear-gradient(180deg, rgb(37 42 134 / 8%) 0, rgb(37 42 134 / 0%) 320px),

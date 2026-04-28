@@ -28,9 +28,28 @@ import {
 } from '../../../../core/models/institutional-profile.model';
 import { InstitutionalProfileService } from '../../../../core/services/institutional-profile.service';
 
-type AdminModule = 'requests' | 'saeko';
+type AdminModule = 'requests' | 'saeko' | 'templates';
 type CredentialTemplateSide = 'front' | 'back';
 type CredentialTemplateKey = 'admin' | 'docente' | 'estudiante';
+type CredentialTemplateFieldKey = 'photo' | 'name' | 'matricula' | 'nivel' | 'programa' | 'qr';
+
+interface CredentialTemplateFieldLayout {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+type CredentialTemplateLayouts = Record<
+  CredentialTemplateKey,
+  Record<CredentialTemplateFieldKey, CredentialTemplateFieldLayout>
+>;
+
+interface CredentialTemplateEditorField {
+  key: CredentialTemplateFieldKey;
+  label: string;
+  side: CredentialTemplateSide;
+}
 
 interface SaekoPreviewRow extends SaekoImportRow {
   errors: string[];
@@ -57,11 +76,46 @@ export class AdminDashboardComponent implements OnInit {
   private institutionalProfileService = inject(InstitutionalProfileService);
   private destroyRef = inject(DestroyRef);
   private router = inject(Router);
+  private readonly templateLayoutStorageKey = 'tupCredentialTemplateLayoutsV1';
 
   readonly statusLabels = statusLabels;
   readonly applicantTypeLabels = credentialApplicantTypeLabels;
   readonly academicStatusLabels = institutionalAcademicStatusLabels;
   readonly applicantTypes: CredentialApplicantType[] = ['STUDENT', 'TEACHER', 'STAFF'];
+  readonly templateEditorFields: CredentialTemplateEditorField[] = [
+    { key: 'photo', label: 'Foto', side: 'front' },
+    { key: 'name', label: 'Nombre', side: 'front' },
+    { key: 'matricula', label: 'Matricula', side: 'front' },
+    { key: 'nivel', label: 'Nivel', side: 'front' },
+    { key: 'programa', label: 'Programa / puesto', side: 'front' },
+    { key: 'qr', label: 'QR', side: 'back' },
+  ];
+  readonly defaultTemplateLayouts: CredentialTemplateLayouts = {
+    estudiante: {
+      photo: { x: 27, y: 18, w: 46.8, h: 34.8 },
+      name: { x: 15, y: 58.3, w: 75, h: 6 },
+      matricula: { x: 44.5, y: 78, w: 45, h: 3.6 },
+      nivel: { x: 44.5, y: 84.3, w: 45, h: 3.6 },
+      programa: { x: 44.5, y: 90.7, w: 45, h: 3.6 },
+      qr: { x: 31.7, y: 60.1, w: 36.5, h: 36.5 },
+    },
+    docente: {
+      photo: { x: 27, y: 18, w: 46.8, h: 34.8 },
+      name: { x: 15, y: 58.3, w: 75, h: 6 },
+      matricula: { x: 44.5, y: 78, w: 45, h: 3.6 },
+      nivel: { x: 44.5, y: 84.3, w: 45, h: 3.6 },
+      programa: { x: 44.5, y: 90.7, w: 45, h: 3.6 },
+      qr: { x: 31.7, y: 60.1, w: 36.5, h: 36.5 },
+    },
+    admin: {
+      photo: { x: 29.8, y: 18.8, w: 43.8, h: 34.2 },
+      name: { x: 15, y: 58.3, w: 75, h: 6 },
+      matricula: { x: 44.5, y: 78, w: 45, h: 3.6 },
+      nivel: { x: 44.5, y: 84.3, w: 45, h: 3.6 },
+      programa: { x: 44.5, y: 90.7, w: 45, h: 3.6 },
+      qr: { x: 31.7, y: 60.1, w: 36.5, h: 36.5 },
+    },
+  };
   readonly statuses = credentialRequestStatuses;
   readonly modules: { value: AdminModule; label: string; eyebrow: string; description: string }[] = [
     {
@@ -75,6 +129,12 @@ export class AdminDashboardComponent implements OnInit {
       label: 'Importacion Saeko',
       eyebrow: 'Control Escolar',
       description: 'Estatus, programa y cuatrimestre real.',
+    },
+    {
+      value: 'templates',
+      label: 'Diseño credencial',
+      eyebrow: 'Motor de credencial',
+      description: 'Ajuste visual de foto, datos y QR.',
     },
   ];
 
@@ -94,6 +154,10 @@ export class AdminDashboardComponent implements OnInit {
   saekoRows: SaekoPreviewRow[] = [];
   selectedSaekoFileName = '';
   importingProfiles = false;
+  selectedTemplateApplicant: CredentialApplicantType = 'STUDENT';
+  selectedTemplateSide: CredentialTemplateSide = 'front';
+  selectedTemplateField: CredentialTemplateFieldKey = 'photo';
+  templateLayouts: CredentialTemplateLayouts = this.loadTemplateLayouts();
 
   ngOnInit(): void {
     this.requestService
@@ -155,6 +219,10 @@ export class AdminDashboardComponent implements OnInit {
 
   activeModuleLabel(): string {
     return this.modules.find((module) => module.value === this.activeModule)?.label || 'Menu';
+  }
+
+  activeModuleEyebrow(): string {
+    return this.modules.find((module) => module.value === this.activeModule)?.eyebrow || 'Operacion';
   }
 
   toggleSidebar(): void {
@@ -281,6 +349,13 @@ export class AdminDashboardComponent implements OnInit {
     return `url("/credential-templates/${this.credentialTemplateKey(request)}-${side}.png")`;
   }
 
+  credentialTemplateElementStyle(
+    request: CredentialRequest,
+    field: CredentialTemplateFieldKey
+  ): Record<string, string> {
+    return this.templateFieldStyle(this.credentialTemplateKey(request), field);
+  }
+
   credentialTemplateMatricula(request: CredentialRequest): string {
     return request.studentId || '';
   }
@@ -303,6 +378,123 @@ export class AdminDashboardComponent implements OnInit {
     }
 
     return request.career || '';
+  }
+
+  selectedTemplateKey(): CredentialTemplateKey {
+    return this.credentialTemplateKeyFromApplicant(this.selectedTemplateApplicant);
+  }
+
+  selectedTemplateBackground(): string {
+    return `url("/credential-templates/${this.selectedTemplateKey()}-${this.selectedTemplateSide}.png")`;
+  }
+
+  visibleTemplateEditorFields(): CredentialTemplateEditorField[] {
+    return this.templateEditorFields.filter((field) => {
+      const matchesSide = field.side === this.selectedTemplateSide;
+      const matchesApplicant =
+        this.selectedTemplateApplicant !== 'TEACHER' || field.key !== 'programa';
+
+      return matchesSide && matchesApplicant;
+    });
+  }
+
+  templateEditorFieldStyle(field: CredentialTemplateFieldKey): Record<string, string> {
+    return this.templateFieldStyle(this.selectedTemplateKey(), field);
+  }
+
+  templateEditorValue(field: CredentialTemplateFieldKey): string {
+    if (field === 'name') {
+      return this.templateSampleRequest()?.name || 'NOMBRE APELLIDO';
+    }
+
+    if (field === 'matricula') {
+      return this.templateSampleRequest()?.studentId || this.templateSampleMatricula();
+    }
+
+    if (field === 'nivel') {
+      return this.templateSampleNivel();
+    }
+
+    if (field === 'programa') {
+      return this.templateSampleRequest()?.career || 'PROGRAMA O PUESTO';
+    }
+
+    return '';
+  }
+
+  templateEditorPhotoUrl(): string {
+    return this.templateSampleRequest()?.photoUrl || '/logo-tup.png';
+  }
+
+  templateEditorQrUrl(): string {
+    const sample = this.templateSampleRequest();
+
+    return sample ? this.qrImages[sample.id] || '' : '';
+  }
+
+  templateEditorLayout(field: CredentialTemplateFieldKey): CredentialTemplateFieldLayout {
+    return this.templateLayouts[this.selectedTemplateKey()][field];
+  }
+
+  updateTemplateFieldMetric(
+    field: CredentialTemplateFieldKey,
+    metric: keyof CredentialTemplateFieldLayout,
+    event: Event
+  ): void {
+    const input = event.target as HTMLInputElement;
+    const value = Number(input.value);
+
+    if (Number.isNaN(value)) {
+      return;
+    }
+
+    const layout = this.templateLayouts[this.selectedTemplateKey()][field];
+    const max = metric === 'x' ? 100 - layout.w : metric === 'y' ? 100 - layout.h : 100;
+    layout[metric] = this.clamp(value, 0, max);
+    layout.x = this.clamp(layout.x, 0, 100 - layout.w);
+    layout.y = this.clamp(layout.y, 0, 100 - layout.h);
+    this.saveTemplateLayouts();
+  }
+
+  startTemplateDrag(event: PointerEvent, field: CredentialTemplateFieldKey): void {
+    const target = event.currentTarget as HTMLElement;
+    const card = target.closest<HTMLElement>('.template-designer-card');
+
+    if (!card) {
+      return;
+    }
+
+    event.preventDefault();
+    this.selectedTemplateField = field;
+
+    const rect = card.getBoundingClientRect();
+    const layout = this.templateLayouts[this.selectedTemplateKey()][field];
+    const startX = event.clientX;
+    const startY = event.clientY;
+    const originalX = layout.x;
+    const originalY = layout.y;
+
+    const move = (moveEvent: PointerEvent) => {
+      const nextX = originalX + ((moveEvent.clientX - startX) / rect.width) * 100;
+      const nextY = originalY + ((moveEvent.clientY - startY) / rect.height) * 100;
+
+      layout.x = this.clamp(nextX, 0, 100 - layout.w);
+      layout.y = this.clamp(nextY, 0, 100 - layout.h);
+    };
+    const up = () => {
+      document.removeEventListener('pointermove', move);
+      document.removeEventListener('pointerup', up);
+      this.saveTemplateLayouts();
+    };
+
+    document.addEventListener('pointermove', move);
+    document.addEventListener('pointerup', up);
+  }
+
+  resetSelectedTemplateLayout(): void {
+    const key = this.selectedTemplateKey();
+    this.templateLayouts[key] = this.cloneLayoutGroup(this.defaultTemplateLayouts[key]);
+    this.saveTemplateLayouts();
   }
 
   verificationUrl(request: CredentialRequest): string {
@@ -547,6 +739,122 @@ export class AdminDashboardComponent implements OnInit {
     }
 
     return 'estudiante';
+  }
+
+  private credentialTemplateKeyFromApplicant(
+    applicantType: CredentialApplicantType
+  ): CredentialTemplateKey {
+    if (applicantType === 'TEACHER') {
+      return 'docente';
+    }
+
+    if (applicantType === 'STAFF') {
+      return 'admin';
+    }
+
+    return 'estudiante';
+  }
+
+  private templateFieldStyle(
+    templateKey: CredentialTemplateKey,
+    field: CredentialTemplateFieldKey
+  ): Record<string, string> {
+    const layout = this.templateLayouts[templateKey][field];
+
+    return {
+      height: `${layout.h}%`,
+      left: `${layout.x}%`,
+      top: `${layout.y}%`,
+      width: `${layout.w}%`,
+    };
+  }
+
+  private templateSampleRequest(): CredentialRequest | undefined {
+    return this.requests.find(
+      (request) => (request.applicantType || 'STUDENT') === this.selectedTemplateApplicant
+    );
+  }
+
+  private templateSampleMatricula(): string {
+    if (this.selectedTemplateApplicant === 'TEACHER') {
+      return 'TUP-D1234';
+    }
+
+    if (this.selectedTemplateApplicant === 'STAFF') {
+      return 'ADM-0001';
+    }
+
+    return 'TUP2104';
+  }
+
+  private templateSampleNivel(): string {
+    if (this.selectedTemplateApplicant === 'TEACHER') {
+      return 'DOCENTE';
+    }
+
+    if (this.selectedTemplateApplicant === 'STAFF') {
+      return 'ADMINISTRATIVO';
+    }
+
+    return 'PRIMER CUATRIMESTRE';
+  }
+
+  private loadTemplateLayouts(): CredentialTemplateLayouts {
+    const defaults = this.cloneTemplateLayouts(this.defaultTemplateLayouts);
+
+    try {
+      const raw = localStorage.getItem(this.templateLayoutStorageKey);
+
+      if (!raw) {
+        return defaults;
+      }
+
+      const stored = JSON.parse(raw) as Partial<CredentialTemplateLayouts>;
+
+      for (const key of Object.keys(defaults) as CredentialTemplateKey[]) {
+        defaults[key] = {
+          ...defaults[key],
+          ...(stored[key] || {}),
+        };
+      }
+
+      return defaults;
+    } catch {
+      return defaults;
+    }
+  }
+
+  private saveTemplateLayouts(): void {
+    try {
+      localStorage.setItem(this.templateLayoutStorageKey, JSON.stringify(this.templateLayouts));
+    } catch {
+      // La calibracion visual sigue funcionando aunque el navegador no permita guardarla.
+    }
+  }
+
+  private cloneTemplateLayouts(layouts: CredentialTemplateLayouts): CredentialTemplateLayouts {
+    return {
+      estudiante: this.cloneLayoutGroup(layouts.estudiante),
+      docente: this.cloneLayoutGroup(layouts.docente),
+      admin: this.cloneLayoutGroup(layouts.admin),
+    };
+  }
+
+  private cloneLayoutGroup(
+    group: Record<CredentialTemplateFieldKey, CredentialTemplateFieldLayout>
+  ): Record<CredentialTemplateFieldKey, CredentialTemplateFieldLayout> {
+    return {
+      photo: { ...group.photo },
+      name: { ...group.name },
+      matricula: { ...group.matricula },
+      nivel: { ...group.nivel },
+      programa: { ...group.programa },
+      qr: { ...group.qr },
+    };
+  }
+
+  private clamp(value: number, min: number, max: number): number {
+    return Math.min(Math.max(value, min), max);
   }
 
   private normalizeAcademicStatus(value: string): InstitutionalAcademicStatus {

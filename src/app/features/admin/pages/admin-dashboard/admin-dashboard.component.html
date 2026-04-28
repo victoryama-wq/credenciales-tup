@@ -39,6 +39,8 @@
           <span class="admin-sidebar-icon" aria-hidden="true">
             @if (module.value === 'requests') {
               <svg viewBox="0 0 24 24"><path d="M7 4h10a2 2 0 0 1 2 2v14H5V6a2 2 0 0 1 2-2Z" /><path d="M9 8h6M9 12h6M9 16h4" /></svg>
+            } @else if (module.value === 'templates') {
+              <svg viewBox="0 0 24 24"><path d="M5 4h14v16H5z" /><path d="M8 8h8M8 12h5M8 16h8" /></svg>
             } @else {
               <svg viewBox="0 0 24 24"><path d="M4 5h16v14H4z" /><path d="M8 5v14M4 10h16M4 15h16" /></svg>
             }
@@ -62,7 +64,7 @@
   <section class="admin-dashboard-main">
     <header class="admin-dashboard-topbar">
       <div>
-        <p class="eyebrow">{{ activeModule === 'requests' ? 'Operacion' : 'Control Escolar' }}</p>
+        <p class="eyebrow">{{ activeModuleEyebrow() }}</p>
         <h2 class="text-2xl font-bold text-[var(--tup-ink)] md:text-3xl">{{ activeModuleLabel() }}</h2>
       </div>
 
@@ -187,16 +189,32 @@
                         class="credential-card credential-card-front"
                         [style.background-image]="credentialTemplateBackground(request, 'front')"
                       >
-                        <img [src]="request.photoUrl" [alt]="request.name" class="credential-template-photo" />
-                        <p class="credential-template-name">{{ request.name }}</p>
-                        <p class="credential-template-field credential-template-field-matricula">
+                        <img
+                          [src]="request.photoUrl"
+                          [alt]="request.name"
+                          class="credential-template-photo"
+                          [ngStyle]="credentialTemplateElementStyle(request, 'photo')"
+                        />
+                        <p class="credential-template-name" [ngStyle]="credentialTemplateElementStyle(request, 'name')">
+                          {{ request.name }}
+                        </p>
+                        <p
+                          class="credential-template-field"
+                          [ngStyle]="credentialTemplateElementStyle(request, 'matricula')"
+                        >
                           {{ credentialTemplateMatricula(request) }}
                         </p>
-                        <p class="credential-template-field credential-template-field-nivel">
+                        <p
+                          class="credential-template-field"
+                          [ngStyle]="credentialTemplateElementStyle(request, 'nivel')"
+                        >
                           {{ credentialTemplateNivel(request) }}
                         </p>
                         @if (credentialTemplatePrograma(request)) {
-                          <p class="credential-template-field credential-template-field-programa">
+                          <p
+                            class="credential-template-field"
+                            [ngStyle]="credentialTemplateElementStyle(request, 'programa')"
+                          >
                             {{ credentialTemplatePrograma(request) }}
                           </p>
                         }
@@ -207,7 +225,12 @@
                         [style.background-image]="credentialTemplateBackground(request, 'back')"
                       >
                         @if (qrImages[request.id]) {
-                          <img [src]="qrImages[request.id]" alt="QR de verificacion" class="credential-template-qr" />
+                          <img
+                            [src]="qrImages[request.id]"
+                            alt="QR de verificacion"
+                            class="credential-template-qr"
+                            [ngStyle]="credentialTemplateElementStyle(request, 'qr')"
+                          />
                         }
                       </article>
                     </section>
@@ -296,7 +319,7 @@
           }
         </section>
       }
-    } @else {
+    } @else if (activeModule === 'saeko') {
       <section class="saeko-layout">
         <mat-card class="saeko-card institution-card !rounded-lg !shadow-none">
           <mat-card-header>
@@ -422,6 +445,110 @@ TUP2104,tup2104&#64;tecplayacar.edu.mx,Nombre Alumno,Lic. Administracion de Empr
             </mat-card-content>
           </mat-card>
         </aside>
+      </section>
+    } @else {
+      <section class="template-designer-layout">
+        <mat-card class="institution-card !rounded-lg !shadow-none">
+          <mat-card-header>
+            <mat-card-title>Editor visual de credencial</mat-card-title>
+            <mat-card-subtitle>Arrastra cada elemento hasta colocarlo sobre el diseño institucional.</mat-card-subtitle>
+          </mat-card-header>
+
+          <mat-card-content class="template-designer-content pt-6">
+            <div class="template-designer-toolbar">
+              <mat-form-field appearance="outline">
+                <mat-label>Plantilla</mat-label>
+                <mat-select [(value)]="selectedTemplateApplicant">
+                  <mat-option value="STUDENT">Estudiante</mat-option>
+                  <mat-option value="TEACHER">Docente</mat-option>
+                  <mat-option value="STAFF">Administrativo</mat-option>
+                </mat-select>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Cara</mat-label>
+                <mat-select [(value)]="selectedTemplateSide">
+                  <mat-option value="front">Frente</mat-option>
+                  <mat-option value="back">Reverso</mat-option>
+                </mat-select>
+              </mat-form-field>
+
+              <button mat-stroked-button color="primary" class="link-button !h-11 !rounded-md" type="button" (click)="resetSelectedTemplateLayout()">
+                Restablecer plantilla
+              </button>
+            </div>
+
+            <div class="template-designer-workbench">
+              <div class="template-designer-preview">
+                <article
+                  class="credential-card template-designer-card"
+                  [style.background-image]="selectedTemplateBackground()"
+                >
+                  @for (field of visibleTemplateEditorFields(); track field.key) {
+                    <button
+                      type="button"
+                      class="template-editor-item"
+                      [class.template-editor-item-active]="selectedTemplateField === field.key"
+                      [ngStyle]="templateEditorFieldStyle(field.key)"
+                      (pointerdown)="startTemplateDrag($event, field.key)"
+                    >
+                      @if (field.key === 'photo') {
+                        <img [src]="templateEditorPhotoUrl()" alt="Foto de referencia" />
+                      } @else if (field.key === 'qr') {
+                        @if (templateEditorQrUrl()) {
+                          <img [src]="templateEditorQrUrl()" alt="QR de referencia" />
+                        } @else {
+                          <span>QR</span>
+                        }
+                      } @else {
+                        <span>{{ templateEditorValue(field.key) }}</span>
+                      }
+                    </button>
+                  }
+                </article>
+              </div>
+
+              <aside class="template-designer-controls">
+                <p class="text-sm leading-6 text-[var(--tup-muted)]">
+                  Selecciona y arrastra un elemento. Si necesitas precisión fina, ajusta porcentajes.
+                </p>
+
+                @for (field of visibleTemplateEditorFields(); track field.key) {
+                  <article
+                    class="template-field-panel rounded-md"
+                    [class.template-field-panel-active]="selectedTemplateField === field.key"
+                  >
+                    <div class="flex items-center justify-between gap-3">
+                      <p class="font-bold text-[var(--tup-ink)]">{{ field.label }}</p>
+                      <button mat-stroked-button color="primary" type="button" class="link-button !h-9 !rounded-md" (click)="selectedTemplateField = field.key">
+                        Editar
+                      </button>
+                    </div>
+
+                    <div class="template-field-grid">
+                      <label>
+                        <span>X</span>
+                        <input type="number" min="0" max="100" step="0.1" [value]="templateEditorLayout(field.key).x" (input)="updateTemplateFieldMetric(field.key, 'x', $event)" />
+                      </label>
+                      <label>
+                        <span>Y</span>
+                        <input type="number" min="0" max="100" step="0.1" [value]="templateEditorLayout(field.key).y" (input)="updateTemplateFieldMetric(field.key, 'y', $event)" />
+                      </label>
+                      <label>
+                        <span>Ancho</span>
+                        <input type="number" min="1" max="100" step="0.1" [value]="templateEditorLayout(field.key).w" (input)="updateTemplateFieldMetric(field.key, 'w', $event)" />
+                      </label>
+                      <label>
+                        <span>Alto</span>
+                        <input type="number" min="1" max="100" step="0.1" [value]="templateEditorLayout(field.key).h" (input)="updateTemplateFieldMetric(field.key, 'h', $event)" />
+                      </label>
+                    </div>
+                  </article>
+                }
+              </aside>
+            </div>
+          </mat-card-content>
+        </mat-card>
       </section>
     }
   </section>
