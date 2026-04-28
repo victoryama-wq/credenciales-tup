@@ -783,15 +783,19 @@ textarea,
 }
 
 .credential-template-name {
+  align-items: center;
   color: var(--tup-white);
+  display: flex;
   font-size: var(--credential-font-size, 5cqw);
   font-weight: 700;
+  justify-content: center;
   left: 15%;
   line-height: 1.05;
   margin: 0;
   overflow: hidden;
+  padding: 0.15rem;
   position: absolute;
-  text-align: right;
+  text-align: center;
   text-transform: uppercase;
   top: 58.3%;
   white-space: normal;
@@ -801,12 +805,13 @@ textarea,
 }
 
 .credential-template-field {
-  align-content: center;
+  align-items: center;
   color: #0f1738;
-  display: grid;
+  display: flex;
   font-size: var(--credential-font-size, 3.4cqw);
   font-weight: 700;
   height: 3.6%;
+  justify-content: center;
   left: 44.5%;
   line-height: 1.05;
   margin: 0;
