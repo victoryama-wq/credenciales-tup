@@ -774,7 +774,7 @@ textarea,
 
 .credential-template-name {
   color: var(--tup-white);
-  font-size: 5cqw;
+  font-size: var(--credential-font-size, 5cqw);
   font-weight: 700;
   left: 15%;
   line-height: 1.05;
@@ -782,30 +782,31 @@ textarea,
   overflow: hidden;
   position: absolute;
   text-align: right;
-  text-overflow: ellipsis;
   text-transform: uppercase;
   top: 58.3%;
-  white-space: nowrap;
+  white-space: normal;
   width: 75%;
+  overflow-wrap: anywhere;
 }
 
 .credential-template-field {
-  align-items: center;
+  align-content: center;
   color: #0f1738;
-  display: flex;
-  font-size: 3.4cqw;
+  display: grid;
+  font-size: var(--credential-font-size, 3.4cqw);
   font-weight: 700;
   height: 3.6%;
   left: 44.5%;
-  line-height: 1;
+  line-height: 1.05;
   margin: 0;
   overflow: hidden;
   padding: 0 2%;
   position: absolute;
-  text-overflow: ellipsis;
+  text-align: center;
   text-transform: uppercase;
-  white-space: nowrap;
+  white-space: normal;
   width: 45%;
+  overflow-wrap: anywhere;
 }
 
 .credential-template-field-matricula {
@@ -876,7 +877,7 @@ textarea,
   display: flex;
   font: inherit;
   justify-content: center;
-  line-height: 1;
+  line-height: 1.05;
   margin: 0;
   overflow: hidden;
   padding: 0;
@@ -898,14 +899,14 @@ textarea,
 
 .template-editor-item span {
   display: block;
-  font-size: clamp(0.62rem, 4cqw, 1rem);
+  font-size: var(--credential-font-size, clamp(0.62rem, 4cqw, 1rem));
   font-weight: 700;
   max-width: 100%;
   overflow: hidden;
   padding: 0.15rem;
-  text-overflow: ellipsis;
   text-transform: uppercase;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .template-designer-controls {

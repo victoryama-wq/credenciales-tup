@@ -38,6 +38,7 @@ interface CredentialTemplateFieldLayout {
   y: number;
   w: number;
   h: number;
+  fontSize?: number;
 }
 
 type CredentialTemplateLayouts = Record<
@@ -93,26 +94,26 @@ export class AdminDashboardComponent implements OnInit {
   readonly defaultTemplateLayouts: CredentialTemplateLayouts = {
     estudiante: {
       photo: { x: 27, y: 18, w: 46.8, h: 34.8 },
-      name: { x: 15, y: 58.3, w: 75, h: 6 },
-      matricula: { x: 44.5, y: 78, w: 45, h: 3.6 },
-      nivel: { x: 44.5, y: 84.3, w: 45, h: 3.6 },
-      programa: { x: 44.5, y: 90.7, w: 45, h: 3.6 },
+      name: { x: 15, y: 58.3, w: 75, h: 6, fontSize: 5 },
+      matricula: { x: 44.5, y: 78, w: 45, h: 3.6, fontSize: 3.4 },
+      nivel: { x: 44.5, y: 84.3, w: 45, h: 3.6, fontSize: 3.4 },
+      programa: { x: 44.5, y: 90.7, w: 45, h: 3.6, fontSize: 3.4 },
       qr: { x: 31.7, y: 60.1, w: 36.5, h: 36.5 },
     },
     docente: {
       photo: { x: 27, y: 18, w: 46.8, h: 34.8 },
-      name: { x: 15, y: 58.3, w: 75, h: 6 },
-      matricula: { x: 44.5, y: 78, w: 45, h: 3.6 },
-      nivel: { x: 44.5, y: 84.3, w: 45, h: 3.6 },
-      programa: { x: 44.5, y: 90.7, w: 45, h: 3.6 },
+      name: { x: 15, y: 58.3, w: 75, h: 6, fontSize: 5 },
+      matricula: { x: 44.5, y: 78, w: 45, h: 3.6, fontSize: 3.4 },
+      nivel: { x: 44.5, y: 84.3, w: 45, h: 3.6, fontSize: 3.4 },
+      programa: { x: 44.5, y: 90.7, w: 45, h: 3.6, fontSize: 3.4 },
       qr: { x: 31.7, y: 60.1, w: 36.5, h: 36.5 },
     },
     admin: {
       photo: { x: 29.8, y: 18.8, w: 43.8, h: 34.2 },
-      name: { x: 15, y: 58.3, w: 75, h: 6 },
-      matricula: { x: 44.5, y: 78, w: 45, h: 3.6 },
-      nivel: { x: 44.5, y: 84.3, w: 45, h: 3.6 },
-      programa: { x: 44.5, y: 90.7, w: 45, h: 3.6 },
+      name: { x: 15, y: 58.3, w: 75, h: 6, fontSize: 5 },
+      matricula: { x: 44.5, y: 78, w: 45, h: 3.6, fontSize: 3.4 },
+      nivel: { x: 44.5, y: 84.3, w: 45, h: 3.6, fontSize: 3.4 },
+      programa: { x: 44.5, y: 90.7, w: 45, h: 3.6, fontSize: 3.4 },
       qr: { x: 31.7, y: 60.1, w: 36.5, h: 36.5 },
     },
   };
@@ -402,6 +403,10 @@ export class AdminDashboardComponent implements OnInit {
     return this.templateFieldStyle(this.selectedTemplateKey(), field);
   }
 
+  isTemplateTextField(field: CredentialTemplateFieldKey): boolean {
+    return field !== 'photo' && field !== 'qr';
+  }
+
   templateEditorValue(field: CredentialTemplateFieldKey): string {
     if (field === 'name') {
       return this.templateSampleRequest()?.name || 'NOMBRE APELLIDO';
@@ -450,7 +455,7 @@ export class AdminDashboardComponent implements OnInit {
 
     const layout = this.templateLayouts[this.selectedTemplateKey()][field];
     const max = metric === 'x' ? 100 - layout.w : metric === 'y' ? 100 - layout.h : 100;
-    layout[metric] = this.clamp(value, 0, max);
+    layout[metric] = this.clamp(value, metric === 'fontSize' ? 1 : 0, max);
     layout.x = this.clamp(layout.x, 0, 100 - layout.w);
     layout.y = this.clamp(layout.y, 0, 100 - layout.h);
     this.saveTemplateLayouts();
@@ -762,6 +767,7 @@ export class AdminDashboardComponent implements OnInit {
     const layout = this.templateLayouts[templateKey][field];
 
     return {
+      '--credential-font-size': `${layout.fontSize ?? this.defaultTemplateLayouts[templateKey][field].fontSize ?? 3.4}cqw`,
       height: `${layout.h}%`,
       left: `${layout.x}%`,
       top: `${layout.y}%`,
@@ -812,10 +818,17 @@ export class AdminDashboardComponent implements OnInit {
       const stored = JSON.parse(raw) as Partial<CredentialTemplateLayouts>;
 
       for (const key of Object.keys(defaults) as CredentialTemplateKey[]) {
-        defaults[key] = {
-          ...defaults[key],
-          ...(stored[key] || {}),
-        };
+        const storedGroup =
+          (stored[key] || {}) as Partial<
+            Record<CredentialTemplateFieldKey, Partial<CredentialTemplateFieldLayout>>
+          >;
+
+        for (const field of Object.keys(defaults[key]) as CredentialTemplateFieldKey[]) {
+          defaults[key][field] = {
+            ...defaults[key][field],
+            ...(storedGroup[field] || {}),
+          };
+        }
       }
 
       return defaults;

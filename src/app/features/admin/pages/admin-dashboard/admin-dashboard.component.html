@@ -542,6 +542,12 @@ TUP2104,tup2104&#64;tecplayacar.edu.mx,Nombre Alumno,Lic. Administracion de Empr
                         <span>Alto</span>
                         <input type="number" min="1" max="100" step="0.1" [value]="templateEditorLayout(field.key).h" (input)="updateTemplateFieldMetric(field.key, 'h', $event)" />
                       </label>
+                      @if (isTemplateTextField(field.key)) {
+                        <label>
+                          <span>Tam. texto</span>
+                          <input type="number" min="1" max="12" step="0.1" [value]="templateEditorLayout(field.key).fontSize" (input)="updateTemplateFieldMetric(field.key, 'fontSize', $event)" />
+                        </label>
+                      }
                     </div>
                   </article>
                 }
