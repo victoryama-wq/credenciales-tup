@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -85,6 +85,7 @@ export class AdminDashboardComponent implements OnInit {
   private credentialTemplateService = inject(CredentialTemplateService);
   private institutionalProfileService = inject(InstitutionalProfileService);
   private destroyRef = inject(DestroyRef);
+  private changeDetectorRef = inject(ChangeDetectorRef);
   private router = inject(Router);
   private readonly templateLayoutStorageKey = 'tupCredentialTemplateLayoutsV2';
 
@@ -648,14 +649,56 @@ export class AdminDashboardComponent implements OnInit {
     return request.verificationUrl || (request.qrToken ? `https://credencial-tup.web.app/verify/${request.qrToken}` : '');
   }
 
-  printCredential(request: CredentialRequest): void {
+  async printCredential(request: CredentialRequest): Promise<void> {
     this.printingRequestId = request.id;
-    setTimeout(() => {
-      window.print();
-      setTimeout(() => {
-        this.printingRequestId = '';
-      });
-    });
+    this.changeDetectorRef.detectChanges();
+
+    await this.nextPaint();
+
+    const source = document.querySelector<HTMLElement>('.credential-print-selected');
+
+    if (!source) {
+      this.printingRequestId = '';
+      this.changeDetectorRef.detectChanges();
+      return;
+    }
+
+    const printRoot = document.createElement('div');
+    printRoot.id = 'credential-print-root';
+    printRoot.appendChild(source.cloneNode(true));
+    document.body.appendChild(printRoot);
+    document.body.classList.add('credential-printing');
+
+    await this.waitForCredentialImages(printRoot);
+
+    let cleaned = false;
+    let mediaQuery: MediaQueryList | undefined;
+    let mediaHandler: ((event: MediaQueryListEvent) => void) | undefined;
+
+    const cleanup = () => {
+      if (cleaned) {
+        return;
+      }
+
+      cleaned = true;
+      mediaQuery?.removeEventListener('change', mediaHandler as EventListener);
+      window.removeEventListener('afterprint', cleanup);
+      printRoot.remove();
+      document.body.classList.remove('credential-printing');
+      this.printingRequestId = '';
+      this.changeDetectorRef.detectChanges();
+    };
+
+    mediaQuery = window.matchMedia('print');
+    mediaHandler = (event: MediaQueryListEvent) => {
+      if (!event.matches) {
+        cleanup();
+      }
+    };
+
+    mediaQuery.addEventListener('change', mediaHandler);
+    window.addEventListener('afterprint', cleanup);
+    window.print();
   }
 
   async loadSaekoFile(event: Event): Promise<void> {
@@ -982,6 +1025,33 @@ export class AdminDashboardComponent implements OnInit {
     }
 
     return 'PROGRAMA';
+  }
+
+  private nextPaint(): Promise<void> {
+    return new Promise((resolve) => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => resolve());
+      });
+    });
+  }
+
+  private async waitForCredentialImages(root: HTMLElement): Promise<void> {
+    const images = Array.from(root.querySelectorAll('img'));
+
+    await Promise.all(
+      images.map((image) => {
+        if (image.complete) {
+          return Promise.resolve();
+        }
+
+        return new Promise<void>((resolve) => {
+          const done = () => resolve();
+
+          image.addEventListener('load', done, { once: true });
+          image.addEventListener('error', done, { once: true });
+        });
+      })
+    );
   }
 
   private loadTemplateLayouts(): CredentialTemplateLayouts {
