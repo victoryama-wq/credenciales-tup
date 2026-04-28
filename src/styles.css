@@ -628,23 +628,27 @@ textarea,
   align-items: start;
   display: grid;
   gap: 0.85rem;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 356px));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 240px));
   justify-content: start;
   max-width: 100%;
 }
 
 .credential-card {
-  aspect-ratio: 1.586 / 1;
+  aspect-ratio: 5.4 / 8.6;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
   border: 1px solid rgb(39 30 93 / 18%);
   border-radius: 8px;
   box-shadow: 0 12px 24px rgb(39 30 93 / 8%);
   color: var(--tup-ink);
+  container-type: inline-size;
   height: auto;
-  max-width: 356px;
+  max-width: 240px;
   min-height: 0;
   overflow: hidden;
   position: relative;
-  width: min(100%, 356px);
+  width: min(100%, 240px);
 }
 
 .credential-card-front {
@@ -758,6 +762,75 @@ textarea,
   width: 98px;
 }
 
+.credential-template-photo {
+  border-radius: 5%;
+  height: 34.8%;
+  left: 27%;
+  object-fit: cover;
+  position: absolute;
+  top: 18%;
+  width: 46.8%;
+}
+
+.credential-template-name {
+  color: var(--tup-white);
+  font-size: 5cqw;
+  font-weight: 700;
+  left: 15%;
+  line-height: 1.05;
+  margin: 0;
+  overflow: hidden;
+  position: absolute;
+  text-align: right;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  top: 58.3%;
+  white-space: nowrap;
+  width: 75%;
+}
+
+.credential-template-field {
+  align-items: center;
+  color: #0f1738;
+  display: flex;
+  font-size: 3.4cqw;
+  font-weight: 700;
+  height: 3.6%;
+  left: 44.5%;
+  line-height: 1;
+  margin: 0;
+  overflow: hidden;
+  padding: 0 2%;
+  position: absolute;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+  width: 45%;
+}
+
+.credential-template-field-matricula {
+  top: 78%;
+}
+
+.credential-template-field-nivel {
+  top: 84.3%;
+}
+
+.credential-template-field-programa {
+  top: 90.7%;
+}
+
+.credential-template-qr {
+  background: var(--tup-white);
+  height: 36.5%;
+  left: 31.7%;
+  object-fit: contain;
+  padding: 2.5%;
+  position: absolute;
+  top: 60.1%;
+  width: 36.5%;
+}
+
 .verification-shell {
   background:
     linear-gradient(180deg, rgb(37 42 134 / 8%) 0, rgb(37 42 134 / 0%) 320px),
@@ -812,17 +885,22 @@ textarea,
 
   .credential-print-selected {
     display: grid !important;
-    gap: 12px !important;
-    grid-template-columns: 1fr 1fr !important;
+    gap: 4mm !important;
+    grid-template-columns: 5.4cm 5.4cm !important;
     left: 0;
-    padding: 16px;
+    padding: 8mm;
     position: absolute;
     top: 0;
-    width: 100%;
+    width: auto;
   }
 
   .credential-print-selected .credential-card {
     break-inside: avoid;
+    border: 0;
+    border-radius: 0;
     box-shadow: none;
+    height: 8.6cm;
+    max-width: none;
+    width: 5.4cm;
   }
 }

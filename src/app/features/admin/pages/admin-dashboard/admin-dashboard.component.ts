@@ -29,6 +29,8 @@ import {
 import { InstitutionalProfileService } from '../../../../core/services/institutional-profile.service';
 
 type AdminModule = 'requests' | 'saeko';
+type CredentialTemplateSide = 'front' | 'back';
+type CredentialTemplateKey = 'admin' | 'docente' | 'estudiante';
 
 interface SaekoPreviewRow extends SaekoImportRow {
   errors: string[];
@@ -275,6 +277,34 @@ export class AdminDashboardComponent implements OnInit {
     return request.career;
   }
 
+  credentialTemplateBackground(request: CredentialRequest, side: CredentialTemplateSide): string {
+    return `url("/credential-templates/${this.credentialTemplateKey(request)}-${side}.png")`;
+  }
+
+  credentialTemplateMatricula(request: CredentialRequest): string {
+    return request.studentId || '';
+  }
+
+  credentialTemplateNivel(request: CredentialRequest): string {
+    if (request.applicantType === 'TEACHER') {
+      return 'Docente';
+    }
+
+    if (request.applicantType === 'STAFF') {
+      return 'Administrativo';
+    }
+
+    return request.cycle || '';
+  }
+
+  credentialTemplatePrograma(request: CredentialRequest): string {
+    if (request.applicantType === 'TEACHER') {
+      return '';
+    }
+
+    return request.career || '';
+  }
+
   verificationUrl(request: CredentialRequest): string {
     return request.verificationUrl || (request.qrToken ? `https://credencial-tup.web.app/verify/${request.qrToken}` : '');
   }
@@ -505,6 +535,18 @@ export class AdminDashboardComponent implements OnInit {
     }
 
     return 'STAFF';
+  }
+
+  private credentialTemplateKey(request: CredentialRequest): CredentialTemplateKey {
+    if (request.applicantType === 'TEACHER') {
+      return 'docente';
+    }
+
+    if (request.applicantType === 'STAFF') {
+      return 'admin';
+    }
+
+    return 'estudiante';
   }
 
   private normalizeAcademicStatus(value: string): InstitutionalAcademicStatus {
