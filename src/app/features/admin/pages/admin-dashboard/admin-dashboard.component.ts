@@ -19,8 +19,15 @@ import {
   credentialRequestStatuses,
   statusLabels,
 } from '../../../../core/models/credential-request.model';
+import {
+  CredentialTemplateAsset,
+  CredentialTemplateKey,
+  CredentialTemplateSettings,
+  CredentialTemplateSide,
+} from '../../../../core/models/credential-template.model';
 import { AuthService } from '../../../../core/services/auth.service';
 import { CredentialRequestService } from '../../../../core/services/credential-request.service';
+import { CredentialTemplateService } from '../../../../core/services/credential-template.service';
 import {
   InstitutionalAcademicStatus,
   SaekoImportRow,
@@ -29,8 +36,6 @@ import {
 import { InstitutionalProfileService } from '../../../../core/services/institutional-profile.service';
 
 type AdminModule = 'requests' | 'saeko' | 'templates';
-type CredentialTemplateSide = 'front' | 'back';
-type CredentialTemplateKey = 'admin' | 'docente' | 'estudiante';
 type CredentialTemplateFieldKey = 'photo' | 'name' | 'matricula' | 'nivel' | 'programa' | 'qr';
 
 interface CredentialTemplateFieldLayout {
@@ -74,6 +79,7 @@ interface SaekoPreviewRow extends SaekoImportRow {
 export class AdminDashboardComponent implements OnInit {
   private authService = inject(AuthService);
   private requestService = inject(CredentialRequestService);
+  private credentialTemplateService = inject(CredentialTemplateService);
   private institutionalProfileService = inject(InstitutionalProfileService);
   private destroyRef = inject(DestroyRef);
   private router = inject(Router);
@@ -159,6 +165,10 @@ export class AdminDashboardComponent implements OnInit {
   selectedTemplateSide: CredentialTemplateSide = 'front';
   selectedTemplateField: CredentialTemplateFieldKey = 'photo';
   templateLayouts: CredentialTemplateLayouts = this.loadTemplateLayouts();
+  templateSettings: CredentialTemplateSettings = {};
+  templateUploadMessage = '';
+  templateUploadErrorMessage = '';
+  uploadingTemplateKey = '';
 
   ngOnInit(): void {
     this.requestService
@@ -173,6 +183,19 @@ export class AdminDashboardComponent implements OnInit {
         error: (error) => {
           this.errorMessage = error.message || 'No fue posible cargar solicitudes.';
           this.loading = false;
+        },
+      });
+
+    this.credentialTemplateService
+      .watchSettings()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (settings) => {
+          this.templateSettings = settings;
+        },
+        error: (error) => {
+          this.templateUploadErrorMessage =
+            error.message || 'No fue posible cargar las plantillas guardadas.';
         },
       });
   }
@@ -347,7 +370,7 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   credentialTemplateBackground(request: CredentialRequest, side: CredentialTemplateSide): string {
-    return `url("/credential-templates/${this.credentialTemplateKey(request)}-${side}.png")`;
+    return `url("${this.templateAssetUrl(this.credentialTemplateKey(request), side)}")`;
   }
 
   credentialTemplateElementStyle(
@@ -386,7 +409,75 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   selectedTemplateBackground(): string {
-    return `url("/credential-templates/${this.selectedTemplateKey()}-${this.selectedTemplateSide}.png")`;
+    return `url("${this.templateAssetUrl(this.selectedTemplateKey(), this.selectedTemplateSide)}")`;
+  }
+
+  selectedTemplateAsset(): CredentialTemplateAsset | undefined {
+    return this.templateSettings[this.selectedTemplateKey()]?.[this.selectedTemplateSide];
+  }
+
+  selectedTemplateUploadKey(): string {
+    return `${this.selectedTemplateKey()}-${this.selectedTemplateSide}`;
+  }
+
+  templateLabel(templateKey: CredentialTemplateKey): string {
+    if (templateKey === 'docente') {
+      return 'Docente';
+    }
+
+    if (templateKey === 'admin') {
+      return 'Administrativo';
+    }
+
+    return 'Estudiante';
+  }
+
+  templateAssetName(asset: CredentialTemplateAsset | undefined): string {
+    return asset?.name || 'Plantilla base incluida';
+  }
+
+  async uploadCredentialTemplate(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+
+    this.templateUploadMessage = '';
+    this.templateUploadErrorMessage = '';
+
+    if (!file) {
+      return;
+    }
+
+    const contentType = this.templateContentType(file);
+
+    if (!contentType) {
+      this.templateUploadErrorMessage = 'El diseno debe ser PNG o SVG.';
+      input.value = '';
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      this.templateUploadErrorMessage = 'El archivo no debe superar 5 MB.';
+      input.value = '';
+      return;
+    }
+
+    const key = this.selectedTemplateKey();
+    const side = this.selectedTemplateSide;
+
+    this.uploadingTemplateKey = `${key}-${side}`;
+
+    try {
+      await this.credentialTemplateService.uploadTemplateAsset({ key, side, file });
+      this.templateUploadMessage = `Diseno actualizado para ${this.templateLabel(key)} (${
+        side === 'front' ? 'frente' : 'reverso'
+      }).`;
+    } catch (error) {
+      this.templateUploadErrorMessage =
+        error instanceof Error ? error.message : 'No fue posible subir el diseno.';
+    } finally {
+      this.uploadingTemplateKey = '';
+      input.value = '';
+    }
   }
 
   visibleTemplateEditorFields(): CredentialTemplateEditorField[] {
@@ -758,6 +849,34 @@ export class AdminDashboardComponent implements OnInit {
     }
 
     return 'estudiante';
+  }
+
+  private templateAssetUrl(
+    templateKey: CredentialTemplateKey,
+    side: CredentialTemplateSide
+  ): string {
+    return (
+      this.templateSettings[templateKey]?.[side]?.url ||
+      `/credential-templates/${templateKey}-${side}.png`
+    );
+  }
+
+  private templateContentType(file: File): 'image/png' | 'image/svg+xml' | '' {
+    if (file.type === 'image/png' || file.type === 'image/svg+xml') {
+      return file.type;
+    }
+
+    const fileName = file.name.toLowerCase();
+
+    if (fileName.endsWith('.png')) {
+      return 'image/png';
+    }
+
+    if (fileName.endsWith('.svg')) {
+      return 'image/svg+xml';
+    }
+
+    return '';
   }
 
   private templateFieldStyle(

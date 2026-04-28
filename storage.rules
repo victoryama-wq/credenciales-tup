@@ -26,12 +26,24 @@ service firebase.storage {
         && request.resource.contentType.matches('image/(jpeg|png)|application/pdf');
     }
 
+    function isCredentialTemplate(fileName) {
+      return fileName.matches('(admin|docente|estudiante)-(front|back)[.](png|svg)')
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/(png|svg[+]xml)');
+    }
+
     match /credential-requests/{uid}/{requestFolder}/{fileName} {
       allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
       allow create: if signedIn()
         && request.auth.uid == uid
         && (isPhoto(fileName) || isEvidence(fileName));
       allow update: if false;
+      allow delete: if false;
+    }
+
+    match /credential-templates/{fileName} {
+      allow read: if isAdmin();
+      allow create, update: if isAdmin() && isCredentialTemplate(fileName);
       allow delete: if false;
     }
   }

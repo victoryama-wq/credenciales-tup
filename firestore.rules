@@ -39,6 +39,10 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    match /credential_template_settings/{settingsId} {
+      allow read, write: if isAdmin();
+    }
+
     match /print_batches/{batchId} {
       allow read, write: if isAdmin();
     }

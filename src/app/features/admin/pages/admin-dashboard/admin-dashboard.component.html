@@ -478,6 +478,52 @@ TUP2104,tup2104&#64;tecplayacar.edu.mx,Nombre Alumno,Lic. Administracion de Empr
               </button>
             </div>
 
+            <section class="template-upload-panel rounded-lg">
+              <div class="template-upload-copy">
+                <p class="font-bold text-[var(--tup-ink)]">Diseno de fondo</p>
+                <p class="mt-1 text-sm leading-6 text-[var(--tup-muted)]">
+                  Sube un archivo SVG o PNG para la plantilla y cara seleccionada. Se recomienda trabajar en proporcion
+                  5.4 x 8.6 cm para PVC vertical.
+                </p>
+                <p class="template-upload-note mt-2 text-xs font-semibold text-[var(--tup-primary)]">
+                  Actual: {{ templateAssetName(selectedTemplateAsset()) }}
+                </p>
+              </div>
+
+              <div class="template-upload-actions">
+                <label
+                  class="template-upload-button rounded-md"
+                  [class.template-upload-button-disabled]="uploadingTemplateKey === selectedTemplateUploadKey()"
+                >
+                  <input
+                    type="file"
+                    accept=".svg,.png,image/svg+xml,image/png"
+                    [disabled]="uploadingTemplateKey === selectedTemplateUploadKey()"
+                    (change)="uploadCredentialTemplate($event)"
+                  />
+                  <span>
+                    {{
+                      uploadingTemplateKey === selectedTemplateUploadKey()
+                        ? 'Subiendo...'
+                        : 'Subir SVG/PNG'
+                    }}
+                  </span>
+                </label>
+              </div>
+
+              @if (templateUploadMessage) {
+                <p class="template-upload-status rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+                  {{ templateUploadMessage }}
+                </p>
+              }
+
+              @if (templateUploadErrorMessage) {
+                <p class="template-upload-status rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+                  {{ templateUploadErrorMessage }}
+                </p>
+              }
+            </section>
+
             <div class="template-designer-workbench">
               <div class="template-designer-preview">
                 <article
