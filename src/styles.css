@@ -1085,7 +1085,7 @@ textarea,
 @media print {
   @page {
     margin: 0;
-    size: 11.2cm 8.6cm;
+    size: 5.4cm 8.6cm;
   }
 
   html,
@@ -1095,7 +1095,7 @@ textarea,
     margin: 0 !important;
     min-height: 0 !important;
     overflow: hidden !important;
-    width: 11.2cm;
+    width: 5.4cm;
   }
 
   body.credential-printing > :not(#credential-print-root) {
@@ -1103,29 +1103,37 @@ textarea,
   }
 
   body.credential-printing #credential-print-root {
-    display: grid !important;
-    gap: 4mm;
-    grid-template-columns: 5.4cm 5.4cm !important;
-    height: 8.6cm;
+    display: block !important;
+    height: auto;
     margin: 0;
     overflow: hidden;
     padding: 0;
-    width: 11.2cm;
+    width: 5.4cm;
   }
 
   body.credential-printing #credential-print-root .credential-print-selected {
-    display: contents !important;
+    display: block !important;
   }
 
   body.credential-printing #credential-print-root .credential-card {
     -webkit-print-color-adjust: exact;
-    break-inside: avoid;
+    break-after: page;
+    break-inside: avoid-page;
     border: 0;
     border-radius: 0;
     box-shadow: none;
+    display: block;
     height: 8.6cm;
+    margin: 0;
     max-width: none;
+    page-break-after: always;
+    page-break-inside: avoid;
     print-color-adjust: exact;
     width: 5.4cm;
+  }
+
+  body.credential-printing #credential-print-root .credential-card:last-child {
+    break-after: auto;
+    page-break-after: auto;
   }
 }
