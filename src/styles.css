@@ -1099,7 +1099,7 @@ textarea,
 @media print {
   @page {
     margin: 0;
-    size: 5.4cm 8.6cm;
+    size: 54mm 86mm;
   }
 
   html,
@@ -1109,7 +1109,8 @@ textarea,
     margin: 0 !important;
     min-height: 0 !important;
     overflow: visible !important;
-    width: 5.4cm;
+    padding: 0 !important;
+    width: 54mm;
   }
 
   body.credential-printing > :not(#credential-print-root) {
@@ -1122,32 +1123,50 @@ textarea,
     margin: 0;
     overflow: visible;
     padding: 0;
-    width: 5.4cm;
+    width: 54mm;
   }
 
-  body.credential-printing #credential-print-root .credential-print-selected {
-    display: block !important;
-  }
-
-  body.credential-printing #credential-print-root .credential-card {
+  body.credential-printing #credential-print-root .credential-print-page {
     -webkit-print-color-adjust: exact;
     break-after: page;
     break-inside: avoid-page;
+    display: block;
+    height: 86mm;
+    margin: 0;
+    overflow: hidden;
+    padding: 0;
+    page-break-after: always;
+    page-break-inside: avoid;
+    print-color-adjust: exact;
+    width: 54mm;
+  }
+
+  body.credential-printing #credential-print-root .credential-print-page:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+
+  body.credential-printing #credential-print-root .credential-print-page .credential-card {
+    -webkit-print-color-adjust: exact;
+    aspect-ratio: auto;
+    break-after: auto;
+    break-inside: avoid;
     border: 0;
     border-radius: 0;
     box-shadow: none;
     display: block;
-    height: 8.6cm;
+    height: 86mm;
     margin: 0;
     max-width: none;
-    page-break-after: always;
+    min-height: 0;
+    page-break-after: auto;
     page-break-inside: avoid;
     print-color-adjust: exact;
-    width: 5.4cm;
+    width: 54mm;
   }
 
-  body.credential-printing #credential-print-root .credential-card:last-child {
-    break-after: auto;
-    page-break-after: auto;
+  body.credential-printing #credential-print-root .credential-template-background {
+    height: 100%;
+    width: 100%;
   }
 }

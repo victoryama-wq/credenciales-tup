@@ -663,13 +663,12 @@ export class AdminDashboardComponent implements OnInit {
       return;
     }
 
-    const printRoot = document.createElement('div');
-    printRoot.id = 'credential-print-root';
-    printRoot.appendChild(source.cloneNode(true));
+    const printRoot = this.createCredentialPrintRoot(source);
     document.body.appendChild(printRoot);
     document.body.classList.add('credential-printing');
 
     await this.waitForCredentialImages(printRoot);
+    await this.nextPaint();
 
     let cleaned = false;
     let mediaQuery: MediaQueryList | undefined;
@@ -1033,6 +1032,22 @@ export class AdminDashboardComponent implements OnInit {
         requestAnimationFrame(() => resolve());
       });
     });
+  }
+
+  private createCredentialPrintRoot(source: HTMLElement): HTMLElement {
+    const printRoot = document.createElement('div');
+    printRoot.id = 'credential-print-root';
+
+    const cards = Array.from(source.querySelectorAll<HTMLElement>('.credential-card'));
+
+    for (const card of cards) {
+      const page = document.createElement('section');
+      page.className = 'credential-print-page';
+      page.appendChild(card.cloneNode(true));
+      printRoot.appendChild(page);
+    }
+
+    return printRoot;
   }
 
   private async waitForCredentialImages(root: HTMLElement): Promise<void> {
