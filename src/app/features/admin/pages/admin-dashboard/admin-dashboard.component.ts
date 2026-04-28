@@ -21,7 +21,10 @@ import {
 } from '../../../../core/models/credential-request.model';
 import {
   CredentialTemplateAsset,
+  CredentialTemplateFieldKey,
+  CredentialTemplateFieldLayout,
   CredentialTemplateKey,
+  CredentialTemplateLayouts,
   CredentialTemplateSettings,
   CredentialTemplateSide,
 } from '../../../../core/models/credential-template.model';
@@ -36,24 +39,8 @@ import {
 import { InstitutionalProfileService } from '../../../../core/services/institutional-profile.service';
 
 type AdminModule = 'requests' | 'saeko' | 'templates';
-type CredentialTemplateFieldKey = 'photo' | 'name' | 'matricula' | 'nivel' | 'programa' | 'qr';
-
-interface CredentialTemplateFieldLayout {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  fontSize?: number;
-  color?: string;
-  hidden?: boolean;
-}
 
 type CredentialTemplateNumericMetric = 'x' | 'y' | 'w' | 'h' | 'fontSize';
-
-type CredentialTemplateLayouts = Record<
-  CredentialTemplateKey,
-  Record<CredentialTemplateFieldKey, CredentialTemplateFieldLayout>
->;
 
 interface CredentialTemplateEditorField {
   key: CredentialTemplateFieldKey;
@@ -201,6 +188,33 @@ export class AdminDashboardComponent implements OnInit {
         error: (error) => {
           this.templateUploadErrorMessage =
             error.message || 'No fue posible cargar las plantillas guardadas.';
+        },
+      });
+
+    this.credentialTemplateService
+      .watchLayouts()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (layouts) => {
+          if (!this.hasStoredTemplateLayouts(layouts)) {
+            if (this.hasLocalTemplateLayoutStorage()) {
+              void this.credentialTemplateService.saveLayouts(this.templateLayouts).catch((error) => {
+                this.templateUploadErrorMessage =
+                  error instanceof Error
+                    ? error.message
+                    : 'No fue posible publicar la calibracion visual guardada.';
+              });
+            }
+
+            return;
+          }
+
+          this.templateLayouts = this.mergeTemplateLayouts(layouts);
+          this.persistTemplateLayoutsLocally();
+        },
+        error: (error) => {
+          this.templateUploadErrorMessage =
+            error.message || 'No fue posible cargar la calibracion visual guardada.';
         },
       });
   }
@@ -1091,42 +1105,71 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   private loadTemplateLayouts(): CredentialTemplateLayouts {
-    const defaults = this.cloneTemplateLayouts(this.defaultTemplateLayouts);
-
     try {
       const raw = localStorage.getItem(this.templateLayoutStorageKey);
 
       if (!raw) {
-        return defaults;
+        return this.cloneTemplateLayouts(this.defaultTemplateLayouts);
       }
 
       const stored = JSON.parse(raw) as Partial<CredentialTemplateLayouts>;
-
-      for (const key of Object.keys(defaults) as CredentialTemplateKey[]) {
-        const storedGroup =
-          (stored[key] || {}) as Partial<
-            Record<CredentialTemplateFieldKey, Partial<CredentialTemplateFieldLayout>>
-          >;
-
-        for (const field of Object.keys(defaults[key]) as CredentialTemplateFieldKey[]) {
-          defaults[key][field] = {
-            ...defaults[key][field],
-            ...(storedGroup[field] || {}),
-          };
-        }
-      }
-
-      return defaults;
+      return this.mergeTemplateLayouts(stored);
     } catch {
-      return defaults;
+      return this.cloneTemplateLayouts(this.defaultTemplateLayouts);
     }
   }
 
   private saveTemplateLayouts(): void {
+    this.persistTemplateLayoutsLocally();
+    void this.credentialTemplateService.saveLayouts(this.templateLayouts).catch((error) => {
+      this.templateUploadErrorMessage =
+        error instanceof Error
+          ? error.message
+          : 'No fue posible guardar la calibracion visual.';
+    });
+  }
+
+  private persistTemplateLayoutsLocally(): void {
     try {
       localStorage.setItem(this.templateLayoutStorageKey, JSON.stringify(this.templateLayouts));
     } catch {
       // La calibracion visual sigue funcionando aunque el navegador no permita guardarla.
+    }
+  }
+
+  private mergeTemplateLayouts(stored: Partial<CredentialTemplateLayouts>): CredentialTemplateLayouts {
+    const defaults = this.cloneTemplateLayouts(this.defaultTemplateLayouts);
+
+    for (const key of Object.keys(defaults) as CredentialTemplateKey[]) {
+      const storedGroup =
+        (stored[key] || {}) as Partial<
+          Record<CredentialTemplateFieldKey, Partial<CredentialTemplateFieldLayout>>
+        >;
+
+      for (const field of Object.keys(defaults[key]) as CredentialTemplateFieldKey[]) {
+        defaults[key][field] = {
+          ...defaults[key][field],
+          ...(storedGroup[field] || {}),
+        };
+      }
+    }
+
+    return defaults;
+  }
+
+  private hasStoredTemplateLayouts(layouts: Partial<CredentialTemplateLayouts>): boolean {
+    return (Object.keys(layouts) as CredentialTemplateKey[]).some((key) => {
+      const group = layouts[key];
+
+      return Boolean(group && Object.keys(group).length);
+    });
+  }
+
+  private hasLocalTemplateLayoutStorage(): boolean {
+    try {
+      return Boolean(localStorage.getItem(this.templateLayoutStorageKey));
+    } catch {
+      return false;
     }
   }
 
