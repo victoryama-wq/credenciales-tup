@@ -45,6 +45,7 @@ interface CredentialTemplateFieldLayout {
   h: number;
   fontSize?: number;
   color?: string;
+  hidden?: boolean;
 }
 
 type CredentialTemplateNumericMetric = 'x' | 'y' | 'w' | 'h' | 'fontSize';
@@ -412,6 +413,10 @@ export class AdminDashboardComponent implements OnInit {
     request: CredentialRequest,
     field: CredentialTemplateFieldKey
   ): boolean {
+    if (this.templateLayouts[this.credentialTemplateKey(request)][field].hidden) {
+      return false;
+    }
+
     if (request.applicantType === 'STAFF' && (field === 'matricula' || field === 'nivel')) {
       return false;
     }
@@ -499,7 +504,7 @@ export class AdminDashboardComponent implements OnInit {
     }
   }
 
-  visibleTemplateEditorFields(): CredentialTemplateEditorField[] {
+  availableTemplateEditorFields(): CredentialTemplateEditorField[] {
     return this.templateEditorFields.filter((field) => {
       const matchesSide = field.side === this.selectedTemplateSide;
       const matchesTeacher =
@@ -510,6 +515,12 @@ export class AdminDashboardComponent implements OnInit {
 
       return matchesSide && matchesTeacher && matchesStaff;
     });
+  }
+
+  visibleTemplateEditorFields(): CredentialTemplateEditorField[] {
+    return this.availableTemplateEditorFields().filter(
+      (field) => !this.templateFieldHidden(field.key)
+    );
   }
 
   templateEditorFieldLabel(field: CredentialTemplateEditorField): string {
@@ -560,6 +571,16 @@ export class AdminDashboardComponent implements OnInit {
 
   templateEditorLayout(field: CredentialTemplateFieldKey): CredentialTemplateFieldLayout {
     return this.templateLayouts[this.selectedTemplateKey()][field];
+  }
+
+  templateFieldHidden(field: CredentialTemplateFieldKey): boolean {
+    return this.templateLayouts[this.selectedTemplateKey()][field].hidden === true;
+  }
+
+  toggleTemplateFieldVisibility(field: CredentialTemplateFieldKey, event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.templateLayouts[this.selectedTemplateKey()][field].hidden = !input.checked;
+    this.saveTemplateLayouts();
   }
 
   templateEditorColor(field: CredentialTemplateFieldKey): string {

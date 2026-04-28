@@ -999,6 +999,29 @@ textarea,
   box-shadow: 0 10px 24px rgb(39 30 93 / 8%);
 }
 
+.template-field-panel-hidden {
+  background: rgb(249 250 252 / 78%);
+  border-style: dashed;
+  opacity: 0.78;
+}
+
+.template-visibility-toggle {
+  align-items: center;
+  color: var(--tup-muted);
+  display: inline-flex;
+  font-size: 0.76rem;
+  font-weight: 700;
+  gap: 0.45rem;
+  line-height: 1.25;
+}
+
+.template-visibility-toggle input {
+  accent-color: var(--tup-primary);
+  cursor: pointer;
+  height: 16px;
+  width: 16px;
+}
+
 .template-field-grid {
   display: grid;
   gap: 0.6rem;

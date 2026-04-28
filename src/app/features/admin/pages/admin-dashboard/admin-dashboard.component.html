@@ -193,15 +193,19 @@
                           alt=""
                           class="credential-template-background"
                         />
-                        <img
-                          [src]="request.photoUrl"
-                          [alt]="request.name"
-                          class="credential-template-photo"
-                          [ngStyle]="credentialTemplateElementStyle(request, 'photo')"
-                        />
-                        <p class="credential-template-name" [ngStyle]="credentialTemplateElementStyle(request, 'name')">
-                          {{ request.name }}
-                        </p>
+                        @if (showCredentialTemplateField(request, 'photo')) {
+                          <img
+                            [src]="request.photoUrl"
+                            [alt]="request.name"
+                            class="credential-template-photo"
+                            [ngStyle]="credentialTemplateElementStyle(request, 'photo')"
+                          />
+                        }
+                        @if (showCredentialTemplateField(request, 'name')) {
+                          <p class="credential-template-name" [ngStyle]="credentialTemplateElementStyle(request, 'name')">
+                            {{ request.name }}
+                          </p>
+                        }
                         @if (showCredentialTemplateField(request, 'matricula')) {
                           <p
                             class="credential-template-field"
@@ -236,7 +240,7 @@
                           alt=""
                           class="credential-template-background"
                         />
-                        @if (qrImages[request.id]) {
+                        @if (qrImages[request.id] && showCredentialTemplateField(request, 'qr')) {
                           <img
                             [src]="qrImages[request.id]"
                             alt="QR de verificacion"
@@ -571,16 +575,32 @@ TUP2104,tup2104&#64;tecplayacar.edu.mx,Nombre Alumno,Lic. Administracion de Empr
                   Selecciona y arrastra un elemento. Si necesitas precisión fina, ajusta porcentajes.
                 </p>
 
-                @for (field of visibleTemplateEditorFields(); track field.key) {
+                @for (field of availableTemplateEditorFields(); track field.key) {
                   <article
                     class="template-field-panel rounded-md"
                     [class.template-field-panel-active]="selectedTemplateField === field.key"
+                    [class.template-field-panel-hidden]="templateFieldHidden(field.key)"
                   >
-                    <div class="flex items-center justify-between gap-3">
-                      <p class="font-bold text-[var(--tup-ink)]">{{ templateEditorFieldLabel(field) }}</p>
-                      <button mat-stroked-button color="primary" type="button" class="link-button !h-9 !rounded-md" (click)="selectedTemplateField = field.key">
-                        Editar
-                      </button>
+                    <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                      <div>
+                        <p class="font-bold text-[var(--tup-ink)]">{{ templateEditorFieldLabel(field) }}</p>
+                        @if (templateFieldHidden(field.key)) {
+                          <p class="mt-1 text-xs text-[var(--tup-muted)]">Oculto en la previsualizacion e impresion.</p>
+                        }
+                      </div>
+                      <div class="flex flex-wrap items-center gap-3">
+                        <label class="template-visibility-toggle">
+                          <input
+                            type="checkbox"
+                            [checked]="!templateFieldHidden(field.key)"
+                            (change)="toggleTemplateFieldVisibility(field.key, $event)"
+                          />
+                          <span>Mostrar en credencial</span>
+                        </label>
+                        <button mat-stroked-button color="primary" type="button" class="link-button !h-9 !rounded-md" (click)="selectedTemplateField = field.key">
+                          Editar
+                        </button>
+                      </div>
                     </div>
 
                     <div class="template-field-grid">
