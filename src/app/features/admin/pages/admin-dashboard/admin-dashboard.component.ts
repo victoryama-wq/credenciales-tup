@@ -373,8 +373,8 @@ export class AdminDashboardComponent implements OnInit {
     return request.career;
   }
 
-  credentialTemplateBackground(request: CredentialRequest, side: CredentialTemplateSide): string {
-    return `url("${this.templateAssetUrl(this.credentialTemplateKey(request), side)}")`;
+  credentialTemplateImageUrl(request: CredentialRequest, side: CredentialTemplateSide): string {
+    return this.templateAssetUrl(this.credentialTemplateKey(request), side);
   }
 
   credentialTemplateElementStyle(
@@ -427,8 +427,8 @@ export class AdminDashboardComponent implements OnInit {
     return this.credentialTemplateKeyFromApplicant(this.selectedTemplateApplicant);
   }
 
-  selectedTemplateBackground(): string {
-    return `url("${this.templateAssetUrl(this.selectedTemplateKey(), this.selectedTemplateSide)}")`;
+  selectedTemplateImageUrl(): string {
+    return this.templateAssetUrl(this.selectedTemplateKey(), this.selectedTemplateSide);
   }
 
   selectedTemplateAsset(): CredentialTemplateAsset | undefined {

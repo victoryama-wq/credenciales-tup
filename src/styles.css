@@ -635,9 +635,6 @@ textarea,
 
 .credential-card {
   aspect-ratio: 5.4 / 8.6;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: cover;
   border: 1px solid rgb(39 30 93 / 18%);
   border-radius: 8px;
   box-shadow: 0 12px 24px rgb(39 30 93 / 8%);
@@ -649,6 +646,18 @@ textarea,
   overflow: hidden;
   position: relative;
   width: min(100%, 240px);
+}
+
+.credential-template-background {
+  display: block;
+  height: 100%;
+  inset: 0;
+  object-fit: fill;
+  pointer-events: none;
+  position: absolute;
+  user-select: none;
+  width: 100%;
+  z-index: 0;
 }
 
 .credential-card-front {
@@ -770,6 +779,7 @@ textarea,
   position: absolute;
   top: 18%;
   width: 46.8%;
+  z-index: 1;
 }
 
 .credential-template-name {
@@ -787,6 +797,7 @@ textarea,
   white-space: normal;
   width: 75%;
   overflow-wrap: anywhere;
+  z-index: 1;
 }
 
 .credential-template-field {
@@ -807,6 +818,7 @@ textarea,
   white-space: normal;
   width: 45%;
   overflow-wrap: anywhere;
+  z-index: 1;
 }
 
 .credential-template-field-matricula {
@@ -830,6 +842,7 @@ textarea,
   position: absolute;
   top: 60.1%;
   width: 36.5%;
+  z-index: 1;
 }
 
 .template-designer-content {
@@ -936,6 +949,7 @@ textarea,
   position: absolute;
   text-align: center;
   touch-action: none;
+  z-index: 2;
 }
 
 .template-editor-item-active {
@@ -1091,10 +1105,10 @@ textarea,
   html,
   body {
     background: #ffffff !important;
-    height: 8.6cm;
+    height: auto !important;
     margin: 0 !important;
     min-height: 0 !important;
-    overflow: hidden !important;
+    overflow: visible !important;
     width: 5.4cm;
   }
 
@@ -1106,7 +1120,7 @@ textarea,
     display: block !important;
     height: auto;
     margin: 0;
-    overflow: hidden;
+    overflow: visible;
     padding: 0;
     width: 5.4cm;
   }

@@ -187,8 +187,12 @@
                     >
                       <article
                         class="credential-card credential-card-front"
-                        [style.background-image]="credentialTemplateBackground(request, 'front')"
                       >
+                        <img
+                          [src]="credentialTemplateImageUrl(request, 'front')"
+                          alt=""
+                          class="credential-template-background"
+                        />
                         <img
                           [src]="request.photoUrl"
                           [alt]="request.name"
@@ -226,8 +230,12 @@
 
                       <article
                         class="credential-card credential-card-back"
-                        [style.background-image]="credentialTemplateBackground(request, 'back')"
                       >
+                        <img
+                          [src]="credentialTemplateImageUrl(request, 'back')"
+                          alt=""
+                          class="credential-template-background"
+                        />
                         @if (qrImages[request.id]) {
                           <img
                             [src]="qrImages[request.id]"
@@ -532,8 +540,8 @@ TUP2104,tup2104&#64;tecplayacar.edu.mx,Nombre Alumno,Lic. Administracion de Empr
               <div class="template-designer-preview">
                 <article
                   class="credential-card template-designer-card"
-                  [style.background-image]="selectedTemplateBackground()"
                 >
+                  <img [src]="selectedTemplateImageUrl()" alt="" class="credential-template-background" />
                   @for (field of visibleTemplateEditorFields(); track field.key) {
                     <button
                       type="button"
