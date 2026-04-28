@@ -37,7 +37,9 @@
           (click)="selectModule(module.value)"
         >
           <span class="admin-sidebar-icon" aria-hidden="true">
-            @if (module.value === 'requests') {
+            @if (module.value === 'dashboard') {
+              <svg viewBox="0 0 24 24"><path d="M4 13h6V5H4z" /><path d="M14 19h6V5h-6z" /><path d="M4 19h6v-3H4z" /></svg>
+            } @else if (module.value === 'requests') {
               <svg viewBox="0 0 24 24"><path d="M7 4h10a2 2 0 0 1 2 2v14H5V6a2 2 0 0 1 2-2Z" /><path d="M9 8h6M9 12h6M9 16h4" /></svg>
             } @else if (module.value === 'batches') {
               <svg viewBox="0 0 24 24"><path d="M7 8V4h10v4" /><path d="M6 17H4v-7h16v7h-2" /><path d="M7 14h10v6H7z" /><path d="M8 11h.01" /></svg>
@@ -119,7 +121,146 @@
       }
     </header>
 
-    @if (activeModule === 'requests') {
+    @if (activeModule === 'dashboard') {
+      @if (loading) {
+        <div class="grid place-items-center py-16">
+          <mat-progress-spinner diameter="42" mode="indeterminate"></mat-progress-spinner>
+        </div>
+      } @else {
+        <section class="executive-dashboard">
+          <section class="executive-kpi-grid">
+            <article class="executive-kpi-card executive-kpi-card-primary rounded-lg">
+              <p class="text-xs font-semibold uppercase">Solicitudes totales</p>
+              <strong>{{ dashboardTotalRequests }}</strong>
+              <span>{{ dashboardActiveRequests }} en proceso</span>
+            </article>
+
+            <article class="executive-kpi-card rounded-lg">
+              <p class="text-xs font-semibold uppercase text-[var(--tup-gray)]">Entregadas</p>
+              <strong>{{ dashboardDeliveredRequests }}</strong>
+              <span>{{ dashboardDeliveryRate }}% del total</span>
+            </article>
+
+            <article class="executive-kpi-card rounded-lg">
+              <p class="text-xs font-semibold uppercase text-[var(--tup-gray)]">Por imprimir</p>
+              <strong>{{ dashboardPendingPrintRequests }}</strong>
+              <span>Aprobadas para imprimir</span>
+            </article>
+
+            <article class="executive-kpi-card rounded-lg">
+              <p class="text-xs font-semibold uppercase text-[var(--tup-gray)]">Listas para entrega</p>
+              <strong>{{ dashboardReadyForPickupRequests }}</strong>
+              <span>Esperando ventanilla</span>
+            </article>
+          </section>
+
+          <section class="executive-dashboard-grid">
+            <mat-card class="institution-card !rounded-lg !shadow-none">
+              <mat-card-header>
+                <mat-card-title>Avance por estatus</mat-card-title>
+                <mat-card-subtitle>Distribucion general del flujo operativo.</mat-card-subtitle>
+              </mat-card-header>
+              <mat-card-content class="executive-card-content pt-5">
+                @for (row of dashboardStatusBreakdown; track row.label) {
+                  <div class="executive-bar-row">
+                    <div class="executive-bar-label">
+                      <span>{{ row.label }}</span>
+                      <strong>{{ row.count }}</strong>
+                    </div>
+                    <div class="executive-bar-track" aria-hidden="true">
+                      <span [style.width.%]="row.percent"></span>
+                    </div>
+                  </div>
+                }
+              </mat-card-content>
+            </mat-card>
+
+            <mat-card class="institution-card !rounded-lg !shadow-none">
+              <mat-card-header>
+                <mat-card-title>Tipo de solicitante</mat-card-title>
+                <mat-card-subtitle>Alumnos, docentes y colaboradores.</mat-card-subtitle>
+              </mat-card-header>
+              <mat-card-content class="executive-card-content pt-5">
+                @for (row of dashboardApplicantBreakdown; track row.label) {
+                  <div class="executive-bar-row">
+                    <div class="executive-bar-label">
+                      <span>{{ row.label }}</span>
+                      <strong>{{ row.count }}</strong>
+                    </div>
+                    <div class="executive-bar-track executive-bar-track-muted" aria-hidden="true">
+                      <span [style.width.%]="row.percent"></span>
+                    </div>
+                  </div>
+                }
+
+                <div class="executive-rate-panel rounded-lg">
+                  <span>Rechazo operativo</span>
+                  <strong>{{ dashboardRejectionRate }}%</strong>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          </section>
+
+          <section class="executive-dashboard-grid">
+            <mat-card class="institution-card !rounded-lg !shadow-none">
+              <mat-card-header>
+                <mat-card-title>Tiempos promedio</mat-card-title>
+                <mat-card-subtitle>Lectura ejecutiva de los pasos principales.</mat-card-subtitle>
+              </mat-card-header>
+              <mat-card-content class="executive-average-grid pt-5">
+                <article class="executive-average-card rounded-lg">
+                  <span>Solicitud a aprobacion</span>
+                  <strong>{{ dashboardRequestToApprovalAverage }}</strong>
+                </article>
+                <article class="executive-average-card rounded-lg">
+                  <span>Aprobacion a impresion</span>
+                  <strong>{{ dashboardApprovalToPrintAverage }}</strong>
+                </article>
+                <article class="executive-average-card rounded-lg">
+                  <span>Lista a entregada</span>
+                  <strong>{{ dashboardReadyToDeliveredAverage }}</strong>
+                </article>
+              </mat-card-content>
+            </mat-card>
+
+            <mat-card class="institution-card !rounded-lg !shadow-none">
+              <mat-card-header>
+                <mat-card-title>Entregas recientes</mat-card-title>
+                <mat-card-subtitle>Ultimas credenciales cerradas.</mat-card-subtitle>
+              </mat-card-header>
+              <mat-card-content class="executive-card-content pt-5">
+                @if (!dashboardRecentDeliveries.length) {
+                  <div class="muted-panel rounded-lg p-5 text-sm text-[var(--tup-muted)]">
+                    Aun no hay credenciales entregadas.
+                  </div>
+                } @else {
+                  <div class="executive-recent-list">
+                    @for (request of dashboardRecentDeliveries; track request.id) {
+                      <article class="executive-recent-item rounded-lg">
+                        <img [src]="request.photoUrl" [alt]="request.name" />
+                        <div class="min-w-0">
+                          <p class="font-bold text-[var(--tup-ink)]">{{ request.name }}</p>
+                          <p class="text-sm text-[var(--tup-muted)]">
+                            {{ applicantLabel(request.applicantType) }} - {{ request.email }}
+                          </p>
+                          <p class="mt-1 text-xs font-semibold uppercase text-[var(--tup-primary)]">
+                            @if (dashboardDeliveredDate(request); as deliveredDate) {
+                              {{ deliveredDate | date:'dd/MM/yy, h:mm a' }}
+                            } @else {
+                              Sin fecha
+                            }
+                          </p>
+                        </div>
+                      </article>
+                    }
+                  </div>
+                }
+              </mat-card-content>
+            </mat-card>
+          </section>
+        </section>
+      }
+    } @else if (activeModule === 'requests') {
       <section class="mb-6 grid gap-3 md:grid-cols-4">
         @for (status of statuses; track status) {
           <article class="metric-card rounded-lg p-4">

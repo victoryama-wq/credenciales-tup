@@ -44,7 +44,7 @@ import {
 } from '../../../../core/models/institutional-profile.model';
 import { InstitutionalProfileService } from '../../../../core/services/institutional-profile.service';
 
-type AdminModule = 'requests' | 'batches' | 'delivery' | 'saeko' | 'templates';
+type AdminModule = 'dashboard' | 'requests' | 'batches' | 'delivery' | 'saeko' | 'templates';
 
 type CredentialTemplateNumericMetric = 'x' | 'y' | 'w' | 'h' | 'fontSize';
 
@@ -56,6 +56,12 @@ interface CredentialTemplateEditorField {
 
 interface SaekoPreviewRow extends SaekoImportRow {
   errors: string[];
+}
+
+interface DashboardBreakdownRow {
+  label: string;
+  count: number;
+  percent: number;
 }
 
 @Component({
@@ -94,6 +100,13 @@ export class AdminDashboardComponent implements OnInit {
     'READY_FOR_PICKUP',
     'DELIVERED',
   ];
+  readonly dashboardActiveStatuses: CredentialRequestStatus[] = [
+    'SUBMITTED',
+    'UNDER_REVIEW',
+    'APPROVED_FOR_PRINT',
+    'PRINTED',
+    'READY_FOR_PICKUP',
+  ];
   readonly templateEditorFields: CredentialTemplateEditorField[] = [
     { key: 'photo', label: 'Foto', side: 'front' },
     { key: 'name', label: 'Nombre', side: 'front' },
@@ -131,6 +144,12 @@ export class AdminDashboardComponent implements OnInit {
   readonly statuses = credentialRequestStatuses;
   readonly modules: { value: AdminModule; label: string; eyebrow: string; description: string }[] = [
     {
+      value: 'dashboard',
+      label: 'Dashboard',
+      eyebrow: 'Resumen ejecutivo',
+      description: 'Indicadores, avance y tiempos del flujo.',
+    },
+    {
       value: 'requests',
       label: 'Solicitudes',
       eyebrow: 'Operacion',
@@ -162,7 +181,7 @@ export class AdminDashboardComponent implements OnInit {
     },
   ];
 
-  activeModule: AdminModule = 'requests';
+  activeModule: AdminModule = 'dashboard';
   sidebarVisible = false;
   loading = true;
   savingId = '';
@@ -308,6 +327,101 @@ export class AdminDashboardComponent implements OnInit {
     });
   }
 
+  get dashboardTotalRequests(): number {
+    return this.requests.length;
+  }
+
+  get dashboardActiveRequests(): number {
+    return this.requests.filter((request) =>
+      this.dashboardActiveStatuses.includes(request.status)
+    ).length;
+  }
+
+  get dashboardDeliveredRequests(): number {
+    return this.countByStatus('DELIVERED');
+  }
+
+  get dashboardRejectedRequests(): number {
+    return this.countByStatus('REJECTED');
+  }
+
+  get dashboardReadyForPickupRequests(): number {
+    return this.countByStatus('READY_FOR_PICKUP');
+  }
+
+  get dashboardPendingPrintRequests(): number {
+    return this.countByStatus('APPROVED_FOR_PRINT');
+  }
+
+  get dashboardDeliveryRate(): number {
+    return this.dashboardPercent(this.dashboardDeliveredRequests);
+  }
+
+  get dashboardRejectionRate(): number {
+    return this.dashboardPercent(this.dashboardRejectedRequests);
+  }
+
+  get dashboardStatusBreakdown(): DashboardBreakdownRow[] {
+    return this.statuses.map((status) => ({
+      label: this.statusLabels[status],
+      count: this.countByStatus(status),
+      percent: this.dashboardPercent(this.countByStatus(status)),
+    }));
+  }
+
+  get dashboardApplicantBreakdown(): DashboardBreakdownRow[] {
+    return this.applicantTypes.map((type) => {
+      const count = this.requests.filter(
+        (request) => (request.applicantType || 'STUDENT') === type
+      ).length;
+
+      return {
+        label: this.applicantTypeLabels[type],
+        count,
+        percent: this.dashboardPercent(count),
+      };
+    });
+  }
+
+  get dashboardRecentDeliveries(): CredentialRequest[] {
+    return this.requests
+      .filter((request) => request.status === 'DELIVERED')
+      .slice()
+      .sort(
+        (left, right) =>
+          (this.dashboardDeliveredMillis(right) || 0) -
+          (this.dashboardDeliveredMillis(left) || 0)
+      )
+      .slice(0, 5);
+  }
+
+  get dashboardRequestToApprovalAverage(): string {
+    return this.averageDurationLabel(
+      this.requests.map((request) => ({
+        start: this.timestampMillis(request.submittedAt),
+        end: this.statusTimestampMillis(request, 'APPROVED_FOR_PRINT'),
+      }))
+    );
+  }
+
+  get dashboardApprovalToPrintAverage(): string {
+    return this.averageDurationLabel(
+      this.requests.map((request) => ({
+        start: this.statusTimestampMillis(request, 'APPROVED_FOR_PRINT'),
+        end: this.timestampMillis(request.printedAt) || this.statusTimestampMillis(request, 'PRINTED'),
+      }))
+    );
+  }
+
+  get dashboardReadyToDeliveredAverage(): string {
+    return this.averageDurationLabel(
+      this.requests.map((request) => ({
+        start: this.timestampMillis(request.readyForPickupAt) || this.statusTimestampMillis(request, 'READY_FOR_PICKUP'),
+        end: this.dashboardDeliveredMillis(request),
+      }))
+    );
+  }
+
   get validSaekoRows(): SaekoImportRow[] {
     return this.saekoRows
       .filter((row) => row.errors.length === 0)
@@ -358,6 +472,16 @@ export class AdminDashboardComponent implements OnInit {
     return this.requests.filter((request) => request.status === status).length;
   }
 
+  dashboardPercent(count: number, total = this.dashboardTotalRequests): number {
+    return total ? Math.round((count / total) * 100) : 0;
+  }
+
+  dashboardDeliveredDate(request: CredentialRequest): Date | null {
+    const millis = this.dashboardDeliveredMillis(request);
+
+    return millis ? new Date(millis) : null;
+  }
+
   updateNote(requestId: string, event: Event): void {
     const input = event.target as HTMLInputElement;
     this.notes[requestId] = input.value;
@@ -398,6 +522,55 @@ export class AdminDashboardComponent implements OnInit {
 
   timelineDate(event: CredentialTimelineEvent): Date {
     return event.timestamp.toDate();
+  }
+
+  private timestampMillis(value?: { toMillis: () => number } | null): number | null {
+    return value ? value.toMillis() : null;
+  }
+
+  private statusTimestampMillis(
+    request: CredentialRequest,
+    status: CredentialRequestStatus
+  ): number | null {
+    return (
+      request.timeline.find((event) => event.status === status)?.timestamp.toMillis() || null
+    );
+  }
+
+  private dashboardDeliveredMillis(request: CredentialRequest): number | null {
+    return (
+      this.timestampMillis(request.deliveredAt) ||
+      this.statusTimestampMillis(request, 'DELIVERED')
+    );
+  }
+
+  private averageDurationLabel(ranges: { start: number | null; end: number | null }[]): string {
+    const durations = ranges
+      .filter((range): range is { start: number; end: number } =>
+        Boolean(range.start && range.end && range.end >= range.start)
+      )
+      .map((range) => range.end - range.start);
+
+    if (!durations.length) {
+      return 'Sin datos';
+    }
+
+    const averageMs = durations.reduce((total, duration) => total + duration, 0) / durations.length;
+    const minutes = Math.round(averageMs / 60000);
+
+    if (minutes < 60) {
+      return `${Math.max(minutes, 1)} min`;
+    }
+
+    const hours = averageMs / 3600000;
+
+    if (hours < 48) {
+      return `${hours < 10 ? hours.toFixed(1) : Math.round(hours)} h`;
+    }
+
+    const days = hours / 24;
+
+    return `${days < 10 ? days.toFixed(1) : Math.round(days)} dias`;
   }
 
   requestSelectedForBatch(requestId: string): boolean {
