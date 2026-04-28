@@ -41,6 +41,8 @@
               <svg viewBox="0 0 24 24"><path d="M7 4h10a2 2 0 0 1 2 2v14H5V6a2 2 0 0 1 2-2Z" /><path d="M9 8h6M9 12h6M9 16h4" /></svg>
             } @else if (module.value === 'batches') {
               <svg viewBox="0 0 24 24"><path d="M7 8V4h10v4" /><path d="M6 17H4v-7h16v7h-2" /><path d="M7 14h10v6H7z" /><path d="M8 11h.01" /></svg>
+            } @else if (module.value === 'delivery') {
+              <svg viewBox="0 0 24 24"><path d="M4 7h16v10H4z" /><path d="m7 12 2 2 4-5" /><path d="M16 12h2" /></svg>
             } @else if (module.value === 'templates') {
               <svg viewBox="0 0 24 24"><path d="M5 4h14v16H5z" /><path d="M8 8h8M8 12h5M8 16h8" /></svg>
             } @else {
@@ -87,6 +89,28 @@
             <mat-select [(value)]="statusFilter">
               <mat-option value="ALL">Todas</mat-option>
               @for (status of statuses; track status) {
+                <mat-option [value]="status">{{ statusLabels[status] }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </div>
+      } @else if (activeModule === 'delivery') {
+        <div class="admin-dashboard-filters">
+          <mat-form-field appearance="outline" class="w-full md:w-60">
+            <mat-label>Tipo de solicitante</mat-label>
+            <mat-select [(value)]="deliveryApplicantFilter">
+              <mat-option value="ALL">Todos</mat-option>
+              @for (type of applicantTypes; track type) {
+                <mat-option [value]="type">{{ applicantTypeLabels[type] }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="w-full md:w-72">
+            <mat-label>Filtrar por entrega</mat-label>
+            <mat-select [(value)]="deliveryStatusFilter">
+              <mat-option value="ALL">Todas</mat-option>
+              @for (status of deliveryStatuses; track status) {
                 <mat-option [value]="status">{{ statusLabels[status] }}</mat-option>
               }
             </mat-select>
@@ -591,6 +615,160 @@
             </mat-card-content>
           </mat-card>
         </aside>
+      </section>
+    } @else if (activeModule === 'delivery') {
+      <section class="delivery-dashboard">
+        <section class="delivery-metrics">
+          @for (status of deliveryStatuses; track status) {
+            <article class="metric-card rounded-lg p-4">
+              <p class="text-xs font-semibold uppercase text-[var(--tup-gray)]">{{ statusLabels[status] }}</p>
+              <p class="mt-2 text-2xl font-bold text-[var(--tup-ink)]">{{ deliveryCountByStatus(status) }}</p>
+            </article>
+          }
+        </section>
+
+        @if (errorMessage) {
+          <p class="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{{ errorMessage }}</p>
+        }
+
+        @if (!deliveryRequests.length) {
+          <mat-card class="institution-card !rounded-lg !shadow-none">
+            <mat-card-content class="py-8">
+              <p class="text-center text-[var(--tup-muted)]">No hay credenciales con este filtro.</p>
+            </mat-card-content>
+          </mat-card>
+        } @else {
+          <section class="grid gap-4">
+            @for (request of deliveryRequests; track request.id) {
+              <mat-card class="institution-card !rounded-lg !shadow-none">
+                <mat-card-content class="delivery-card">
+                  <div class="delivery-card-photo">
+                    <img
+                      [src]="request.photoUrl"
+                      [alt]="request.name"
+                      class="request-photo w-full rounded-md border border-[var(--tup-line)]"
+                    />
+                  </div>
+
+                  <div class="min-w-0">
+                    <div class="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                      <div class="min-w-0">
+                        <p class="eyebrow">{{ applicantLabel(request.applicantType) }}</p>
+                        <h3 class="text-xl font-bold text-[var(--tup-ink)]">{{ request.name }}</h3>
+                        <p class="mt-1 text-sm text-[var(--tup-muted)]">{{ request.email }}</p>
+                      </div>
+                      <span class="status-pill rounded-full px-3 py-1 text-xs font-semibold">
+                        {{ statusLabels[request.status] }}
+                      </span>
+                    </div>
+
+                    <div class="delivery-detail-grid mt-4">
+                      @if (showIdentifier(request)) {
+                        <p>
+                          <span>{{ identifierLabel(request.applicantType) }}</span>
+                          <strong>{{ request.studentId }}</strong>
+                        </p>
+                      }
+                      <p>
+                        <span>{{ detailLabel(request) }}</span>
+                        <strong>{{ detailValue(request) }}</strong>
+                      </p>
+                      @if (!request.applicantType || request.applicantType === 'STUDENT') {
+                        <p>
+                          <span>Cuatrimestre</span>
+                          <strong>{{ request.cycle }}</strong>
+                        </p>
+                      }
+                      <p>
+                        <span>Folio</span>
+                        <strong>{{ request.credentialNumber || '-' }}</strong>
+                      </p>
+                      @if (request.printBatchId) {
+                        <p>
+                          <span>Lote</span>
+                          <strong>{{ request.printBatchId }}</strong>
+                        </p>
+                      }
+                    </div>
+
+                    <section class="delivery-timeline mt-5">
+                      <p class="font-bold text-[var(--tup-ink)]">Trazabilidad</p>
+                      <div class="mt-3 grid gap-3">
+                        @for (event of request.timeline; track event.timestamp.toMillis()) {
+                          <article class="delivery-timeline-event">
+                            <span aria-hidden="true"></span>
+                            <div class="min-w-0">
+                              <p class="text-sm font-bold text-[var(--tup-ink)]">
+                                {{ statusLabels[event.status] }}
+                              </p>
+                              <p class="text-xs text-[var(--tup-muted)]">
+                                {{ timelineDate(event) | date:'dd/MM/yy, h:mm a' }}
+                              </p>
+                              @if (event.note) {
+                                <p class="mt-1 text-sm leading-5 text-[var(--tup-muted)]">{{ event.note }}</p>
+                              }
+                            </div>
+                          </article>
+                        }
+                      </div>
+                    </section>
+                  </div>
+
+                  <div class="muted-panel rounded-lg p-4">
+                    <mat-form-field appearance="outline" class="w-full">
+                      <mat-label>Nota de entrega</mat-label>
+                      <textarea
+                        matInput
+                        rows="4"
+                        [value]="notes[request.id] || ''"
+                        (input)="updateNote(request.id, $event)"
+                      ></textarea>
+                    </mat-form-field>
+
+                    <div class="grid gap-2">
+                      @if (canMove(request, 'READY_FOR_PICKUP')) {
+                        <button
+                          mat-flat-button
+                          color="primary"
+                          type="button"
+                          class="!rounded-md"
+                          [disabled]="savingId === request.id"
+                          (click)="move(request, 'READY_FOR_PICKUP')"
+                        >
+                          Lista para entrega
+                        </button>
+                      }
+
+                      @if (canMove(request, 'DELIVERED')) {
+                        <button
+                          mat-flat-button
+                          color="primary"
+                          type="button"
+                          class="!rounded-md"
+                          [disabled]="savingId === request.id"
+                          (click)="move(request, 'DELIVERED')"
+                        >
+                          Confirmar entrega
+                        </button>
+                      }
+
+                      <a
+                        mat-stroked-button
+                        color="primary"
+                        class="link-button !rounded-md"
+                        [href]="verificationUrl(request)"
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Ver QR
+                      </a>
+                    </div>
+                  </div>
+                </mat-card-content>
+              </mat-card>
+            }
+          </section>
+        }
       </section>
     } @else if (activeModule === 'saeko') {
       <section class="saeko-layout">

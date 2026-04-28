@@ -14,6 +14,7 @@ import {
   CredentialApplicantType,
   CredentialRequest,
   CredentialRequestStatus,
+  CredentialTimelineEvent,
   canTransitionCredentialRequestStatus,
   credentialApplicantTypeLabels,
   credentialRequestStatuses,
@@ -43,7 +44,7 @@ import {
 } from '../../../../core/models/institutional-profile.model';
 import { InstitutionalProfileService } from '../../../../core/services/institutional-profile.service';
 
-type AdminModule = 'requests' | 'batches' | 'saeko' | 'templates';
+type AdminModule = 'requests' | 'batches' | 'delivery' | 'saeko' | 'templates';
 
 type CredentialTemplateNumericMetric = 'x' | 'y' | 'w' | 'h' | 'fontSize';
 
@@ -88,6 +89,11 @@ export class AdminDashboardComponent implements OnInit {
   readonly applicantTypeLabels = credentialApplicantTypeLabels;
   readonly academicStatusLabels = institutionalAcademicStatusLabels;
   readonly applicantTypes: CredentialApplicantType[] = ['STUDENT', 'TEACHER', 'STAFF'];
+  readonly deliveryStatuses: CredentialRequestStatus[] = [
+    'PRINTED',
+    'READY_FOR_PICKUP',
+    'DELIVERED',
+  ];
   readonly templateEditorFields: CredentialTemplateEditorField[] = [
     { key: 'photo', label: 'Foto', side: 'front' },
     { key: 'name', label: 'Nombre', side: 'front' },
@@ -137,6 +143,12 @@ export class AdminDashboardComponent implements OnInit {
       description: 'Agrupa, imprime y cierra credenciales listas.',
     },
     {
+      value: 'delivery',
+      label: 'Entrega de credenciales',
+      eyebrow: 'Ventanilla',
+      description: 'Control de credenciales listas y entregadas.',
+    },
+    {
       value: 'saeko',
       label: 'Importacion Saeko',
       eyebrow: 'Control Escolar',
@@ -159,6 +171,8 @@ export class AdminDashboardComponent implements OnInit {
   importSuccessMessage = '';
   statusFilter: CredentialRequestStatus | 'ALL' = 'ALL';
   applicantFilter: CredentialApplicantType | 'ALL' = 'ALL';
+  deliveryStatusFilter: CredentialRequestStatus | 'ALL' = 'ALL';
+  deliveryApplicantFilter: CredentialApplicantType | 'ALL' = 'ALL';
   printingRequestId = '';
   printingBatchId = '';
   qrImages: Record<string, string> = {};
@@ -282,6 +296,18 @@ export class AdminDashboardComponent implements OnInit {
     return this.printBatches.filter((batch) => batch.status === 'PRINTED');
   }
 
+  get deliveryRequests(): CredentialRequest[] {
+    return this.requests.filter((request) => {
+      const matchesStatus =
+        this.deliveryStatusFilter === 'ALL' || request.status === this.deliveryStatusFilter;
+      const matchesApplicant =
+        this.deliveryApplicantFilter === 'ALL' ||
+        (request.applicantType || 'STUDENT') === this.deliveryApplicantFilter;
+
+      return this.deliveryStatuses.includes(request.status) && matchesStatus && matchesApplicant;
+    });
+  }
+
   get validSaekoRows(): SaekoImportRow[] {
     return this.saekoRows
       .filter((row) => row.errors.length === 0)
@@ -328,6 +354,10 @@ export class AdminDashboardComponent implements OnInit {
     return this.requests.filter((request) => request.status === status).length;
   }
 
+  deliveryCountByStatus(status: CredentialRequestStatus): number {
+    return this.requests.filter((request) => request.status === status).length;
+  }
+
   updateNote(requestId: string, event: Event): void {
     const input = event.target as HTMLInputElement;
     this.notes[requestId] = input.value;
@@ -364,6 +394,10 @@ export class AdminDashboardComponent implements OnInit {
 
   canMove(request: CredentialRequest, status: CredentialRequestStatus): boolean {
     return canTransitionCredentialRequestStatus(request.status, status);
+  }
+
+  timelineDate(event: CredentialTimelineEvent): Date {
+    return event.timestamp.toDate();
   }
 
   requestSelectedForBatch(requestId: string): boolean {
