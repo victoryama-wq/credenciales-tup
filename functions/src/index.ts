@@ -51,6 +51,18 @@ interface UpdateStatusData {
   note?: string;
 }
 
+type PrintBatchStatus = "CREATED" | "PRINTED";
+
+interface CreatePrintBatchData {
+  requestIds?: string[];
+  note?: string;
+}
+
+interface MarkPrintBatchPrintedData {
+  batchId?: string;
+  note?: string;
+}
+
 interface VerifyCredentialData {
   token?: string;
 }
@@ -108,8 +120,21 @@ interface StoredCredentialRequest {
   credentialNumber?: string;
   qrToken?: string;
   verificationUrl?: string;
+  printBatchId?: string;
   reviewedAt?: Timestamp;
   updatedAt?: Timestamp;
+}
+
+interface StoredPrintBatch {
+  createdBy: string;
+  requestIds: string[];
+  status: PrintBatchStatus;
+  total: number;
+  note?: string;
+  createdAt: Timestamp;
+  updatedAt?: Timestamp;
+  printedAt?: Timestamp;
+  printedBy?: string;
 }
 
 const db = getFirestore();
@@ -117,6 +142,7 @@ const adminAuth = getAuth();
 const requests = db.collection("credential_requests");
 const credentialCounters = db.collection("credential_counters");
 const institutionalProfiles = db.collection("institutional_profiles");
+const printBatches = db.collection("print_batches");
 const institutionalEmailDomain = "tecplayacar.edu.mx";
 const publicAppUrl = "https://credencial-tup.web.app";
 const callableOptions: CallableOptions = {
@@ -382,6 +408,199 @@ export const updateCredentialRequestStatus = onCall(callableOptions, async (requ
       buildAuditAfter(before, changes)
     );
     queueStatusNotification(transaction, requestRef.id, before, status, note, now);
+  });
+
+  return {ok: true};
+});
+
+export const createPrintBatch = onCall(callableOptions, async (request) => {
+  const auth = request.auth;
+
+  if (!auth) {
+    throw new HttpsError("unauthenticated", "Inicia sesion.");
+  }
+
+  if (!isAdmin(auth.token)) {
+    throw new HttpsError("permission-denied", "Requiere rol administrativo.");
+  }
+
+  const data = request.data as CreatePrintBatchData;
+  const requestIds = requireRequestIds(data.requestIds);
+  const note = typeof data.note === "string" ? data.note.trim() : "";
+  const batchRef = printBatches.doc();
+  const now = Timestamp.now();
+
+  await db.runTransaction(async (transaction) => {
+    const snapshots = await Promise.all(
+      requestIds.map((requestId) => transaction.get(requests.doc(requestId)))
+    );
+
+    for (const snapshot of snapshots) {
+      if (!snapshot.exists) {
+        throw new HttpsError("not-found", "Una solicitud del lote no existe.");
+      }
+
+      const credential = snapshot.data() as StoredCredentialRequest;
+
+      if (credential.status !== "APPROVED_FOR_PRINT") {
+        throw new HttpsError(
+          "failed-precondition",
+          "Solo se pueden lotificar solicitudes aprobadas para impresion."
+        );
+      }
+
+      if (credential.printBatchId) {
+        throw new HttpsError(
+          "already-exists",
+          "Una solicitud seleccionada ya pertenece a otro lote."
+        );
+      }
+    }
+
+    const payload: StoredPrintBatch = {
+      createdBy: auth.uid,
+      requestIds,
+      status: "CREATED",
+      total: requestIds.length,
+      note,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    transaction.set(batchRef, payload);
+
+    for (const snapshot of snapshots) {
+      transaction.update(snapshot.ref, {
+        printBatchId: batchRef.id,
+        updatedAt: now,
+        timeline: FieldValue.arrayUnion({
+          status: "APPROVED_FOR_PRINT",
+          actorUid: auth.uid,
+          note: `Solicitud agregada al lote ${batchRef.id}.`,
+          timestamp: now,
+        }),
+      });
+    }
+
+    writeAudit(
+      transaction,
+      auth.uid,
+      "print_batch.create",
+      batchRef.id,
+      null,
+      payload,
+      "print_batches"
+    );
+  });
+
+  return {batchId: batchRef.id};
+});
+
+export const markPrintBatchPrinted = onCall(callableOptions, async (request) => {
+  const auth = request.auth;
+
+  if (!auth) {
+    throw new HttpsError("unauthenticated", "Inicia sesion.");
+  }
+
+  if (!isAdmin(auth.token)) {
+    throw new HttpsError("permission-denied", "Requiere rol administrativo.");
+  }
+
+  const data = request.data as MarkPrintBatchPrintedData;
+  const batchId = requireString(data.batchId, "batchId");
+  const note = typeof data.note === "string" && data.note.trim() ?
+    data.note.trim() :
+    `Credencial impresa en lote ${batchId}.`;
+  const batchRef = printBatches.doc(batchId);
+  const now = Timestamp.now();
+
+  await db.runTransaction(async (transaction) => {
+    const batchSnapshot = await transaction.get(batchRef);
+
+    if (!batchSnapshot.exists) {
+      throw new HttpsError("not-found", "El lote no existe.");
+    }
+
+    const printBatch = batchSnapshot.data() as StoredPrintBatch;
+
+    if (printBatch.status === "PRINTED") {
+      throw new HttpsError("failed-precondition", "El lote ya fue marcado como impreso.");
+    }
+
+    const requestIds = requireRequestIds(printBatch.requestIds);
+    const snapshots = await Promise.all(
+      requestIds.map((requestId) => transaction.get(requests.doc(requestId)))
+    );
+
+    for (const snapshot of snapshots) {
+      if (!snapshot.exists) {
+        throw new HttpsError("not-found", "Una solicitud del lote no existe.");
+      }
+
+      const credential = snapshot.data() as StoredCredentialRequest;
+
+      if (
+        credential.status !== "APPROVED_FOR_PRINT" &&
+        credential.status !== "PRINTED"
+      ) {
+        throw new HttpsError(
+          "failed-precondition",
+          "El lote contiene solicitudes que ya no estan listas para imprimir."
+        );
+      }
+    }
+
+    for (const snapshot of snapshots) {
+      const before = snapshot.data() as StoredCredentialRequest;
+
+      if (before.status === "PRINTED") {
+        continue;
+      }
+
+      const changes = buildStatusChanges(
+        before,
+        "PRINTED",
+        auth.uid,
+        note,
+        now,
+        null
+      );
+
+      changes.printBatchId = batchId;
+      transaction.update(snapshot.ref, changes);
+      writeAudit(
+        transaction,
+        auth.uid,
+        "credential_request.batch_printed",
+        snapshot.id,
+        before,
+        buildAuditAfter(before, changes)
+      );
+      queueStatusNotification(transaction, snapshot.id, before, "PRINTED", note, now);
+    }
+
+    transaction.update(batchRef, {
+      status: "PRINTED",
+      printedAt: now,
+      printedBy: auth.uid,
+      updatedAt: now,
+    });
+    writeAudit(
+      transaction,
+      auth.uid,
+      "print_batch.printed",
+      batchId,
+      printBatch,
+      {
+        ...printBatch,
+        status: "PRINTED",
+        printedAt: now,
+        printedBy: auth.uid,
+        updatedAt: now,
+      },
+      "print_batches"
+    );
   });
 
   return {ok: true};
@@ -898,12 +1117,13 @@ function writeAudit(
   action: string,
   entityId: string,
   before: unknown,
-  after: unknown
+  after: unknown,
+  entity = "credential_requests"
 ) {
   transaction.set(db.collection("audit_logs").doc(), {
     actorUid,
     action,
-    entity: "credential_requests",
+    entity,
     entityId,
     before,
     after,
@@ -992,6 +1212,31 @@ function requireStatus(value: unknown): CredentialRequestStatus {
   }
 
   return value as CredentialRequestStatus;
+}
+
+function requireRequestIds(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    throw new HttpsError("invalid-argument", "Selecciona al menos una solicitud.");
+  }
+
+  const requestIds = Array.from(
+    new Set(
+      value
+        .filter((item): item is string => typeof item === "string")
+        .map((item) => item.trim())
+        .filter(Boolean)
+    )
+  );
+
+  if (!requestIds.length) {
+    throw new HttpsError("invalid-argument", "Selecciona al menos una solicitud.");
+  }
+
+  if (requestIds.length > 100) {
+    throw new HttpsError("invalid-argument", "El lote no puede superar 100 solicitudes.");
+  }
+
+  return requestIds;
 }
 
 function requireRequestType(value: unknown): CredentialRequestType {

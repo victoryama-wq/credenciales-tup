@@ -39,6 +39,8 @@
           <span class="admin-sidebar-icon" aria-hidden="true">
             @if (module.value === 'requests') {
               <svg viewBox="0 0 24 24"><path d="M7 4h10a2 2 0 0 1 2 2v14H5V6a2 2 0 0 1 2-2Z" /><path d="M9 8h6M9 12h6M9 16h4" /></svg>
+            } @else if (module.value === 'batches') {
+              <svg viewBox="0 0 24 24"><path d="M7 8V4h10v4" /><path d="M6 17H4v-7h16v7h-2" /><path d="M7 14h10v6H7z" /><path d="M8 11h.01" /></svg>
             } @else if (module.value === 'templates') {
               <svg viewBox="0 0 24 24"><path d="M5 4h14v16H5z" /><path d="M8 8h8M8 12h5M8 16h8" /></svg>
             } @else {
@@ -335,6 +337,261 @@
           }
         </section>
       }
+    } @else if (activeModule === 'batches') {
+      <section class="print-batch-layout">
+        <mat-card class="institution-card !rounded-lg !shadow-none">
+          <mat-card-header>
+            <mat-card-title>Nuevo lote de impresión</mat-card-title>
+            <mat-card-subtitle>Selecciona solicitudes aprobadas para imprimirlas en grupo.</mat-card-subtitle>
+          </mat-card-header>
+
+          <mat-card-content class="grid gap-4 pt-6">
+            @if (batchErrorMessage) {
+              <p class="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{{ batchErrorMessage }}</p>
+            }
+
+            @if (batchMessage) {
+              <p class="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{{ batchMessage }}</p>
+            }
+
+            <div class="print-batch-toolbar rounded-lg">
+              <div>
+                <p class="font-bold text-[var(--tup-ink)]">
+                  {{ selectedBatchRequests.length }} seleccionadas
+                </p>
+                <p class="mt-1 text-sm text-[var(--tup-muted)]">
+                  {{ batchCandidateRequests.length }} disponibles para crear lote.
+                </p>
+              </div>
+              <div class="flex flex-wrap gap-2">
+                <button
+                  mat-stroked-button
+                  color="primary"
+                  type="button"
+                  class="link-button !h-10 !rounded-md"
+                  [disabled]="!batchCandidateRequests.length"
+                  (click)="selectAllBatchCandidates()"
+                >
+                  Seleccionar todas
+                </button>
+                <button
+                  mat-stroked-button
+                  color="primary"
+                  type="button"
+                  class="link-button !h-10 !rounded-md"
+                  [disabled]="!selectedBatchRequests.length"
+                  (click)="clearBatchSelection()"
+                >
+                  Limpiar
+                </button>
+                <button
+                  mat-flat-button
+                  color="primary"
+                  type="button"
+                  class="!h-10 !rounded-md"
+                  [disabled]="creatingBatch || !selectedBatchRequests.length"
+                  (click)="createPrintBatch()"
+                >
+                  @if (creatingBatch) {
+                    <mat-progress-spinner diameter="20" mode="indeterminate"></mat-progress-spinner>
+                  } @else {
+                    Crear lote
+                  }
+                </button>
+              </div>
+            </div>
+
+            @if (!batchCandidateRequests.length) {
+              <div class="muted-panel rounded-lg p-5 text-sm text-[var(--tup-muted)]">
+                No hay solicitudes aprobadas pendientes de lote.
+              </div>
+            } @else {
+              <section class="print-batch-candidates">
+                @for (request of batchCandidateRequests; track request.id) {
+                  <label class="print-batch-candidate rounded-lg">
+                    <input
+                      type="checkbox"
+                      [checked]="requestSelectedForBatch(request.id)"
+                      (change)="toggleBatchSelection(request.id, $event)"
+                    />
+                    <img [src]="request.photoUrl" [alt]="request.name" />
+                    <span class="min-w-0">
+                      <span class="block font-bold text-[var(--tup-ink)]">{{ request.name }}</span>
+                      <span class="mt-1 block text-xs text-[var(--tup-muted)]">
+                        {{ applicantLabel(request.applicantType) }} · {{ request.studentId || request.email }}
+                      </span>
+                      <span class="mt-1 block text-xs text-[var(--tup-primary)]">
+                        {{ request.credentialNumber }}
+                      </span>
+                    </span>
+                  </label>
+                }
+              </section>
+            }
+          </mat-card-content>
+        </mat-card>
+
+        <aside class="grid gap-4 content-start">
+          <mat-card class="institution-card !rounded-lg !shadow-none">
+            <mat-card-header>
+              <mat-card-title>Lotes activos</mat-card-title>
+              <mat-card-subtitle>Imprime y cierra los lotes creados.</mat-card-subtitle>
+            </mat-card-header>
+
+            <mat-card-content class="grid gap-3 pt-6">
+              @if (!activePrintBatches.length) {
+                <p class="muted-panel rounded-lg p-4 text-sm text-[var(--tup-muted)]">
+                  No hay lotes activos.
+                </p>
+              }
+
+              @for (batch of activePrintBatches; track batch.id) {
+                <article class="print-batch-card rounded-lg">
+                  <div class="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                    <div class="min-w-0">
+                      <p class="text-xs font-bold uppercase text-[var(--tup-gray)]">
+                        Lote {{ batch.id }}
+                      </p>
+                      <h3 class="mt-1 text-lg font-bold text-[var(--tup-ink)]">
+                        {{ batch.total }} credenciales
+                      </h3>
+                      <p class="mt-1 text-sm text-[var(--tup-muted)]">
+                        {{ printBatchStatusLabels[batch.status] }}
+                      </p>
+                    </div>
+                    <span class="status-pill rounded-full px-3 py-1 text-xs font-semibold">
+                      {{ printBatchStatusLabels[batch.status] }}
+                    </span>
+                  </div>
+
+                  <div class="mt-3 grid gap-2">
+                    @for (request of batchRequests(batch); track request.id) {
+                      <p class="print-batch-item text-sm text-[var(--tup-muted)]">
+                        <strong class="text-[var(--tup-ink)]">{{ request.name }}</strong>
+                        <span>{{ request.credentialNumber }}</span>
+                      </p>
+                    }
+                  </div>
+
+                  <div class="mt-4 flex flex-wrap gap-2">
+                    <button
+                      mat-stroked-button
+                      color="primary"
+                      type="button"
+                      class="link-button !h-10 !rounded-md"
+                      (click)="printBatch(batch)"
+                    >
+                      Imprimir lote
+                    </button>
+                    <button
+                      mat-flat-button
+                      color="primary"
+                      type="button"
+                      class="!h-10 !rounded-md"
+                      [disabled]="batchActionId === batch.id"
+                      (click)="markBatchPrinted(batch)"
+                    >
+                      @if (batchActionId === batch.id) {
+                        <mat-progress-spinner diameter="20" mode="indeterminate"></mat-progress-spinner>
+                      } @else {
+                        Marcar impreso
+                      }
+                    </button>
+                  </div>
+
+                  <section
+                    class="batch-print-source"
+                    [class.batch-print-selected]="printingBatchId === batch.id"
+                  >
+                    @for (request of batchRequests(batch); track request.id) {
+                      <article class="credential-card credential-card-front">
+                        <img
+                          [src]="credentialTemplateImageUrl(request, 'front')"
+                          alt=""
+                          class="credential-template-background"
+                        />
+                        @if (showCredentialTemplateField(request, 'photo')) {
+                          <img
+                            [src]="request.photoUrl"
+                            [alt]="request.name"
+                            class="credential-template-photo"
+                            [ngStyle]="credentialTemplateElementStyle(request, 'photo')"
+                          />
+                        }
+                        @if (showCredentialTemplateField(request, 'name')) {
+                          <p class="credential-template-name" [ngStyle]="credentialTemplateElementStyle(request, 'name')">
+                            {{ request.name }}
+                          </p>
+                        }
+                        @if (showCredentialTemplateField(request, 'matricula')) {
+                          <p
+                            class="credential-template-field"
+                            [ngStyle]="credentialTemplateElementStyle(request, 'matricula')"
+                          >
+                            {{ credentialTemplateMatricula(request) }}
+                          </p>
+                        }
+                        @if (showCredentialTemplateField(request, 'nivel')) {
+                          <p
+                            class="credential-template-field"
+                            [ngStyle]="credentialTemplateElementStyle(request, 'nivel')"
+                          >
+                            {{ credentialTemplateNivel(request) }}
+                          </p>
+                        }
+                        @if (showCredentialTemplateField(request, 'programa')) {
+                          <p
+                            class="credential-template-field"
+                            [ngStyle]="credentialTemplateElementStyle(request, 'programa')"
+                          >
+                            {{ credentialTemplatePrograma(request) }}
+                          </p>
+                        }
+                      </article>
+
+                      <article class="credential-card credential-card-back">
+                        <img
+                          [src]="credentialTemplateImageUrl(request, 'back')"
+                          alt=""
+                          class="credential-template-background"
+                        />
+                        @if (qrImages[request.id] && showCredentialTemplateField(request, 'qr')) {
+                          <img
+                            [src]="qrImages[request.id]"
+                            alt="QR de verificacion"
+                            class="credential-template-qr"
+                            [ngStyle]="credentialTemplateElementStyle(request, 'qr')"
+                          />
+                        }
+                      </article>
+                    }
+                  </section>
+                </article>
+              }
+            </mat-card-content>
+          </mat-card>
+
+          <mat-card class="institution-card !rounded-lg !shadow-none">
+            <mat-card-header>
+              <mat-card-title>Historial reciente</mat-card-title>
+            </mat-card-header>
+            <mat-card-content class="grid gap-2 pt-6">
+              @if (!completedPrintBatches.length) {
+                <p class="text-sm text-[var(--tup-muted)]">Aun no hay lotes impresos.</p>
+              }
+
+              @for (batch of completedPrintBatches; track batch.id) {
+                <article class="print-batch-history rounded-md">
+                  <p class="font-bold text-[var(--tup-ink)]">Lote {{ batch.id }}</p>
+                  <p class="mt-1 text-sm text-[var(--tup-muted)]">
+                    {{ batch.total }} credenciales impresas
+                  </p>
+                </article>
+              }
+            </mat-card-content>
+          </mat-card>
+        </aside>
+      </section>
     } @else if (activeModule === 'saeko') {
       <section class="saeko-layout">
         <mat-card class="saeko-card institution-card !rounded-lg !shadow-none">

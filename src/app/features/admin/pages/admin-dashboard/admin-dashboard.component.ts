@@ -20,6 +20,10 @@ import {
   statusLabels,
 } from '../../../../core/models/credential-request.model';
 import {
+  PrintBatch,
+  printBatchStatusLabels,
+} from '../../../../core/models/print-batch.model';
+import {
   CredentialTemplateAsset,
   CredentialTemplateFieldKey,
   CredentialTemplateFieldLayout,
@@ -31,6 +35,7 @@ import {
 import { AuthService } from '../../../../core/services/auth.service';
 import { CredentialRequestService } from '../../../../core/services/credential-request.service';
 import { CredentialTemplateService } from '../../../../core/services/credential-template.service';
+import { PrintBatchService } from '../../../../core/services/print-batch.service';
 import {
   InstitutionalAcademicStatus,
   SaekoImportRow,
@@ -38,7 +43,7 @@ import {
 } from '../../../../core/models/institutional-profile.model';
 import { InstitutionalProfileService } from '../../../../core/services/institutional-profile.service';
 
-type AdminModule = 'requests' | 'saeko' | 'templates';
+type AdminModule = 'requests' | 'batches' | 'saeko' | 'templates';
 
 type CredentialTemplateNumericMetric = 'x' | 'y' | 'w' | 'h' | 'fontSize';
 
@@ -71,6 +76,7 @@ export class AdminDashboardComponent implements OnInit {
   private authService = inject(AuthService);
   private requestService = inject(CredentialRequestService);
   private credentialTemplateService = inject(CredentialTemplateService);
+  private printBatchService = inject(PrintBatchService);
   private institutionalProfileService = inject(InstitutionalProfileService);
   private destroyRef = inject(DestroyRef);
   private changeDetectorRef = inject(ChangeDetectorRef);
@@ -78,6 +84,7 @@ export class AdminDashboardComponent implements OnInit {
   private readonly templateLayoutStorageKey = 'tupCredentialTemplateLayoutsV2';
 
   readonly statusLabels = statusLabels;
+  readonly printBatchStatusLabels = printBatchStatusLabels;
   readonly applicantTypeLabels = credentialApplicantTypeLabels;
   readonly academicStatusLabels = institutionalAcademicStatusLabels;
   readonly applicantTypes: CredentialApplicantType[] = ['STUDENT', 'TEACHER', 'STAFF'];
@@ -124,6 +131,12 @@ export class AdminDashboardComponent implements OnInit {
       description: 'Revision, estatus e impresion de credenciales.',
     },
     {
+      value: 'batches',
+      label: 'Lotes de impresion',
+      eyebrow: 'Produccion',
+      description: 'Agrupa, imprime y cierra credenciales listas.',
+    },
+    {
       value: 'saeko',
       label: 'Importacion Saeko',
       eyebrow: 'Control Escolar',
@@ -147,8 +160,15 @@ export class AdminDashboardComponent implements OnInit {
   statusFilter: CredentialRequestStatus | 'ALL' = 'ALL';
   applicantFilter: CredentialApplicantType | 'ALL' = 'ALL';
   printingRequestId = '';
+  printingBatchId = '';
   qrImages: Record<string, string> = {};
   requests: CredentialRequest[] = [];
+  printBatches: PrintBatch[] = [];
+  selectedBatchRequestIds = new Set<string>();
+  creatingBatch = false;
+  batchActionId = '';
+  batchMessage = '';
+  batchErrorMessage = '';
   notes: Record<string, string> = {};
   saekoRows: SaekoPreviewRow[] = [];
   selectedSaekoFileName = '';
@@ -175,6 +195,18 @@ export class AdminDashboardComponent implements OnInit {
         error: (error) => {
           this.errorMessage = error.message || 'No fue posible cargar solicitudes.';
           this.loading = false;
+        },
+      });
+
+    this.printBatchService
+      .watchBatches()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (batches) => {
+          this.printBatches = batches;
+        },
+        error: (error) => {
+          this.batchErrorMessage = error.message || 'No fue posible cargar lotes.';
         },
       });
 
@@ -228,6 +260,26 @@ export class AdminDashboardComponent implements OnInit {
 
       return matchesStatus && matchesApplicant;
     });
+  }
+
+  get batchCandidateRequests(): CredentialRequest[] {
+    return this.requests.filter(
+      (request) => request.status === 'APPROVED_FOR_PRINT' && !request.printBatchId
+    );
+  }
+
+  get selectedBatchRequests(): CredentialRequest[] {
+    return this.batchCandidateRequests.filter((request) =>
+      this.selectedBatchRequestIds.has(request.id)
+    );
+  }
+
+  get activePrintBatches(): PrintBatch[] {
+    return this.printBatches.filter((batch) => batch.status !== 'PRINTED');
+  }
+
+  get completedPrintBatches(): PrintBatch[] {
+    return this.printBatches.filter((batch) => batch.status === 'PRINTED');
   }
 
   get validSaekoRows(): SaekoImportRow[] {
@@ -312,6 +364,129 @@ export class AdminDashboardComponent implements OnInit {
 
   canMove(request: CredentialRequest, status: CredentialRequestStatus): boolean {
     return canTransitionCredentialRequestStatus(request.status, status);
+  }
+
+  requestSelectedForBatch(requestId: string): boolean {
+    return this.selectedBatchRequestIds.has(requestId);
+  }
+
+  toggleBatchSelection(requestId: string, event: Event): void {
+    const input = event.target as HTMLInputElement;
+
+    if (input.checked) {
+      this.selectedBatchRequestIds.add(requestId);
+    } else {
+      this.selectedBatchRequestIds.delete(requestId);
+    }
+  }
+
+  selectAllBatchCandidates(): void {
+    this.selectedBatchRequestIds = new Set(
+      this.batchCandidateRequests.map((request) => request.id)
+    );
+  }
+
+  clearBatchSelection(): void {
+    this.selectedBatchRequestIds.clear();
+  }
+
+  async createPrintBatch(): Promise<void> {
+    const requestIds = this.selectedBatchRequests.map((request) => request.id);
+
+    if (!requestIds.length) {
+      this.batchErrorMessage = 'Selecciona al menos una solicitud aprobada.';
+      return;
+    }
+
+    this.creatingBatch = true;
+    this.batchErrorMessage = '';
+    this.batchMessage = '';
+
+    try {
+      const batchId = await this.printBatchService.createBatch(requestIds);
+      this.batchMessage = `Lote ${batchId} creado con ${requestIds.length} credenciales.`;
+      this.selectedBatchRequestIds.clear();
+    } catch (error) {
+      this.batchErrorMessage =
+        error instanceof Error ? error.message : 'No fue posible crear el lote.';
+    } finally {
+      this.creatingBatch = false;
+    }
+  }
+
+  batchRequests(batch: PrintBatch): CredentialRequest[] {
+    const requestsById = new Map(this.requests.map((request) => [request.id, request]));
+
+    return batch.requestIds
+      .map((requestId) => requestsById.get(requestId))
+      .filter((request): request is CredentialRequest => Boolean(request));
+  }
+
+  async printBatch(batch: PrintBatch): Promise<void> {
+    this.printingBatchId = batch.id;
+    this.changeDetectorRef.detectChanges();
+
+    await this.nextPaint();
+
+    const source = document.querySelector<HTMLElement>('.batch-print-selected');
+
+    if (!source) {
+      this.printingBatchId = '';
+      this.changeDetectorRef.detectChanges();
+      return;
+    }
+
+    const printRoot = this.createCredentialPrintRoot(source);
+    document.body.appendChild(printRoot);
+    document.body.classList.add('credential-printing');
+
+    await this.waitForCredentialImages(printRoot);
+    await this.nextPaint();
+
+    let cleaned = false;
+    let mediaQuery: MediaQueryList | undefined;
+    let mediaHandler: ((event: MediaQueryListEvent) => void) | undefined;
+
+    const cleanup = () => {
+      if (cleaned) {
+        return;
+      }
+
+      cleaned = true;
+      mediaQuery?.removeEventListener('change', mediaHandler as EventListener);
+      window.removeEventListener('afterprint', cleanup);
+      printRoot.remove();
+      document.body.classList.remove('credential-printing');
+      this.printingBatchId = '';
+      this.changeDetectorRef.detectChanges();
+    };
+
+    mediaQuery = window.matchMedia('print');
+    mediaHandler = (event: MediaQueryListEvent) => {
+      if (!event.matches) {
+        cleanup();
+      }
+    };
+
+    mediaQuery.addEventListener('change', mediaHandler);
+    window.addEventListener('afterprint', cleanup);
+    window.print();
+  }
+
+  async markBatchPrinted(batch: PrintBatch): Promise<void> {
+    this.batchActionId = batch.id;
+    this.batchErrorMessage = '';
+    this.batchMessage = '';
+
+    try {
+      await this.printBatchService.markPrinted(batch.id);
+      this.batchMessage = `Lote ${batch.id} marcado como impreso.`;
+    } catch (error) {
+      this.batchErrorMessage =
+        error instanceof Error ? error.message : 'No fue posible cerrar el lote.';
+    } finally {
+      this.batchActionId = '';
+    }
   }
 
   applicantLabel(type: CredentialApplicantType | undefined): string {

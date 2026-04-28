@@ -615,6 +615,109 @@ textarea,
   background: #fff1f2;
 }
 
+.print-batch-layout {
+  align-items: start;
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.print-batch-toolbar {
+  align-items: center;
+  background:
+    linear-gradient(135deg, rgb(238 240 255 / 78%), rgb(255 255 255 / 96%)),
+    var(--tup-white);
+  border: 1px solid var(--tup-line);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  justify-content: space-between;
+  padding: 1rem;
+}
+
+.print-batch-candidates {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.print-batch-candidate {
+  align-items: center;
+  background: var(--tup-white);
+  border: 1px solid var(--tup-line);
+  cursor: pointer;
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: auto 52px minmax(0, 1fr);
+  padding: 0.75rem;
+}
+
+.print-batch-candidate:has(input:checked) {
+  background: var(--tup-soft-blue);
+  border-color: rgb(37 42 134 / 36%);
+}
+
+.print-batch-candidate input {
+  accent-color: var(--tup-primary);
+  height: 18px;
+  width: 18px;
+}
+
+.print-batch-candidate img {
+  aspect-ratio: 3 / 4;
+  border: 1px solid var(--tup-line);
+  border-radius: 6px;
+  object-fit: cover;
+  width: 52px;
+}
+
+.print-batch-card {
+  background: var(--tup-white);
+  border: 1px solid var(--tup-line);
+  padding: 1rem;
+}
+
+.print-batch-item {
+  align-items: center;
+  border-bottom: 1px solid var(--tup-line);
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+  min-width: 0;
+  padding-bottom: 0.45rem;
+}
+
+.print-batch-item strong,
+.print-batch-item span {
+  overflow-wrap: anywhere;
+}
+
+.print-batch-history {
+  background: #f9fafc;
+  border: 1px solid var(--tup-line);
+  padding: 0.75rem;
+}
+
+.batch-print-source {
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
+  position: absolute;
+  width: 0;
+}
+
+@media (min-width: 768px) {
+  .print-batch-toolbar {
+    flex-direction: row;
+  }
+}
+
+@media (min-width: 1100px) {
+  .print-batch-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 440px);
+  }
+}
+
 .csv-example {
   background: #f9fafc;
   border: 1px solid var(--tup-line);
