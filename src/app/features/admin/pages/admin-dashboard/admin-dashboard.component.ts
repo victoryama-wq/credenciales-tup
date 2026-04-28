@@ -77,7 +77,7 @@ export class AdminDashboardComponent implements OnInit {
   private institutionalProfileService = inject(InstitutionalProfileService);
   private destroyRef = inject(DestroyRef);
   private router = inject(Router);
-  private readonly templateLayoutStorageKey = 'tupCredentialTemplateLayoutsV1';
+  private readonly templateLayoutStorageKey = 'tupCredentialTemplateLayoutsV2';
 
   readonly statusLabels = statusLabels;
   readonly applicantTypeLabels = credentialApplicantTypeLabels;
@@ -93,28 +93,28 @@ export class AdminDashboardComponent implements OnInit {
   ];
   readonly defaultTemplateLayouts: CredentialTemplateLayouts = {
     estudiante: {
-      photo: { x: 27, y: 18, w: 46.8, h: 34.8 },
-      name: { x: 15, y: 58.3, w: 75, h: 6, fontSize: 5 },
-      matricula: { x: 44.5, y: 78, w: 45, h: 3.6, fontSize: 3.4 },
-      nivel: { x: 44.5, y: 84.3, w: 45, h: 3.6, fontSize: 3.4 },
-      programa: { x: 44.5, y: 90.7, w: 45, h: 3.6, fontSize: 3.4 },
-      qr: { x: 31.7, y: 60.1, w: 36.5, h: 36.5 },
+      photo: { x: 32, y: 26, w: 36, h: 28 },
+      name: { x: 12, y: 55.5, w: 76, h: 5.2, fontSize: 3.8 },
+      matricula: { x: 18, y: 66.2, w: 64, h: 4.8, fontSize: 3.2 },
+      nivel: { x: 18, y: 76.6, w: 64, h: 4.8, fontSize: 3.2 },
+      programa: { x: 18, y: 87, w: 64, h: 5, fontSize: 3 },
+      qr: { x: 24, y: 46, w: 52, h: 32 },
     },
     docente: {
-      photo: { x: 27, y: 18, w: 46.8, h: 34.8 },
-      name: { x: 15, y: 58.3, w: 75, h: 6, fontSize: 5 },
-      matricula: { x: 44.5, y: 78, w: 45, h: 3.6, fontSize: 3.4 },
-      nivel: { x: 44.5, y: 84.3, w: 45, h: 3.6, fontSize: 3.4 },
-      programa: { x: 44.5, y: 90.7, w: 45, h: 3.6, fontSize: 3.4 },
-      qr: { x: 31.7, y: 60.1, w: 36.5, h: 36.5 },
+      photo: { x: 33, y: 29, w: 35, h: 27 },
+      name: { x: 18, y: 62.5, w: 66, h: 5.8, fontSize: 3.6 },
+      matricula: { x: 18, y: 72.8, w: 66, h: 5, fontSize: 3.2 },
+      nivel: { x: 18, y: 83, w: 66, h: 5, fontSize: 3.2 },
+      programa: { x: 18, y: 89, w: 66, h: 4, fontSize: 2.8 },
+      qr: { x: 24, y: 45, w: 52, h: 32 },
     },
     admin: {
-      photo: { x: 29.8, y: 18.8, w: 43.8, h: 34.2 },
-      name: { x: 15, y: 58.3, w: 75, h: 6, fontSize: 5 },
-      matricula: { x: 44.5, y: 78, w: 45, h: 3.6, fontSize: 3.4 },
-      nivel: { x: 44.5, y: 84.3, w: 45, h: 3.6, fontSize: 3.4 },
-      programa: { x: 44.5, y: 90.7, w: 45, h: 3.6, fontSize: 3.4 },
-      qr: { x: 31.7, y: 60.1, w: 36.5, h: 36.5 },
+      photo: { x: 33, y: 29, w: 35, h: 27 },
+      name: { x: 18, y: 76, w: 64, h: 5.8, fontSize: 3.4 },
+      matricula: { x: 18, y: 83, w: 64, h: 4, fontSize: 2.8 },
+      nivel: { x: 18, y: 87, w: 64, h: 4, fontSize: 2.8 },
+      programa: { x: 18, y: 91, w: 64, h: 4, fontSize: 2.8 },
+      qr: { x: 24, y: 46, w: 52, h: 32 },
     },
   };
   readonly statuses = credentialRequestStatuses;
