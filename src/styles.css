@@ -1005,6 +1005,17 @@ textarea,
   padding: 0.45rem 0.5rem;
 }
 
+.template-field-grid .template-color-control {
+  grid-template-columns: 1fr;
+}
+
+.template-field-grid input[type="color"] {
+  cursor: pointer;
+  height: 38px;
+  padding: 0.2rem;
+  width: 100%;
+}
+
 @media (min-width: 768px) {
   .template-designer-toolbar {
     grid-template-columns: 220px 180px auto;

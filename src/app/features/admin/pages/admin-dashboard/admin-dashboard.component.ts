@@ -44,7 +44,10 @@ interface CredentialTemplateFieldLayout {
   w: number;
   h: number;
   fontSize?: number;
+  color?: string;
 }
+
+type CredentialTemplateNumericMetric = 'x' | 'y' | 'w' | 'h' | 'fontSize';
 
 type CredentialTemplateLayouts = Record<
   CredentialTemplateKey,
@@ -100,26 +103,26 @@ export class AdminDashboardComponent implements OnInit {
   readonly defaultTemplateLayouts: CredentialTemplateLayouts = {
     estudiante: {
       photo: { x: 32, y: 26, w: 36, h: 28 },
-      name: { x: 12, y: 55.5, w: 76, h: 5.2, fontSize: 3.8 },
-      matricula: { x: 18, y: 66.2, w: 64, h: 4.8, fontSize: 3.2 },
-      nivel: { x: 18, y: 76.6, w: 64, h: 4.8, fontSize: 3.2 },
-      programa: { x: 18, y: 87, w: 64, h: 5, fontSize: 3 },
+      name: { x: 12, y: 55.5, w: 76, h: 5.2, fontSize: 3.8, color: '#ffffff' },
+      matricula: { x: 18, y: 66.2, w: 64, h: 4.8, fontSize: 3.2, color: '#0f1738' },
+      nivel: { x: 18, y: 76.6, w: 64, h: 4.8, fontSize: 3.2, color: '#0f1738' },
+      programa: { x: 18, y: 87, w: 64, h: 5, fontSize: 3, color: '#0f1738' },
       qr: { x: 24, y: 46, w: 52, h: 32 },
     },
     docente: {
       photo: { x: 33, y: 29, w: 35, h: 27 },
-      name: { x: 18, y: 62.5, w: 66, h: 5.8, fontSize: 3.6 },
-      matricula: { x: 18, y: 72.8, w: 66, h: 5, fontSize: 3.2 },
-      nivel: { x: 18, y: 83, w: 66, h: 5, fontSize: 3.2 },
-      programa: { x: 18, y: 89, w: 66, h: 4, fontSize: 2.8 },
+      name: { x: 18, y: 62.5, w: 66, h: 5.8, fontSize: 3.6, color: '#ffffff' },
+      matricula: { x: 18, y: 72.8, w: 66, h: 5, fontSize: 3.2, color: '#0f1738' },
+      nivel: { x: 18, y: 83, w: 66, h: 5, fontSize: 3.2, color: '#0f1738' },
+      programa: { x: 18, y: 89, w: 66, h: 4, fontSize: 2.8, color: '#0f1738' },
       qr: { x: 24, y: 45, w: 52, h: 32 },
     },
     admin: {
       photo: { x: 33, y: 29, w: 35, h: 27 },
-      name: { x: 18, y: 76, w: 64, h: 5.8, fontSize: 3.4 },
-      matricula: { x: 18, y: 83, w: 64, h: 4, fontSize: 2.8 },
-      nivel: { x: 18, y: 87, w: 64, h: 4, fontSize: 2.8 },
-      programa: { x: 18, y: 91, w: 64, h: 4, fontSize: 2.8 },
+      name: { x: 18, y: 76, w: 64, h: 5.8, fontSize: 3.4, color: '#0f1738' },
+      matricula: { x: 18, y: 83, w: 64, h: 4, fontSize: 2.8, color: '#0f1738' },
+      nivel: { x: 18, y: 87, w: 64, h: 4, fontSize: 2.8, color: '#0f1738' },
+      programa: { x: 18, y: 91, w: 64, h: 4, fontSize: 2.8, color: '#0f1738' },
       qr: { x: 24, y: 46, w: 52, h: 32 },
     },
   };
@@ -558,9 +561,19 @@ export class AdminDashboardComponent implements OnInit {
     return this.templateLayouts[this.selectedTemplateKey()][field];
   }
 
+  templateEditorColor(field: CredentialTemplateFieldKey): string {
+    const key = this.selectedTemplateKey();
+
+    return (
+      this.templateLayouts[key][field].color ||
+      this.defaultTemplateLayouts[key][field].color ||
+      '#0f1738'
+    );
+  }
+
   updateTemplateFieldMetric(
     field: CredentialTemplateFieldKey,
-    metric: keyof CredentialTemplateFieldLayout,
+    metric: CredentialTemplateNumericMetric,
     event: Event
   ): void {
     const input = event.target as HTMLInputElement;
@@ -575,6 +588,18 @@ export class AdminDashboardComponent implements OnInit {
     layout[metric] = this.clamp(value, metric === 'fontSize' ? 1 : 0, max);
     layout.x = this.clamp(layout.x, 0, 100 - layout.w);
     layout.y = this.clamp(layout.y, 0, 100 - layout.h);
+    this.saveTemplateLayouts();
+  }
+
+  updateTemplateFieldColor(field: CredentialTemplateFieldKey, event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const value = input.value;
+
+    if (!/^#[0-9a-fA-F]{6}$/.test(value)) {
+      return;
+    }
+
+    this.templateLayouts[this.selectedTemplateKey()][field].color = value;
     this.saveTemplateLayouts();
   }
 
@@ -913,6 +938,7 @@ export class AdminDashboardComponent implements OnInit {
 
     return {
       '--credential-font-size': `${layout.fontSize ?? this.defaultTemplateLayouts[templateKey][field].fontSize ?? 3.4}cqw`,
+      color: layout.color || this.defaultTemplateLayouts[templateKey][field].color || '#0f1738',
       height: `${layout.h}%`,
       left: `${layout.x}%`,
       top: `${layout.y}%`,
