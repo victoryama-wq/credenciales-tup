@@ -198,19 +198,23 @@
                         <p class="credential-template-name" [ngStyle]="credentialTemplateElementStyle(request, 'name')">
                           {{ request.name }}
                         </p>
-                        <p
-                          class="credential-template-field"
-                          [ngStyle]="credentialTemplateElementStyle(request, 'matricula')"
-                        >
-                          {{ credentialTemplateMatricula(request) }}
-                        </p>
-                        <p
-                          class="credential-template-field"
-                          [ngStyle]="credentialTemplateElementStyle(request, 'nivel')"
-                        >
-                          {{ credentialTemplateNivel(request) }}
-                        </p>
-                        @if (credentialTemplatePrograma(request)) {
+                        @if (showCredentialTemplateField(request, 'matricula')) {
+                          <p
+                            class="credential-template-field"
+                            [ngStyle]="credentialTemplateElementStyle(request, 'matricula')"
+                          >
+                            {{ credentialTemplateMatricula(request) }}
+                          </p>
+                        }
+                        @if (showCredentialTemplateField(request, 'nivel')) {
+                          <p
+                            class="credential-template-field"
+                            [ngStyle]="credentialTemplateElementStyle(request, 'nivel')"
+                          >
+                            {{ credentialTemplateNivel(request) }}
+                          </p>
+                        }
+                        @if (showCredentialTemplateField(request, 'programa')) {
                           <p
                             class="credential-template-field"
                             [ngStyle]="credentialTemplateElementStyle(request, 'programa')"
@@ -565,7 +569,7 @@ TUP2104,tup2104&#64;tecplayacar.edu.mx,Nombre Alumno,Lic. Administracion de Empr
                     [class.template-field-panel-active]="selectedTemplateField === field.key"
                   >
                     <div class="flex items-center justify-between gap-3">
-                      <p class="font-bold text-[var(--tup-ink)]">{{ field.label }}</p>
+                      <p class="font-bold text-[var(--tup-ink)]">{{ templateEditorFieldLabel(field) }}</p>
                       <button mat-stroked-button color="primary" type="button" class="link-button !h-9 !rounded-md" (click)="selectedTemplateField = field.key">
                         Editar
                       </button>

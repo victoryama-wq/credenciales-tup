@@ -404,6 +404,21 @@ export class AdminDashboardComponent implements OnInit {
     return request.career || '';
   }
 
+  showCredentialTemplateField(
+    request: CredentialRequest,
+    field: CredentialTemplateFieldKey
+  ): boolean {
+    if (request.applicantType === 'STAFF' && (field === 'matricula' || field === 'nivel')) {
+      return false;
+    }
+
+    if (field === 'programa') {
+      return Boolean(this.credentialTemplatePrograma(request));
+    }
+
+    return true;
+  }
+
   selectedTemplateKey(): CredentialTemplateKey {
     return this.credentialTemplateKeyFromApplicant(this.selectedTemplateApplicant);
   }
@@ -483,11 +498,22 @@ export class AdminDashboardComponent implements OnInit {
   visibleTemplateEditorFields(): CredentialTemplateEditorField[] {
     return this.templateEditorFields.filter((field) => {
       const matchesSide = field.side === this.selectedTemplateSide;
-      const matchesApplicant =
+      const matchesTeacher =
         this.selectedTemplateApplicant !== 'TEACHER' || field.key !== 'programa';
+      const matchesStaff =
+        this.selectedTemplateApplicant !== 'STAFF' ||
+        (field.key !== 'matricula' && field.key !== 'nivel');
 
-      return matchesSide && matchesApplicant;
+      return matchesSide && matchesTeacher && matchesStaff;
     });
+  }
+
+  templateEditorFieldLabel(field: CredentialTemplateEditorField): string {
+    if (this.selectedTemplateApplicant === 'STAFF' && field.key === 'programa') {
+      return 'Puesto';
+    }
+
+    return field.label;
   }
 
   templateEditorFieldStyle(field: CredentialTemplateFieldKey): Record<string, string> {
@@ -512,7 +538,7 @@ export class AdminDashboardComponent implements OnInit {
     }
 
     if (field === 'programa') {
-      return this.templateSampleRequest()?.career || 'PROGRAMA O PUESTO';
+      return this.templateSampleRequest()?.career || this.templateSamplePrograma();
     }
 
     return '';
@@ -922,6 +948,14 @@ export class AdminDashboardComponent implements OnInit {
     }
 
     return 'PRIMER CUATRIMESTRE';
+  }
+
+  private templateSamplePrograma(): string {
+    if (this.selectedTemplateApplicant === 'STAFF') {
+      return 'PUESTO';
+    }
+
+    return 'PROGRAMA';
   }
 
   private loadTemplateLayouts(): CredentialTemplateLayouts {
