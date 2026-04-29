@@ -8,9 +8,10 @@
   --tup-white: #ffffff;
   --tup-ink: #17172f;
   --tup-muted: #666879;
-  --tup-line: #e3e5ee;
-  --tup-soft: #f6f7fb;
-  --tup-soft-blue: #eef0ff;
+  --tup-line: #e6e8ef;
+  --tup-soft: #f7f8fb;
+  --tup-soft-blue: #f4f5ff;
+  --tup-panel: #fbfcff;
   --tup-shadow: 0 18px 45px rgb(39 30 93 / 10%);
 }
 
@@ -50,9 +51,7 @@ textarea,
 }
 
 .login-form-panel {
-  background:
-    linear-gradient(180deg, rgb(37 42 134 / 5%), rgb(255 255 255 / 0%) 44%),
-    var(--tup-soft);
+  background: var(--tup-white);
 }
 
 .login-form-card {
@@ -106,7 +105,7 @@ textarea,
 .app-shell {
   min-height: 100vh;
   background:
-    linear-gradient(180deg, rgb(37 42 134 / 8%) 0, rgb(37 42 134 / 0%) 320px),
+    linear-gradient(180deg, #ffffff 0, var(--tup-soft) 360px),
     var(--tup-soft);
 }
 
@@ -123,14 +122,15 @@ textarea,
 }
 
 .institution-card {
+  background: var(--tup-white);
   border: 1px solid var(--tup-line);
   box-shadow: var(--tup-shadow);
 }
 
 .institution-header {
   border-bottom: 1px solid var(--tup-line);
-  background: rgb(255 255 255 / 88%);
-  backdrop-filter: blur(14px);
+  background: var(--tup-white);
+  box-shadow: 0 14px 34px rgb(39 30 93 / 7%);
 }
 
 .logo-mark {
@@ -179,16 +179,41 @@ textarea,
 }
 
 .file-drop {
-  border: 1px dashed rgb(37 42 134 / 30%);
-  background: linear-gradient(180deg, var(--tup-white), rgb(238 240 255 / 40%));
+  border: 1px solid rgb(37 42 134 / 18%);
+  background: var(--tup-white);
+  box-shadow: 0 10px 24px rgb(39 30 93 / 4%);
 }
 
 .photo-guidance {
-  border: 1px solid rgb(37 42 134 / 18%);
+  border: 1px solid var(--tup-line);
+  border-left: 4px solid var(--tup-primary);
+  background: var(--tup-white);
+  box-shadow: 0 16px 36px rgb(39 30 93 / 6%);
+}
+
+.photo-guidance-card {
+  background: var(--tup-panel);
+  border: 1px solid var(--tup-line);
+}
+
+.student-section-card {
+  background: var(--tup-white);
+  border: 1px solid var(--tup-line);
+  box-shadow: 0 12px 26px rgb(39 30 93 / 4%);
+}
+
+.applicant-access-summary {
   background:
-    linear-gradient(135deg, rgb(238 240 255 / 92%), rgb(255 255 255 / 96%)),
+    linear-gradient(180deg, var(--tup-white), var(--tup-panel)),
     var(--tup-white);
-  box-shadow: 0 16px 36px rgb(39 30 93 / 8%);
+  border: 1px solid rgb(37 42 134 / 18%);
+  box-shadow: inset 4px 0 0 var(--tup-primary);
+}
+
+.student-inline-notice {
+  background: var(--tup-white);
+  border: 1px solid rgb(37 42 134 / 18%);
+  color: var(--tup-primary);
 }
 
 .photo-reference {
@@ -199,9 +224,7 @@ textarea,
   aspect-ratio: 3 / 4;
   border: 2px solid rgb(37 42 134 / 44%);
   border-radius: 8px;
-  background:
-    linear-gradient(180deg, rgb(255 255 255 / 86%), rgb(238 240 255 / 82%)),
-    var(--tup-soft-blue);
+  background: var(--tup-white);
   box-shadow: inset 0 0 0 8px rgb(255 255 255 / 60%);
   overflow: hidden;
   position: relative;
@@ -274,9 +297,7 @@ textarea,
 }
 
 .student-form-card {
-  background:
-    linear-gradient(180deg, rgb(255 255 255 / 98%), rgb(249 250 252 / 92%)),
-    var(--tup-white);
+  background: var(--tup-white);
 }
 
 .request-type-toggle {
@@ -287,12 +308,14 @@ textarea,
 .request-type-toggle .mat-button-toggle {
   border: 1px solid var(--tup-line) !important;
   border-radius: 8px !important;
+  background: var(--tup-white) !important;
   overflow: hidden;
 }
 
 .request-type-toggle .mat-button-toggle-checked {
   border-color: rgb(37 42 134 / 42%) !important;
-  background: var(--tup-soft-blue) !important;
+  background: var(--tup-white) !important;
+  box-shadow: inset 4px 0 0 var(--tup-primary);
   color: var(--tup-primary) !important;
 }
 
@@ -307,7 +330,7 @@ textarea,
 
 .muted-panel {
   border: 1px solid var(--tup-line);
-  background: #f9fafc;
+  background: var(--tup-white);
 }
 
 .link-button {
@@ -319,7 +342,7 @@ textarea,
   align-content: start;
   align-items: start;
   background:
-    linear-gradient(180deg, rgb(37 42 134 / 7%) 0, rgb(37 42 134 / 0%) 360px),
+    linear-gradient(180deg, #ffffff 0, var(--tup-soft) 360px),
     var(--tup-soft);
   display: grid;
   gap: 1rem;
@@ -634,9 +657,7 @@ textarea,
 
 .print-batch-toolbar {
   align-items: center;
-  background:
-    linear-gradient(135deg, rgb(238 240 255 / 78%), rgb(255 255 255 / 96%)),
-    var(--tup-white);
+  background: var(--tup-white);
   border: 1px solid var(--tup-line);
   display: flex;
   flex-direction: column;
@@ -703,7 +724,7 @@ textarea,
 }
 
 .print-batch-history {
-  background: #f9fafc;
+  background: var(--tup-white);
   border: 1px solid var(--tup-line);
   padding: 0.75rem;
 }
@@ -830,9 +851,7 @@ textarea,
 
 .executive-rate-panel {
   align-items: center;
-  background:
-    linear-gradient(135deg, rgb(238 240 255 / 78%), rgb(255 255 255 / 96%)),
-    var(--tup-white);
+  background: var(--tup-white);
   border: 1px solid var(--tup-line);
   color: var(--tup-muted);
   display: flex;
@@ -853,7 +872,7 @@ textarea,
 }
 
 .executive-average-card {
-  background: #f9fafc;
+  background: var(--tup-panel);
   border: 1px solid var(--tup-line);
   display: grid;
   gap: 0.35rem;
@@ -885,7 +904,7 @@ textarea,
 
 .executive-compact-item {
   align-items: center;
-  background: #f9fafc;
+  background: var(--tup-panel);
   border: 1px solid var(--tup-line);
   color: var(--tup-muted);
   display: flex;
@@ -913,7 +932,7 @@ textarea,
 
 .executive-recent-item {
   align-items: center;
-  background: #f9fafc;
+  background: var(--tup-panel);
   border: 1px solid var(--tup-line);
   display: grid;
   gap: 0.75rem;
@@ -964,7 +983,7 @@ textarea,
 }
 
 .delivery-detail-grid p {
-  background: #f9fafc;
+  background: var(--tup-panel);
   border: 1px solid var(--tup-line);
   border-radius: 8px;
   margin: 0;
@@ -1035,7 +1054,7 @@ textarea,
 }
 
 .csv-example {
-  background: #f9fafc;
+  background: var(--tup-panel);
   border: 1px solid var(--tup-line);
   color: var(--tup-ink);
   max-width: 100%;
@@ -1080,9 +1099,7 @@ textarea,
 }
 
 .credential-card-front {
-  background:
-    linear-gradient(135deg, rgb(255 255 255 / 96%), rgb(238 240 255 / 92%)),
-    var(--tup-white);
+  background: var(--tup-white);
 }
 
 .credential-card-back {
@@ -1283,9 +1300,7 @@ textarea,
 
 .template-upload-panel {
   align-items: center;
-  background:
-    linear-gradient(135deg, rgb(238 240 255 / 70%), rgb(255 255 255 / 96%)),
-    var(--tup-white);
+  background: var(--tup-white);
   border: 1px solid var(--tup-line);
   display: grid;
   gap: 0.9rem;
@@ -1341,9 +1356,7 @@ textarea,
 }
 
 .template-designer-preview {
-  background:
-    linear-gradient(180deg, rgb(37 42 134 / 5%), rgb(255 255 255 / 85%)),
-    var(--tup-white);
+  background: var(--tup-white);
   border: 1px solid var(--tup-line);
   border-radius: 8px;
   display: grid;
@@ -1457,7 +1470,7 @@ textarea,
 }
 
 .template-field-grid input {
-  background: #f9fafc;
+  background: var(--tup-panel);
   border: 1px solid var(--tup-line);
   border-radius: 6px;
   color: var(--tup-ink);
@@ -1499,7 +1512,7 @@ textarea,
 
 .verification-shell {
   background:
-    linear-gradient(180deg, rgb(37 42 134 / 8%) 0, rgb(37 42 134 / 0%) 320px),
+    linear-gradient(180deg, #ffffff 0, var(--tup-soft) 320px),
     var(--tup-soft);
 }
 
