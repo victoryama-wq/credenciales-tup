@@ -40,11 +40,12 @@ service cloud.firestore {
     }
 
     match /credential_template_settings/{settingsId} {
-      allow read, write: if isAdmin();
+      allow read, write: if isAdmin() && settingsId in ['current', 'layouts'];
     }
 
     match /print_batches/{batchId} {
-      allow read, write: if isAdmin();
+      allow read: if isAdmin();
+      allow write: if false;
     }
 
     match /notifications/{notificationId} {

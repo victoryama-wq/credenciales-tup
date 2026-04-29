@@ -159,6 +159,21 @@ const adminEmails = new Set([
   "omar.sanchez@tecplayacar.edu.mx",
   "lizett.mendez@tecplayacar.edu.mx",
 ]);
+const maxNameLength = 120;
+const maxCareerLength = 160;
+const maxCycleLength = 80;
+const maxPhoneLength = 24;
+const maxIdentifierLength = 48;
+const maxNoteLength = 500;
+const maxFileNameLength = 180;
+const maxStoragePathLength = 320;
+const maxStorageUrlLength = 1200;
+const photoContentTypes = new Set(["image/jpeg", "image/png"]);
+const evidenceContentTypes = new Set([
+  "image/jpeg",
+  "image/png",
+  "application/pdf",
+]);
 
 const allowedTransitions: Record<
   CredentialRequestStatus,
@@ -191,6 +206,8 @@ export const createCredentialRequest = onCall(callableOptions, async (request) =
   const data = request.data as CreateCredentialRequestData;
   const email = auth.token.email || data.email || "";
   const normalizedEmail = normalizeEmail(email);
+  assertInstitutionalEmail(normalizedEmail);
+  assertVerifiedEmail(auth.token.email_verified);
   const institutionalProfile = await getInstitutionalProfile(normalizedEmail);
   const input = validateCreateData(data, auth.uid, normalizedEmail, institutionalProfile);
   const now = Timestamp.now();
@@ -291,6 +308,8 @@ export const syncUserSession = onCall(callableOptions, async (request) => {
     );
   }
 
+  assertVerifiedEmail(auth.token.email_verified);
+
   const role = resolveUserRole(email);
   const institutionalProfile = await getInstitutionalProfile(email);
   const userRecord = await adminAuth.getUser(auth.uid);
@@ -359,7 +378,7 @@ export const updateCredentialRequestStatus = onCall(callableOptions, async (requ
   const data = request.data as UpdateStatusData;
   const requestId = requireString(data.requestId, "requestId");
   const status = requireStatus(data.status);
-  const note = typeof data.note === "string" ? data.note.trim() : "";
+  const note = cleanBoundedString(data.note, "nota", maxNoteLength);
   const requestRef = requests.doc(requestId);
   const now = Timestamp.now();
 
@@ -426,7 +445,7 @@ export const createPrintBatch = onCall(callableOptions, async (request) => {
 
   const data = request.data as CreatePrintBatchData;
   const requestIds = requireRequestIds(data.requestIds);
-  const note = typeof data.note === "string" ? data.note.trim() : "";
+  const note = cleanBoundedString(data.note, "nota", maxNoteLength);
   const batchRef = printBatches.doc();
   const now = Timestamp.now();
 
@@ -509,8 +528,9 @@ export const markPrintBatchPrinted = onCall(callableOptions, async (request) => 
 
   const data = request.data as MarkPrintBatchPrintedData;
   const batchId = requireString(data.batchId, "batchId");
-  const note = typeof data.note === "string" && data.note.trim() ?
-    data.note.trim() :
+  const cleanNote = cleanBoundedString(data.note, "nota", maxNoteLength);
+  const note = cleanNote ?
+    cleanNote :
     `Credencial impresa en lote ${batchId}.`;
   const batchRef = printBatches.doc(batchId);
   const now = Timestamp.now();
@@ -745,22 +765,30 @@ function validateCreateData(
     null;
   const isStudent = profileApplicantType === "STUDENT";
   const isStaff = profileApplicantType === "STAFF";
+  const rawStudentId = profile?.studentId || data.studentId;
+  const rawCareer = isStudent ?
+    profile?.career || data.career :
+    isStaff ?
+      profile?.position || profile?.career || data.career :
+      "Docente";
 
   return {
     applicantType: profileApplicantType,
     requestType,
     email: normalizedEmail,
     studentId: isStudent ?
-      (profile?.studentId || requireString(data.studentId, "studentId")).toUpperCase() :
+      normalizeIdentifier(
+        requireBoundedString(rawStudentId, "studentId", maxIdentifierLength)
+      ) :
       buildNonStudentIdentifier(normalizedEmail, uid),
-    name: profile?.name || requireString(data.name, "name"),
-    career: isStudent ?
-      profile?.career || requireString(data.career, "career") :
-      isStaff ?
-        profile?.position || profile?.career || requireString(data.career, "career") :
-        "Docente",
-    cycle: isStudent ? profile?.currentTerm || requireString(data.cycle, "cycle") : "No aplica",
-    phone: isStudent ? requireString(data.phone, "phone") : "No aplica",
+    name: requireBoundedString(profile?.name || data.name, "name", maxNameLength),
+    career: requireBoundedString(rawCareer, "career", maxCareerLength),
+    cycle: isStudent ?
+      requireBoundedString(profile?.currentTerm || data.cycle, "cycle", maxCycleLength) :
+      "No aplica",
+    phone: isStudent ?
+      normalizePhone(requireBoundedString(data.phone, "phone", maxPhoneLength)) :
+      "No aplica",
     photo,
     evidence,
   };
@@ -782,7 +810,7 @@ function validateInstitutionalProfileRow(
     email,
     applicantType,
     academicStatus,
-    name: requireString(row.name, `nombre fila ${rowNumber}`),
+    name: requireBoundedString(row.name, `nombre fila ${rowNumber}`, maxNameLength),
     active: academicStatus === "ACTIVE",
     source: "SAEKO",
     importedAt: now,
@@ -790,11 +818,26 @@ function validateInstitutionalProfileRow(
   };
 
   if (isStudent) {
-    profile.studentId = requireString(row.studentId, `matricula fila ${rowNumber}`).toUpperCase();
-    profile.career = requireString(row.career, `programa fila ${rowNumber}`);
-    profile.currentTerm = requireString(row.currentTerm, `cuatrimestre fila ${rowNumber}`);
+    profile.studentId = normalizeIdentifier(
+      requireBoundedString(row.studentId, `matricula fila ${rowNumber}`, maxIdentifierLength),
+      `matricula fila ${rowNumber}`
+    );
+    profile.career = requireBoundedString(
+      row.career,
+      `programa fila ${rowNumber}`,
+      maxCareerLength
+    );
+    profile.currentTerm = requireBoundedString(
+      row.currentTerm,
+      `cuatrimestre fila ${rowNumber}`,
+      maxCycleLength
+    );
   } else if (isStaff) {
-    profile.position = requireString(position, `puesto fila ${rowNumber}`);
+    profile.position = requireBoundedString(
+      position,
+      `puesto fila ${rowNumber}`,
+      maxCareerLength
+    );
     profile.career = profile.position;
   } else {
     profile.position = "Docente";
@@ -870,15 +913,59 @@ function validateDocument(
     throw new HttpsError("invalid-argument", `Documento ${type} inválido.`);
   }
 
-  if (!document.storagePath.startsWith(`credential-requests/${uid}/`)) {
+  const name = requireBoundedString(document.name, `documento ${type}`, maxFileNameLength);
+  const storagePath = requireBoundedString(
+    document.storagePath,
+    `ruta documento ${type}`,
+    maxStoragePathLength
+  );
+  const url = requireBoundedString(document.url, `url documento ${type}`, maxStorageUrlLength);
+  const contentType = requireBoundedString(
+    document.contentType,
+    `tipo documento ${type}`,
+    80
+  );
+  const filePrefix = type === "photo" ? "/photo-" : "/evidence-";
+
+  if (
+    !storagePath.startsWith(`credential-requests/${uid}/`) ||
+    !storagePath.includes(filePrefix)
+  ) {
     throw new HttpsError("permission-denied", "Ruta de archivo no permitida.");
   }
 
-  if (!document.url || !document.name || !document.contentType) {
-    throw new HttpsError("invalid-argument", `Documento ${type} incompleto.`);
+  if (!isAllowedDocumentContentType(type, contentType)) {
+    throw new HttpsError("invalid-argument", `Tipo de archivo ${type} no permitido.`);
   }
 
-  return document;
+  if (!isAllowedStorageUrl(url)) {
+    throw new HttpsError("permission-denied", "URL de archivo no permitida.");
+  }
+
+  return {
+    ...document,
+    name,
+    storagePath,
+    url,
+    contentType,
+  };
+}
+
+function isAllowedDocumentContentType(
+  type: CredentialDocument["type"],
+  contentType: string
+): boolean {
+  const allowed = type === "photo" ? photoContentTypes : evidenceContentTypes;
+
+  return allowed.has(contentType);
+}
+
+function isAllowedStorageUrl(url: string): boolean {
+  return (
+    url.startsWith("https://firebasestorage.googleapis.com/") ||
+    url.startsWith("http://127.0.0.1:9199/") ||
+    url.startsWith("http://localhost:9199/")
+  );
 }
 
 function buildStatusChanges(
@@ -1173,6 +1260,24 @@ function isInstitutionalEmail(email: string): boolean {
   return !!email && email.endsWith(`@${institutionalEmailDomain}`);
 }
 
+function assertInstitutionalEmail(email: string): void {
+  if (!isInstitutionalEmail(email)) {
+    throw new HttpsError(
+      "permission-denied",
+      "Solo se permiten cuentas institucionales."
+    );
+  }
+}
+
+function assertVerifiedEmail(emailVerified: unknown): void {
+  if (emailVerified === false) {
+    throw new HttpsError(
+      "permission-denied",
+      "La cuenta institucional debe estar verificada."
+    );
+  }
+}
+
 function resolveUserRole(email: string): UserRole {
   return adminEmails.has(email) ? "admin" : "student";
 }
@@ -1202,6 +1307,53 @@ function requireString(value: unknown, field: string): string {
   }
 
   return value.trim();
+}
+
+function cleanBoundedString(value: unknown, field: string, maxLength: number): string {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  const clean = value.trim();
+
+  if (clean.length > maxLength) {
+    throw new HttpsError(
+      "invalid-argument",
+      `${field} no debe superar ${maxLength} caracteres.`
+    );
+  }
+
+  return clean;
+}
+
+function requireBoundedString(value: unknown, field: string, maxLength: number): string {
+  const clean = cleanBoundedString(value, field, maxLength);
+
+  if (!clean) {
+    throw new HttpsError("invalid-argument", `Campo requerido: ${field}.`);
+  }
+
+  return clean;
+}
+
+function normalizeIdentifier(value: string, field = "identificador"): string {
+  const clean = value.trim().toUpperCase();
+
+  if (!/^[A-Z0-9._-]{2,48}$/.test(clean)) {
+    throw new HttpsError("invalid-argument", `${field} tiene formato invalido.`);
+  }
+
+  return clean;
+}
+
+function normalizePhone(value: string): string {
+  const clean = value.trim();
+
+  if (!/^[0-9+\s().-]{7,24}$/.test(clean)) {
+    throw new HttpsError("invalid-argument", "Telefono tiene formato invalido.");
+  }
+
+  return clean;
 }
 
 function requireStatus(value: unknown): CredentialRequestStatus {
@@ -1280,7 +1432,7 @@ function applicantTypeLabel(type: CredentialApplicantType): string {
 function normalizeEmail(email: string | undefined): string {
   const clean = (email || "").trim().toLowerCase();
 
-  if (!clean || !clean.includes("@")) {
+  if (!clean || !clean.includes("@") || clean.length > 254) {
     throw new HttpsError("invalid-argument", "Correo inválido.");
   }
 
