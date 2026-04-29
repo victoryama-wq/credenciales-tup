@@ -11,6 +11,11 @@ import { MatSelectModule } from '@angular/material/select';
 import { Router } from '@angular/router';
 import { toDataURL } from 'qrcode';
 import {
+  AuditLog,
+  auditActionLabels,
+  auditEntityLabels,
+} from '../../../../core/models/audit-log.model';
+import {
   CredentialApplicantType,
   CredentialRequest,
   CredentialRequestStatus,
@@ -43,11 +48,13 @@ import {
   SaekoImportRow,
   institutionalAcademicStatusLabels,
 } from '../../../../core/models/institutional-profile.model';
+import { AuditLogService } from '../../../../core/services/audit-log.service';
 import { InstitutionalProfileService } from '../../../../core/services/institutional-profile.service';
 
 type AdminModule =
   | 'dashboard'
   | 'reports'
+  | 'audit'
   | 'requests'
   | 'batches'
   | 'delivery'
@@ -92,6 +99,7 @@ export class AdminDashboardComponent implements OnInit {
   private requestService = inject(CredentialRequestService);
   private credentialTemplateService = inject(CredentialTemplateService);
   private printBatchService = inject(PrintBatchService);
+  private auditLogService = inject(AuditLogService);
   private institutionalProfileService = inject(InstitutionalProfileService);
   private destroyRef = inject(DestroyRef);
   private changeDetectorRef = inject(ChangeDetectorRef);
@@ -102,6 +110,8 @@ export class AdminDashboardComponent implements OnInit {
   readonly printBatchStatusLabels = printBatchStatusLabels;
   readonly applicantTypeLabels = credentialApplicantTypeLabels;
   readonly requestTypeLabels = credentialRequestTypeLabels;
+  readonly auditActionLabels = auditActionLabels;
+  readonly auditEntityLabels = auditEntityLabels;
   readonly academicStatusLabels = institutionalAcademicStatusLabels;
   readonly applicantTypes: CredentialApplicantType[] = ['STUDENT', 'TEACHER', 'STAFF'];
   readonly deliveryStatuses: CredentialRequestStatus[] = [
@@ -170,6 +180,12 @@ export class AdminDashboardComponent implements OnInit {
       description: 'Filtra, consulta y exporta informacion clave.',
     },
     {
+      value: 'audit',
+      label: 'Auditoria',
+      eyebrow: 'Trazabilidad',
+      description: 'Bitacora de cambios administrativos y operativos.',
+    },
+    {
       value: 'requests',
       label: 'Solicitudes',
       eyebrow: 'Operacion',
@@ -217,6 +233,14 @@ export class AdminDashboardComponent implements OnInit {
   reportStartDate = '';
   reportEndDate = '';
   reportExportMessage = '';
+  auditLogs: AuditLog[] = [];
+  auditLoading = true;
+  auditErrorMessage = '';
+  auditExportMessage = '';
+  auditActionFilter = 'ALL';
+  auditEntityFilter = 'ALL';
+  auditStartDate = '';
+  auditEndDate = '';
   printingRequestId = '';
   printingBatchId = '';
   qrImages: Record<string, string> = {};
@@ -265,6 +289,20 @@ export class AdminDashboardComponent implements OnInit {
         },
         error: (error) => {
           this.batchErrorMessage = error.message || 'No fue posible cargar lotes.';
+        },
+      });
+
+    this.auditLogService
+      .watchRecentLogs()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (logs) => {
+          this.auditLogs = logs;
+          this.auditLoading = false;
+        },
+        error: (error) => {
+          this.auditErrorMessage = error.message || 'No fue posible cargar auditoria.';
+          this.auditLoading = false;
         },
       });
 
@@ -425,6 +463,45 @@ export class AdminDashboardComponent implements OnInit {
       ),
       (request) => request.career || 'Sin programa'
     ).slice(0, 8);
+  }
+
+  get auditActions(): string[] {
+    return Array.from(new Set(this.auditLogs.map((log) => log.action))).sort();
+  }
+
+  get auditEntities(): string[] {
+    return Array.from(new Set(this.auditLogs.map((log) => log.entity))).sort();
+  }
+
+  get filteredAuditLogs(): AuditLog[] {
+    const start = this.reportDateBoundary(this.auditStartDate, 'start');
+    const end = this.reportDateBoundary(this.auditEndDate, 'end');
+
+    return this.auditLogs.filter((log) => {
+      const timestamp = this.timestampMillis(log.timestamp) || 0;
+      const matchesAction = this.auditActionFilter === 'ALL' || log.action === this.auditActionFilter;
+      const matchesEntity = this.auditEntityFilter === 'ALL' || log.entity === this.auditEntityFilter;
+      const matchesStart = !start || timestamp >= start;
+      const matchesEnd = !end || timestamp <= end;
+
+      return matchesAction && matchesEntity && matchesStart && matchesEnd;
+    });
+  }
+
+  get auditTotalLogs(): number {
+    return this.filteredAuditLogs.length;
+  }
+
+  get auditStatusChangeLogs(): number {
+    return this.filteredAuditLogs.filter((log) => log.action.includes('status')).length;
+  }
+
+  get auditPrintBatchLogs(): number {
+    return this.filteredAuditLogs.filter((log) => log.entity === 'print_batches').length;
+  }
+
+  get auditImportLogs(): number {
+    return this.filteredAuditLogs.filter((log) => log.action === 'institutional_profiles.import').length;
   }
 
   get dashboardTotalRequests(): number {
@@ -713,6 +790,63 @@ export class AdminDashboardComponent implements OnInit {
     this.reportExportMessage = `${this.reportRequests.length} registros exportados.`;
   }
 
+  updateAuditStartDate(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.auditStartDate = input.value;
+    this.auditExportMessage = '';
+  }
+
+  updateAuditEndDate(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.auditEndDate = input.value;
+    this.auditExportMessage = '';
+  }
+
+  clearAuditFilters(): void {
+    this.auditActionFilter = 'ALL';
+    this.auditEntityFilter = 'ALL';
+    this.auditStartDate = '';
+    this.auditEndDate = '';
+    this.auditExportMessage = '';
+  }
+
+  exportAuditCsv(): void {
+    if (!this.filteredAuditLogs.length) {
+      this.auditExportMessage = 'No hay eventos para exportar con los filtros actuales.';
+      return;
+    }
+
+    const headers = [
+      'Fecha',
+      'Accion',
+      'Entidad',
+      'ID entidad',
+      'Actor',
+      'Resumen',
+    ];
+    const rows = this.filteredAuditLogs.map((log) => [
+      this.reportDateLabel(this.timestampMillis(log.timestamp)),
+      this.auditActionLabel(log.action),
+      this.auditEntityLabel(log.entity),
+      log.entityId,
+      this.auditActorLabel(log.actorUid),
+      this.auditSummary(log),
+    ]);
+    const csv = [headers, ...rows]
+      .map((row) => row.map((cell) => this.csvCell(cell)).join(','))
+      .join('\r\n');
+    const blob = new Blob([`\ufeff${csv}`], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+
+    link.href = url;
+    link.download = `auditoria-credenciales-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+
+    this.auditExportMessage = `${this.filteredAuditLogs.length} eventos exportados.`;
+  }
+
   updateNote(requestId: string, event: Event): void {
     const input = event.target as HTMLInputElement;
     this.notes[requestId] = input.value;
@@ -789,6 +923,71 @@ export class AdminDashboardComponent implements OnInit {
 
   private csvCell(value: string | number): string {
     return `"${String(value ?? '').replace(/"/g, '""')}"`;
+  }
+
+  private auditObject(value: unknown): Record<string, unknown> {
+    return value && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
+  }
+
+  private auditText(value: unknown): string {
+    if (value === null || value === undefined) {
+      return '';
+    }
+
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+      return String(value);
+    }
+
+    if (
+      typeof value === 'object' &&
+      'toMillis' in value &&
+      typeof (value as { toMillis: unknown }).toMillis === 'function'
+    ) {
+      return this.reportDateLabel((value as { toMillis: () => number }).toMillis());
+    }
+
+    return JSON.stringify(value);
+  }
+
+  private auditStatusLabel(value: unknown): string {
+    const status = this.auditText(value) as CredentialRequestStatus;
+
+    return this.statusLabels[status] || status || '-';
+  }
+
+  private auditValueLabel(field: string, value: unknown): string {
+    if (field === 'status') {
+      return this.auditStatusLabel(value);
+    }
+
+    if (field === 'applicantType') {
+      const type = this.auditText(value) as CredentialApplicantType;
+      return this.applicantTypeLabels[type] || type || '-';
+    }
+
+    const text = this.auditText(value);
+
+    return text || '-';
+  }
+
+  private auditFieldLabel(field: string): string {
+    const labels: Record<string, string> = {
+      applicantType: 'Tipo de solicitante',
+      career: 'Programa / puesto',
+      credentialNumber: 'Folio',
+      cycle: 'Cuatrimestre',
+      email: 'Correo',
+      name: 'Nombre',
+      printBatchId: 'Lote',
+      reviewedAt: 'Fecha revision',
+      status: 'Estatus',
+      studentId: 'Matricula',
+      updatedAt: 'Actualizacion',
+    };
+
+    return labels[field] || field;
   }
 
   private averageDurationLabel(ranges: { start: number | null; end: number | null }[]): string {
@@ -1031,6 +1230,82 @@ export class AdminDashboardComponent implements OnInit {
 
   reportDeliveredDateLabel(request: CredentialRequest): string {
     return this.reportDateLabel(this.dashboardDeliveredMillis(request));
+  }
+
+  auditActionLabel(action: string): string {
+    return this.auditActionLabels[action] || action;
+  }
+
+  auditEntityLabel(entity: string): string {
+    return this.auditEntityLabels[entity] || entity;
+  }
+
+  auditDateLabel(log: AuditLog): string {
+    return this.reportDateLabel(this.timestampMillis(log.timestamp));
+  }
+
+  auditActorLabel(actorUid: string): string {
+    if (!actorUid) {
+      return 'Sistema';
+    }
+
+    return `UID ${actorUid.slice(0, 8)}`;
+  }
+
+  auditSummary(log: AuditLog): string {
+    const before = this.auditObject(log.before);
+    const after = this.auditObject(log.after);
+
+    if (log.action === 'credential_request.create') {
+      return `Solicitud creada para ${this.auditText(after['name']) || 'solicitante'} con estatus ${this.auditStatusLabel(after['status'])}.`;
+    }
+
+    if (log.action === 'credential_request.status_changed') {
+      return `Estatus: ${this.auditStatusLabel(before['status'])} -> ${this.auditStatusLabel(after['status'])}.`;
+    }
+
+    if (log.action === 'credential_request.batch_printed') {
+      return `Credencial marcada como impresa en lote ${this.auditText(after['printBatchId']) || '-'}.`;
+    }
+
+    if (log.action === 'print_batch.create') {
+      return `Lote creado con ${this.auditText(after['total']) || '0'} credenciales.`;
+    }
+
+    if (log.action === 'print_batch.printed') {
+      return `Lote cerrado como impreso con ${this.auditText(after['total']) || '0'} credenciales.`;
+    }
+
+    if (log.action === 'institutional_profiles.import') {
+      return `Importacion Saeko: ${this.auditText(after['imported']) || '0'} de ${this.auditText(after['total']) || '0'} registros.`;
+    }
+
+    return 'Evento registrado en bitacora.';
+  }
+
+  auditChangedFields(log: AuditLog): string[] {
+    const before = this.auditObject(log.before);
+    const after = this.auditObject(log.after);
+    const keys = new Set([...Object.keys(before), ...Object.keys(after)]);
+    const hidden = new Set(['timeline', 'documents', 'photoUrl', 'qrToken']);
+
+    return Array.from(keys)
+      .filter((key) => !hidden.has(key))
+      .filter((key) => this.auditText(before[key]) !== this.auditText(after[key]))
+      .slice(0, 6);
+  }
+
+  auditFieldChange(log: AuditLog, field: string): string {
+    const before = this.auditObject(log.before);
+    const after = this.auditObject(log.after);
+    const beforeValue = this.auditValueLabel(field, before[field]);
+    const afterValue = this.auditValueLabel(field, after[field]);
+
+    if (!beforeValue || beforeValue === '-') {
+      return `${this.auditFieldLabel(field)}: ${afterValue}`;
+    }
+
+    return `${this.auditFieldLabel(field)}: ${beforeValue} -> ${afterValue}`;
   }
 
   credentialRoleLabel(request: CredentialRequest): string {

@@ -41,6 +41,8 @@
               <svg viewBox="0 0 24 24"><path d="M4 13h6V5H4z" /><path d="M14 19h6V5h-6z" /><path d="M4 19h6v-3H4z" /></svg>
             } @else if (module.value === 'reports') {
               <svg viewBox="0 0 24 24"><path d="M5 5h14v14H5z" /><path d="M8 16V9M12 16v-4M16 16v-7" /></svg>
+            } @else if (module.value === 'audit') {
+              <svg viewBox="0 0 24 24"><path d="M5 4h14v16H5z" /><path d="M9 8h6M9 12h6M9 16h3" /><path d="m16 16 1.4 1.4L20 14" /></svg>
             } @else if (module.value === 'requests') {
               <svg viewBox="0 0 24 24"><path d="M7 4h10a2 2 0 0 1 2 2v14H5V6a2 2 0 0 1 2-2Z" /><path d="M9 8h6M9 12h6M9 16h4" /></svg>
             } @else if (module.value === 'batches') {
@@ -534,6 +536,140 @@
             }
           </mat-card-content>
         </mat-card>
+      </section>
+    } @else if (activeModule === 'audit') {
+      <section class="audit-dashboard">
+        <mat-card class="institution-card !rounded-lg !shadow-none">
+          <mat-card-header>
+            <mat-card-title>Bitacora de auditoria</mat-card-title>
+            <mat-card-subtitle>Consulta cambios administrativos, lotes, impresiones e importaciones.</mat-card-subtitle>
+          </mat-card-header>
+
+          <mat-card-content class="audit-filter-grid pt-6">
+            <mat-form-field appearance="outline" class="w-full">
+              <mat-label>Entidad</mat-label>
+              <mat-select [(value)]="auditEntityFilter" (selectionChange)="auditExportMessage = ''">
+                <mat-option value="ALL">Todas</mat-option>
+                @for (entity of auditEntities; track entity) {
+                  <mat-option [value]="entity">{{ auditEntityLabel(entity) }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="w-full">
+              <mat-label>Accion</mat-label>
+              <mat-select [(value)]="auditActionFilter" (selectionChange)="auditExportMessage = ''">
+                <mat-option value="ALL">Todas</mat-option>
+                @for (action of auditActions; track action) {
+                  <mat-option [value]="action">{{ auditActionLabel(action) }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <label class="report-date-field rounded-md">
+              <span>Desde</span>
+              <input type="date" [value]="auditStartDate" (input)="updateAuditStartDate($event)" />
+            </label>
+
+            <label class="report-date-field rounded-md">
+              <span>Hasta</span>
+              <input type="date" [value]="auditEndDate" (input)="updateAuditEndDate($event)" />
+            </label>
+
+            <div class="report-actions">
+              <button mat-stroked-button color="primary" type="button" class="link-button !h-11 !rounded-md" (click)="clearAuditFilters()">
+                Limpiar filtros
+              </button>
+              <button mat-flat-button color="primary" type="button" class="!h-11 !rounded-md" [disabled]="!filteredAuditLogs.length" (click)="exportAuditCsv()">
+                Exportar CSV
+              </button>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        @if (auditErrorMessage) {
+          <p class="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{{ auditErrorMessage }}</p>
+        }
+
+        @if (auditExportMessage) {
+          <p class="report-message rounded-md px-3 py-2 text-sm text-[var(--tup-primary)]">
+            {{ auditExportMessage }}
+          </p>
+        }
+
+        <section class="report-metric-grid">
+          <article class="metric-card rounded-lg p-4">
+            <p class="text-xs font-semibold uppercase text-[var(--tup-gray)]">Eventos filtrados</p>
+            <p class="mt-2 text-2xl font-bold text-[var(--tup-ink)]">{{ auditTotalLogs }}</p>
+          </article>
+          <article class="metric-card rounded-lg p-4">
+            <p class="text-xs font-semibold uppercase text-[var(--tup-gray)]">Cambios de estatus</p>
+            <p class="mt-2 text-2xl font-bold text-[var(--tup-ink)]">{{ auditStatusChangeLogs }}</p>
+          </article>
+          <article class="metric-card rounded-lg p-4">
+            <p class="text-xs font-semibold uppercase text-[var(--tup-gray)]">Eventos de lote</p>
+            <p class="mt-2 text-2xl font-bold text-[var(--tup-ink)]">{{ auditPrintBatchLogs }}</p>
+          </article>
+          <article class="metric-card rounded-lg p-4">
+            <p class="text-xs font-semibold uppercase text-[var(--tup-gray)]">Importaciones</p>
+            <p class="mt-2 text-2xl font-bold text-[var(--tup-ink)]">{{ auditImportLogs }}</p>
+          </article>
+        </section>
+
+        @if (auditLoading) {
+          <div class="grid place-items-center py-16">
+            <mat-progress-spinner diameter="42" mode="indeterminate"></mat-progress-spinner>
+          </div>
+        } @else if (!filteredAuditLogs.length) {
+          <mat-card class="institution-card !rounded-lg !shadow-none">
+            <mat-card-content class="py-8">
+              <p class="text-center text-[var(--tup-muted)]">No hay eventos de auditoria con estos filtros.</p>
+            </mat-card-content>
+          </mat-card>
+        } @else {
+          <section class="audit-timeline">
+            @for (log of filteredAuditLogs; track log.id) {
+              <article class="audit-event-card rounded-lg">
+                <div class="audit-event-marker" aria-hidden="true"></div>
+                <div class="min-w-0">
+                  <div class="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                    <div class="min-w-0">
+                      <p class="eyebrow">{{ auditEntityLabel(log.entity) }}</p>
+                      <h3 class="text-lg font-bold text-[var(--tup-ink)]">{{ auditActionLabel(log.action) }}</h3>
+                      <p class="mt-1 text-sm leading-6 text-[var(--tup-muted)]">{{ auditSummary(log) }}</p>
+                    </div>
+                    <span class="status-pill rounded-full px-3 py-1 text-xs font-semibold">
+                      {{ auditDateLabel(log) }}
+                    </span>
+                  </div>
+
+                  <div class="audit-detail-grid mt-4">
+                    <p>
+                      <span>Actor</span>
+                      <strong>{{ auditActorLabel(log.actorUid) }}</strong>
+                    </p>
+                    <p>
+                      <span>Entidad</span>
+                      <strong>{{ log.entityId }}</strong>
+                    </p>
+                    <p>
+                      <span>Accion tecnica</span>
+                      <strong>{{ log.action }}</strong>
+                    </p>
+                  </div>
+
+                  @if (auditChangedFields(log).length) {
+                    <div class="audit-change-list mt-4">
+                      @for (field of auditChangedFields(log); track field) {
+                        <span>{{ auditFieldChange(log, field) }}</span>
+                      }
+                    </div>
+                  }
+                </div>
+              </article>
+            }
+          </section>
+        }
       </section>
     } @else if (activeModule === 'requests') {
       <section class="mb-6 grid gap-3 md:grid-cols-4">
