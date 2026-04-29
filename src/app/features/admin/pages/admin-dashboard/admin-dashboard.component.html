@@ -39,6 +39,8 @@
           <span class="admin-sidebar-icon" aria-hidden="true">
             @if (module.value === 'dashboard') {
               <svg viewBox="0 0 24 24"><path d="M4 13h6V5H4z" /><path d="M14 19h6V5h-6z" /><path d="M4 19h6v-3H4z" /></svg>
+            } @else if (module.value === 'reports') {
+              <svg viewBox="0 0 24 24"><path d="M5 5h14v14H5z" /><path d="M8 16V9M12 16v-4M16 16v-7" /></svg>
             } @else if (module.value === 'requests') {
               <svg viewBox="0 0 24 24"><path d="M7 4h10a2 2 0 0 1 2 2v14H5V6a2 2 0 0 1 2-2Z" /><path d="M9 8h6M9 12h6M9 16h4" /></svg>
             } @else if (module.value === 'batches') {
@@ -337,6 +339,202 @@
           </section>
         </section>
       }
+    } @else if (activeModule === 'reports') {
+      <section class="reports-dashboard">
+        <mat-card class="institution-card !rounded-lg !shadow-none">
+          <mat-card-header>
+            <mat-card-title>Reportes operativos</mat-card-title>
+            <mat-card-subtitle>Filtra solicitudes y exporta la informacion para control interno.</mat-card-subtitle>
+          </mat-card-header>
+
+          <mat-card-content class="report-filter-grid pt-6">
+            <mat-form-field appearance="outline" class="w-full">
+              <mat-label>Tipo de solicitante</mat-label>
+              <mat-select [(value)]="reportApplicantFilter" (selectionChange)="reportExportMessage = ''">
+                <mat-option value="ALL">Todos</mat-option>
+                @for (type of applicantTypes; track type) {
+                  <mat-option [value]="type">{{ applicantTypeLabels[type] }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="w-full">
+              <mat-label>Estatus</mat-label>
+              <mat-select [(value)]="reportStatusFilter" (selectionChange)="reportExportMessage = ''">
+                <mat-option value="ALL">Todas</mat-option>
+                @for (status of statuses; track status) {
+                  <mat-option [value]="status">{{ statusLabels[status] }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <label class="report-date-field rounded-md">
+              <span>Desde</span>
+              <input type="date" [value]="reportStartDate" (input)="updateReportStartDate($event)" />
+            </label>
+
+            <label class="report-date-field rounded-md">
+              <span>Hasta</span>
+              <input type="date" [value]="reportEndDate" (input)="updateReportEndDate($event)" />
+            </label>
+
+            <div class="report-actions">
+              <button mat-stroked-button color="primary" type="button" class="link-button !h-11 !rounded-md" (click)="clearReportFilters()">
+                Limpiar filtros
+              </button>
+              <button mat-flat-button color="primary" type="button" class="!h-11 !rounded-md" [disabled]="!reportRequests.length" (click)="exportReportCsv()">
+                Exportar CSV
+              </button>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        @if (reportExportMessage) {
+          <p class="report-message rounded-md px-3 py-2 text-sm text-[var(--tup-primary)]">
+            {{ reportExportMessage }}
+          </p>
+        }
+
+        <section class="report-metric-grid">
+          <article class="metric-card rounded-lg p-4">
+            <p class="text-xs font-semibold uppercase text-[var(--tup-gray)]">Registros filtrados</p>
+            <p class="mt-2 text-2xl font-bold text-[var(--tup-ink)]">{{ reportTotalRequests }}</p>
+          </article>
+          <article class="metric-card rounded-lg p-4">
+            <p class="text-xs font-semibold uppercase text-[var(--tup-gray)]">Impresas</p>
+            <p class="mt-2 text-2xl font-bold text-[var(--tup-ink)]">{{ reportPrintedRequests }}</p>
+          </article>
+          <article class="metric-card rounded-lg p-4">
+            <p class="text-xs font-semibold uppercase text-[var(--tup-gray)]">Entregadas</p>
+            <p class="mt-2 text-2xl font-bold text-[var(--tup-ink)]">{{ reportDeliveredRequests }}</p>
+          </article>
+          <article class="metric-card rounded-lg p-4">
+            <p class="text-xs font-semibold uppercase text-[var(--tup-gray)]">Reposiciones</p>
+            <p class="mt-2 text-2xl font-bold text-[var(--tup-ink)]">{{ reportReplacementRequests }}</p>
+          </article>
+          <article class="metric-card rounded-lg p-4">
+            <p class="text-xs font-semibold uppercase text-[var(--tup-gray)]">Rechazadas</p>
+            <p class="mt-2 text-2xl font-bold text-[var(--tup-ink)]">{{ reportRejectedRequests }}</p>
+          </article>
+        </section>
+
+        <section class="report-breakdown-grid">
+          <mat-card class="institution-card !rounded-lg !shadow-none">
+            <mat-card-header>
+              <mat-card-title>Por estatus</mat-card-title>
+              <mat-card-subtitle>Distribucion del reporte filtrado.</mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content class="executive-card-content pt-5">
+              @for (row of reportStatusBreakdown; track row.label) {
+                <div class="executive-bar-row">
+                  <div class="executive-bar-label">
+                    <span>{{ row.label }}</span>
+                    <strong>{{ row.count }}</strong>
+                  </div>
+                  <div class="executive-bar-track" aria-hidden="true">
+                    <span [style.width.%]="row.percent"></span>
+                  </div>
+                </div>
+              }
+            </mat-card-content>
+          </mat-card>
+
+          <mat-card class="institution-card !rounded-lg !shadow-none">
+            <mat-card-header>
+              <mat-card-title>Por tipo</mat-card-title>
+              <mat-card-subtitle>Estudiantes, docentes y colaboradores.</mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content class="executive-card-content pt-5">
+              @for (row of reportApplicantBreakdown; track row.label) {
+                <div class="executive-bar-row">
+                  <div class="executive-bar-label">
+                    <span>{{ row.label }}</span>
+                    <strong>{{ row.count }}</strong>
+                  </div>
+                  <div class="executive-bar-track executive-bar-track-accent" aria-hidden="true">
+                    <span [style.width.%]="row.percent"></span>
+                  </div>
+                </div>
+              }
+            </mat-card-content>
+          </mat-card>
+
+          <mat-card class="institution-card !rounded-lg !shadow-none">
+            <mat-card-header>
+              <mat-card-title>Top programas</mat-card-title>
+              <mat-card-subtitle>Programas con mas registros en el filtro.</mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content class="executive-card-content pt-5">
+              @if (!reportCareerBreakdown.length) {
+                <div class="muted-panel rounded-lg p-5 text-sm text-[var(--tup-muted)]">
+                  No hay estudiantes dentro de este filtro.
+                </div>
+              } @else {
+                <div class="executive-compact-list">
+                  @for (row of reportCareerBreakdown; track row.label) {
+                    <article class="executive-compact-item rounded-lg">
+                      <span>{{ row.label }}</span>
+                      <strong>{{ row.count }}</strong>
+                    </article>
+                  }
+                </div>
+              }
+            </mat-card-content>
+          </mat-card>
+        </section>
+
+        <mat-card class="institution-card !rounded-lg !shadow-none">
+          <mat-card-header>
+            <mat-card-title>Vista previa</mat-card-title>
+            <mat-card-subtitle>Primeros registros del reporte. El CSV exporta todos los resultados filtrados.</mat-card-subtitle>
+          </mat-card-header>
+          <mat-card-content class="pt-6">
+            @if (!reportRequests.length) {
+              <div class="muted-panel rounded-lg p-5 text-sm text-[var(--tup-muted)]">
+                No hay solicitudes con los filtros seleccionados.
+              </div>
+            } @else {
+              <div class="report-table-shell rounded-lg">
+                <table class="report-table w-full text-left text-sm">
+                  <thead>
+                    <tr>
+                      <th>Fecha</th>
+                      <th>Solicitante</th>
+                      <th>Tramite</th>
+                      <th>Estatus</th>
+                      <th>Programa / puesto</th>
+                      <th>Folio</th>
+                      <th>Entrega</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (request of reportRequests.slice(0, 25); track request.id) {
+                      <tr>
+                        <td>{{ reportSubmittedDateLabel(request) }}</td>
+                        <td>
+                          <strong>{{ request.name }}</strong>
+                          <span>{{ applicantLabel(request.applicantType) }} - {{ request.email }}</span>
+                        </td>
+                        <td>{{ reportRequestTypeLabel(request) }}</td>
+                        <td>{{ statusLabels[request.status] }}</td>
+                        <td>{{ detailValue(request) }}{{ displayCycle(request) }}</td>
+                        <td>{{ request.credentialNumber || '-' }}</td>
+                        <td>{{ reportDeliveredDateLabel(request) }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+
+              @if (reportRequests.length > 25) {
+                <p class="mt-3 text-xs text-[var(--tup-muted)]">
+                  Mostrando 25 de {{ reportRequests.length }} registros. Exporta CSV para obtener el reporte completo.
+                </p>
+              }
+            }
+          </mat-card-content>
+        </mat-card>
+      </section>
     } @else if (activeModule === 'requests') {
       <section class="mb-6 grid gap-3 md:grid-cols-4">
         @for (status of statuses; track status) {

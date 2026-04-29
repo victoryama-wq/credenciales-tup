@@ -17,6 +17,7 @@ import {
   CredentialTimelineEvent,
   canTransitionCredentialRequestStatus,
   credentialApplicantTypeLabels,
+  credentialRequestTypeLabels,
   credentialRequestStatuses,
   statusLabels,
 } from '../../../../core/models/credential-request.model';
@@ -44,7 +45,14 @@ import {
 } from '../../../../core/models/institutional-profile.model';
 import { InstitutionalProfileService } from '../../../../core/services/institutional-profile.service';
 
-type AdminModule = 'dashboard' | 'requests' | 'batches' | 'delivery' | 'saeko' | 'templates';
+type AdminModule =
+  | 'dashboard'
+  | 'reports'
+  | 'requests'
+  | 'batches'
+  | 'delivery'
+  | 'saeko'
+  | 'templates';
 
 type CredentialTemplateNumericMetric = 'x' | 'y' | 'w' | 'h' | 'fontSize';
 
@@ -93,6 +101,7 @@ export class AdminDashboardComponent implements OnInit {
   readonly statusLabels = statusLabels;
   readonly printBatchStatusLabels = printBatchStatusLabels;
   readonly applicantTypeLabels = credentialApplicantTypeLabels;
+  readonly requestTypeLabels = credentialRequestTypeLabels;
   readonly academicStatusLabels = institutionalAcademicStatusLabels;
   readonly applicantTypes: CredentialApplicantType[] = ['STUDENT', 'TEACHER', 'STAFF'];
   readonly deliveryStatuses: CredentialRequestStatus[] = [
@@ -155,6 +164,12 @@ export class AdminDashboardComponent implements OnInit {
       description: 'Indicadores, avance y tiempos del flujo.',
     },
     {
+      value: 'reports',
+      label: 'Reportes',
+      eyebrow: 'Analitica operativa',
+      description: 'Filtra, consulta y exporta informacion clave.',
+    },
+    {
       value: 'requests',
       label: 'Solicitudes',
       eyebrow: 'Operacion',
@@ -197,6 +212,11 @@ export class AdminDashboardComponent implements OnInit {
   applicantFilter: CredentialApplicantType | 'ALL' = 'ALL';
   deliveryStatusFilter: CredentialRequestStatus | 'ALL' = 'ALL';
   deliveryApplicantFilter: CredentialApplicantType | 'ALL' = 'ALL';
+  reportStatusFilter: CredentialRequestStatus | 'ALL' = 'ALL';
+  reportApplicantFilter: CredentialApplicantType | 'ALL' = 'ALL';
+  reportStartDate = '';
+  reportEndDate = '';
+  reportExportMessage = '';
   printingRequestId = '';
   printingBatchId = '';
   qrImages: Record<string, string> = {};
@@ -330,6 +350,81 @@ export class AdminDashboardComponent implements OnInit {
 
       return this.deliveryStatuses.includes(request.status) && matchesStatus && matchesApplicant;
     });
+  }
+
+  get reportRequests(): CredentialRequest[] {
+    const start = this.reportDateBoundary(this.reportStartDate, 'start');
+    const end = this.reportDateBoundary(this.reportEndDate, 'end');
+
+    return this.requests.filter((request) => {
+      const submittedAt = this.timestampMillis(request.submittedAt) || 0;
+      const matchesStatus =
+        this.reportStatusFilter === 'ALL' || request.status === this.reportStatusFilter;
+      const matchesApplicant =
+        this.reportApplicantFilter === 'ALL' ||
+        (request.applicantType || 'STUDENT') === this.reportApplicantFilter;
+      const matchesStart = !start || submittedAt >= start;
+      const matchesEnd = !end || submittedAt <= end;
+
+      return matchesStatus && matchesApplicant && matchesStart && matchesEnd;
+    });
+  }
+
+  get reportTotalRequests(): number {
+    return this.reportRequests.length;
+  }
+
+  get reportPrintedRequests(): number {
+    return this.reportRequests.filter((request) =>
+      this.dashboardPrintedStatuses.includes(request.status)
+    ).length;
+  }
+
+  get reportDeliveredRequests(): number {
+    return this.reportRequests.filter((request) => request.status === 'DELIVERED').length;
+  }
+
+  get reportRejectedRequests(): number {
+    return this.reportRequests.filter((request) => request.status === 'REJECTED').length;
+  }
+
+  get reportReplacementRequests(): number {
+    return this.reportRequests.filter((request) => request.requestType === 'REPLACEMENT').length;
+  }
+
+  get reportStatusBreakdown(): DashboardBreakdownRow[] {
+    return this.statuses.map((status) => {
+      const count = this.reportRequests.filter((request) => request.status === status).length;
+
+      return {
+        label: this.statusLabels[status],
+        count,
+        percent: this.dashboardPercent(count, this.reportTotalRequests),
+      };
+    });
+  }
+
+  get reportApplicantBreakdown(): DashboardBreakdownRow[] {
+    return this.applicantTypes.map((type) => {
+      const count = this.reportRequests.filter(
+        (request) => (request.applicantType || 'STUDENT') === type
+      ).length;
+
+      return {
+        label: this.applicantTypeLabels[type],
+        count,
+        percent: this.dashboardPercent(count, this.reportTotalRequests),
+      };
+    });
+  }
+
+  get reportCareerBreakdown(): DashboardBreakdownRow[] {
+    return this.dashboardBuildBreakdown(
+      this.reportRequests.filter(
+        (request) => !request.applicantType || request.applicantType === 'STUDENT'
+      ),
+      (request) => request.career || 'Sin programa'
+    ).slice(0, 8);
   }
 
   get dashboardTotalRequests(): number {
@@ -543,6 +638,81 @@ export class AdminDashboardComponent implements OnInit {
     return 'Estudiante';
   }
 
+  updateReportStartDate(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.reportStartDate = input.value;
+    this.reportExportMessage = '';
+  }
+
+  updateReportEndDate(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.reportEndDate = input.value;
+    this.reportExportMessage = '';
+  }
+
+  clearReportFilters(): void {
+    this.reportStatusFilter = 'ALL';
+    this.reportApplicantFilter = 'ALL';
+    this.reportStartDate = '';
+    this.reportEndDate = '';
+    this.reportExportMessage = '';
+  }
+
+  exportReportCsv(): void {
+    if (!this.reportRequests.length) {
+      this.reportExportMessage = 'No hay registros para exportar con los filtros actuales.';
+      return;
+    }
+
+    const headers = [
+      'Fecha solicitud',
+      'Tipo solicitante',
+      'Tipo tramite',
+      'Estatus',
+      'Nombre',
+      'Correo',
+      'Matricula',
+      'Programa / puesto',
+      'Cuatrimestre',
+      'Telefono',
+      'Folio',
+      'Lote',
+      'Fecha impresion',
+      'Fecha entrega',
+    ];
+    const rows = this.reportRequests.map((request) => [
+      this.reportDateLabel(this.timestampMillis(request.submittedAt)),
+      this.applicantLabel(request.applicantType),
+      this.reportRequestTypeLabel(request),
+      this.statusLabels[request.status],
+      request.name,
+      request.email,
+      this.showIdentifier(request) ? request.studentId : '',
+      this.detailValue(request),
+      !request.applicantType || request.applicantType === 'STUDENT' ? request.cycle : '',
+      request.phone,
+      request.credentialNumber || '',
+      request.printBatchId || '',
+      this.reportDateLabel(
+        this.timestampMillis(request.printedAt) || this.statusTimestampMillis(request, 'PRINTED')
+      ),
+      this.reportDateLabel(this.dashboardDeliveredMillis(request)),
+    ]);
+    const csv = [headers, ...rows]
+      .map((row) => row.map((cell) => this.csvCell(cell)).join(','))
+      .join('\r\n');
+    const blob = new Blob([`\ufeff${csv}`], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+
+    link.href = url;
+    link.download = `reporte-credenciales-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+
+    this.reportExportMessage = `${this.reportRequests.length} registros exportados.`;
+  }
+
   updateNote(requestId: string, event: Event): void {
     const input = event.target as HTMLInputElement;
     this.notes[requestId] = input.value;
@@ -603,6 +773,22 @@ export class AdminDashboardComponent implements OnInit {
       this.timestampMillis(request.deliveredAt) ||
       this.statusTimestampMillis(request, 'DELIVERED')
     );
+  }
+
+  private reportDateBoundary(value: string, boundary: 'start' | 'end'): number | null {
+    if (!value) {
+      return null;
+    }
+
+    const suffix = boundary === 'start' ? 'T00:00:00' : 'T23:59:59.999';
+    const date = new Date(`${value}${suffix}`);
+    const millis = date.getTime();
+
+    return Number.isNaN(millis) ? null : millis;
+  }
+
+  private csvCell(value: string | number): string {
+    return `"${String(value ?? '').replace(/"/g, '""')}"`;
   }
 
   private averageDurationLabel(ranges: { start: number | null; end: number | null }[]): string {
@@ -813,6 +999,38 @@ export class AdminDashboardComponent implements OnInit {
     return !request.applicantType || request.applicantType === 'STUDENT'
       ? ` - ${request.cycle}`
       : '';
+  }
+
+  reportRequestTypeLabel(request: CredentialRequest): string {
+    return this.requestTypeLabels[request.requestType || 'FIRST_TIME'];
+  }
+
+  reportDateLabel(millis: number | null): string {
+    if (!millis) {
+      return '-';
+    }
+
+    return new Date(millis).toLocaleString('es-MX', {
+      day: '2-digit',
+      month: '2-digit',
+      year: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }
+
+  reportSubmittedDateLabel(request: CredentialRequest): string {
+    return this.reportDateLabel(this.timestampMillis(request.submittedAt));
+  }
+
+  reportPrintedDateLabel(request: CredentialRequest): string {
+    return this.reportDateLabel(
+      this.timestampMillis(request.printedAt) || this.statusTimestampMillis(request, 'PRINTED')
+    );
+  }
+
+  reportDeliveredDateLabel(request: CredentialRequest): string {
+    return this.reportDateLabel(this.dashboardDeliveredMillis(request));
   }
 
   credentialRoleLabel(request: CredentialRequest): string {
