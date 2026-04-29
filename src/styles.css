@@ -768,6 +768,14 @@ textarea,
   min-width: 0;
 }
 
+.executive-print-grid {
+  align-items: start;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  min-width: 0;
+}
+
 .executive-card-content {
   display: grid;
   gap: 0.85rem;
@@ -816,6 +824,10 @@ textarea,
   background: linear-gradient(90deg, var(--tup-gray), var(--tup-primary));
 }
 
+.executive-bar-track-accent span {
+  background: linear-gradient(90deg, var(--tup-secondary), var(--tup-gray));
+}
+
 .executive-rate-panel {
   align-items: center;
   background:
@@ -861,6 +873,37 @@ textarea,
   color: var(--tup-ink);
   font-size: 1.35rem;
   line-height: 1.15;
+}
+
+.executive-compact-list {
+  display: grid;
+  gap: 0.55rem;
+  max-height: 360px;
+  overflow: auto;
+  padding-right: 0.15rem;
+}
+
+.executive-compact-item {
+  align-items: center;
+  background: #f9fafc;
+  border: 1px solid var(--tup-line);
+  color: var(--tup-muted);
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+  min-width: 0;
+  padding: 0.7rem 0.8rem;
+}
+
+.executive-compact-item span {
+  font-size: 0.84rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.executive-compact-item strong {
+  color: var(--tup-ink);
+  flex: 0 0 auto;
 }
 
 .executive-recent-list {

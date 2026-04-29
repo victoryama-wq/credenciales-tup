@@ -136,6 +136,12 @@
             </article>
 
             <article class="executive-kpi-card rounded-lg">
+              <p class="text-xs font-semibold uppercase text-[var(--tup-gray)]">Credenciales impresas</p>
+              <strong>{{ dashboardPrintedTotal }}</strong>
+              <span>Impresas, listas o entregadas</span>
+            </article>
+
+            <article class="executive-kpi-card rounded-lg">
               <p class="text-xs font-semibold uppercase text-[var(--tup-gray)]">Entregadas</p>
               <strong>{{ dashboardDeliveredRequests }}</strong>
               <span>{{ dashboardDeliveryRate }}% del total</span>
@@ -197,6 +203,77 @@
                   <span>Rechazo operativo</span>
                   <strong>{{ dashboardRejectionRate }}%</strong>
                 </div>
+              </mat-card-content>
+            </mat-card>
+          </section>
+
+          <section class="executive-print-grid">
+            <mat-card class="institution-card !rounded-lg !shadow-none">
+              <mat-card-header>
+                <mat-card-title>Impresas por tipo de credencial</mat-card-title>
+                <mat-card-subtitle>Estudiante, docente y administrativo.</mat-card-subtitle>
+              </mat-card-header>
+              <mat-card-content class="executive-card-content pt-5">
+                @for (row of dashboardPrintedByCredentialType; track row.label) {
+                  <div class="executive-bar-row">
+                    <div class="executive-bar-label">
+                      <span>{{ row.label }}</span>
+                      <strong>{{ row.count }}</strong>
+                    </div>
+                    <div class="executive-bar-track executive-bar-track-accent" aria-hidden="true">
+                      <span [style.width.%]="row.percent"></span>
+                    </div>
+                  </div>
+                }
+              </mat-card-content>
+            </mat-card>
+
+            <mat-card class="institution-card !rounded-lg !shadow-none">
+              <mat-card-header>
+                <mat-card-title>Impresas por nivel</mat-card-title>
+                <mat-card-subtitle>Cuatrimestre registrado del estudiante.</mat-card-subtitle>
+              </mat-card-header>
+              <mat-card-content class="executive-card-content pt-5">
+                @if (!dashboardPrintedByLevel.length) {
+                  <div class="muted-panel rounded-lg p-5 text-sm text-[var(--tup-muted)]">
+                    Aun no hay credenciales de estudiante impresas.
+                  </div>
+                } @else {
+                  @for (row of dashboardPrintedByLevel; track row.label) {
+                    <div class="executive-bar-row">
+                      <div class="executive-bar-label">
+                        <span>{{ row.label }}</span>
+                        <strong>{{ row.count }}</strong>
+                      </div>
+                      <div class="executive-bar-track" aria-hidden="true">
+                        <span [style.width.%]="row.percent"></span>
+                      </div>
+                    </div>
+                  }
+                }
+              </mat-card-content>
+            </mat-card>
+
+            <mat-card class="institution-card !rounded-lg !shadow-none">
+              <mat-card-header>
+                <mat-card-title>Impresas por carrera</mat-card-title>
+                <mat-card-subtitle>Programas academicos de estudiantes.</mat-card-subtitle>
+              </mat-card-header>
+              <mat-card-content class="executive-card-content pt-5">
+                @if (!dashboardPrintedByCareer.length) {
+                  <div class="muted-panel rounded-lg p-5 text-sm text-[var(--tup-muted)]">
+                    Aun no hay credenciales de estudiante impresas.
+                  </div>
+                } @else {
+                  <div class="executive-compact-list">
+                    @for (row of dashboardPrintedByCareer; track row.label) {
+                      <article class="executive-compact-item rounded-lg">
+                        <span>{{ row.label }}</span>
+                        <strong>{{ row.count }}</strong>
+                      </article>
+                    }
+                  </div>
+                }
               </mat-card-content>
             </mat-card>
           </section>

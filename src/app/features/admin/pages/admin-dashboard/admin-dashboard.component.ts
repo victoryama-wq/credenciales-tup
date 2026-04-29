@@ -107,6 +107,11 @@ export class AdminDashboardComponent implements OnInit {
     'PRINTED',
     'READY_FOR_PICKUP',
   ];
+  readonly dashboardPrintedStatuses: CredentialRequestStatus[] = [
+    'PRINTED',
+    'READY_FOR_PICKUP',
+    'DELIVERED',
+  ];
   readonly templateEditorFields: CredentialTemplateEditorField[] = [
     { key: 'photo', label: 'Foto', side: 'front' },
     { key: 'name', label: 'Nombre', side: 'front' },
@@ -353,6 +358,22 @@ export class AdminDashboardComponent implements OnInit {
     return this.countByStatus('APPROVED_FOR_PRINT');
   }
 
+  get dashboardPrintedRequests(): CredentialRequest[] {
+    return this.requests.filter((request) =>
+      this.dashboardPrintedStatuses.includes(request.status)
+    );
+  }
+
+  get dashboardPrintedTotal(): number {
+    return this.dashboardPrintedRequests.length;
+  }
+
+  get dashboardPrintedStudentRequests(): CredentialRequest[] {
+    return this.dashboardPrintedRequests.filter(
+      (request) => !request.applicantType || request.applicantType === 'STUDENT'
+    );
+  }
+
   get dashboardDeliveryRate(): number {
     return this.dashboardPercent(this.dashboardDeliveredRequests);
   }
@@ -381,6 +402,34 @@ export class AdminDashboardComponent implements OnInit {
         percent: this.dashboardPercent(count),
       };
     });
+  }
+
+  get dashboardPrintedByCredentialType(): DashboardBreakdownRow[] {
+    return this.applicantTypes.map((type) => {
+      const count = this.dashboardPrintedRequests.filter(
+        (request) => (request.applicantType || 'STUDENT') === type
+      ).length;
+
+      return {
+        label: this.dashboardCredentialTypeLabel(type),
+        count,
+        percent: this.dashboardPercent(count, this.dashboardPrintedTotal),
+      };
+    });
+  }
+
+  get dashboardPrintedByLevel(): DashboardBreakdownRow[] {
+    return this.dashboardBuildBreakdown(
+      this.dashboardPrintedStudentRequests,
+      (request) => request.cycle || 'Sin cuatrimestre'
+    );
+  }
+
+  get dashboardPrintedByCareer(): DashboardBreakdownRow[] {
+    return this.dashboardBuildBreakdown(
+      this.dashboardPrintedStudentRequests,
+      (request) => request.career || 'Sin programa'
+    );
   }
 
   get dashboardRecentDeliveries(): CredentialRequest[] {
@@ -482,6 +531,18 @@ export class AdminDashboardComponent implements OnInit {
     return millis ? new Date(millis) : null;
   }
 
+  dashboardCredentialTypeLabel(type: CredentialApplicantType): string {
+    if (type === 'TEACHER') {
+      return 'Docente';
+    }
+
+    if (type === 'STAFF') {
+      return 'Administrativo';
+    }
+
+    return 'Estudiante';
+  }
+
   updateNote(requestId: string, event: Event): void {
     const input = event.target as HTMLInputElement;
     this.notes[requestId] = input.value;
@@ -571,6 +632,26 @@ export class AdminDashboardComponent implements OnInit {
     const days = hours / 24;
 
     return `${days < 10 ? days.toFixed(1) : Math.round(days)} dias`;
+  }
+
+  private dashboardBuildBreakdown(
+    requests: CredentialRequest[],
+    labelForRequest: (request: CredentialRequest) => string
+  ): DashboardBreakdownRow[] {
+    const counts = new Map<string, number>();
+
+    for (const request of requests) {
+      const label = labelForRequest(request).trim() || 'Sin clasificar';
+      counts.set(label, (counts.get(label) || 0) + 1);
+    }
+
+    return Array.from(counts.entries())
+      .map(([label, count]) => ({
+        label,
+        count,
+        percent: this.dashboardPercent(count, requests.length),
+      }))
+      .sort((left, right) => right.count - left.count || left.label.localeCompare(right.label));
   }
 
   requestSelectedForBatch(requestId: string): boolean {
