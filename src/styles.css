@@ -8,16 +8,16 @@
   --tup-white: #ffffff;
   --tup-ink: #17172f;
   --tup-muted: #666879;
-  --tup-line: #e6e8ef;
-  --tup-soft: #f7f8fb;
-  --tup-soft-blue: #f4f5ff;
-  --tup-panel: #fbfcff;
-  --tup-shadow: 0 18px 45px rgb(39 30 93 / 10%);
+  --tup-line: #dedbf3;
+  --tup-soft: #ffffff;
+  --tup-soft-blue: #ffffff;
+  --tup-panel: #ffffff;
+  --tup-shadow: 0 18px 45px rgb(39 30 93 / 8%);
 }
 
 html,
 body {
-  background: var(--tup-soft);
+  background: var(--tup-white);
 }
 
 body {
@@ -42,12 +42,12 @@ textarea,
 
 .login-shell {
   min-height: 100vh;
-  background: var(--tup-soft);
+  background: var(--tup-white);
 }
 
 .login-layout {
   min-height: 100vh;
-  background: var(--tup-soft);
+  background: var(--tup-white);
 }
 
 .login-form-panel {
@@ -104,9 +104,7 @@ textarea,
 
 .app-shell {
   min-height: 100vh;
-  background:
-    linear-gradient(180deg, #ffffff 0, var(--tup-soft) 360px),
-    var(--tup-soft);
+  background: var(--tup-white);
 }
 
 .brand-panel {
@@ -121,8 +119,10 @@ textarea,
   background: rgb(255 255 255 / 10%);
 }
 
+.mat-mdc-card.institution-card,
 .institution-card {
-  background: var(--tup-white);
+  background: var(--tup-white) !important;
+  background-color: var(--tup-white) !important;
   border: 1px solid var(--tup-line);
   box-shadow: var(--tup-shadow);
 }
@@ -142,7 +142,7 @@ textarea,
   max-height: 240px;
   min-height: 210px;
   object-fit: cover;
-  background: var(--tup-soft-blue);
+  background: var(--tup-white);
 }
 
 .admin-request-card {
@@ -297,7 +297,8 @@ textarea,
 }
 
 .student-form-card {
-  background: var(--tup-white);
+  background: var(--tup-white) !important;
+  background-color: var(--tup-white) !important;
 }
 
 .request-type-toggle {
@@ -319,6 +320,12 @@ textarea,
   color: var(--tup-primary) !important;
 }
 
+.request-type-toggle .mat-button-toggle-disabled {
+  background: var(--tup-white) !important;
+  color: rgb(39 30 93 / 54%) !important;
+  opacity: 1;
+}
+
 .request-type-toggle .mat-button-toggle-button {
   min-height: 78px;
   padding: 0.9rem 1rem;
@@ -338,12 +345,36 @@ textarea,
   color: var(--tup-primary) !important;
 }
 
+.mat-mdc-card {
+  background-color: var(--tup-white) !important;
+}
+
+.mat-mdc-text-field-wrapper {
+  background-color: var(--tup-white) !important;
+}
+
+.mat-mdc-form-field .mdc-text-field--disabled {
+  background-color: var(--tup-white) !important;
+}
+
+.mat-mdc-form-field-focus-overlay {
+  background-color: transparent !important;
+}
+
+.mdc-text-field--filled:not(.mdc-text-field--disabled) {
+  background-color: var(--tup-white) !important;
+}
+
+.mdc-text-field--outlined.mdc-text-field--disabled .mdc-notched-outline__leading,
+.mdc-text-field--outlined.mdc-text-field--disabled .mdc-notched-outline__notch,
+.mdc-text-field--outlined.mdc-text-field--disabled .mdc-notched-outline__trailing {
+  border-color: var(--tup-line) !important;
+}
+
 .admin-dashboard-shell {
   align-content: start;
   align-items: start;
-  background:
-    linear-gradient(180deg, #ffffff 0, var(--tup-soft) 360px),
-    var(--tup-soft);
+  background: var(--tup-white);
   display: grid;
   gap: 1rem;
   grid-template-areas:
@@ -1511,9 +1542,7 @@ textarea,
 }
 
 .verification-shell {
-  background:
-    linear-gradient(180deg, #ffffff 0, var(--tup-soft) 320px),
-    var(--tup-soft);
+  background: var(--tup-white);
 }
 
 .verification-card {
