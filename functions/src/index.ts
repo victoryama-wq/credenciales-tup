@@ -173,6 +173,14 @@ interface StoredPrintBatch {
   printedBy?: string;
 }
 
+interface NotificationCopy {
+  title: string;
+  lead: string;
+  body: string;
+  nextStep: string;
+  statusLabel: string;
+}
+
 const db = getFirestore();
 const adminAuth = getAuth();
 const requests = db.collection("credential_requests");
@@ -181,6 +189,7 @@ const institutionalProfiles = db.collection("institutional_profiles");
 const printBatches = db.collection("print_batches");
 const institutionalEmailDomain = "tecplayacar.edu.mx";
 const publicAppUrl = "https://credencial-tup.web.app";
+const logoUrl = `${publicAppUrl}/logo-tup.png`;
 const callableOptions: CallableOptions = {
   cors: [
     "https://credencial-tup.web.app",
@@ -304,7 +313,17 @@ export const createCredentialRequest = onCall(callableOptions, async (request) =
       [input.photo, input.evidence] :
       [input.photo];
 
-    const payload = {
+    const payload: StoredCredentialRequest & {
+      photoUrl: string;
+      documents: CredentialDocument[];
+      timeline: Array<{
+        status: CredentialRequestStatus;
+        actorUid: string;
+        note: string;
+        timestamp: Timestamp;
+      }>;
+      submittedAt: Timestamp;
+    } = {
       uid: auth.uid,
       applicantType: input.applicantType,
       requestType: input.requestType,
@@ -331,6 +350,7 @@ export const createCredentialRequest = onCall(callableOptions, async (request) =
 
     transaction.set(requestRef, payload);
     writeAudit(transaction, auth.uid, "credential_request.create", requestRef.id, null, payload);
+    queueStatusNotification(transaction, requestRef.id, payload, "SUBMITTED", "", now);
   });
 
   return {requestId: requestRef.id};
@@ -1523,6 +1543,7 @@ function queueStatusNotification(
   const mailRef = db.collection("mail").doc(notificationRef.id);
   const subject = notificationSubject(status);
   const text = notificationText(status, request, note);
+  const html = notificationHtml(status, request, note);
   const notification = {
     uid: request.uid,
     type: "EMAIL",
@@ -1532,6 +1553,7 @@ function queueStatusNotification(
       to: request.email,
       subject,
       text,
+      html,
       status,
       applicantType: request.applicantType || "STUDENT",
       studentId: request.studentId,
@@ -1547,6 +1569,7 @@ function queueStatusNotification(
     message: {
       subject,
       text,
+      html,
     },
     createdAt: now,
     notificationId: notificationRef.id,
@@ -1555,6 +1578,8 @@ function queueStatusNotification(
 
 function notificationTemplate(status: CredentialRequestStatus): string | null {
   const templates: Partial<Record<CredentialRequestStatus, string>> = {
+    SUBMITTED: "credential_submitted",
+    UNDER_REVIEW: "credential_under_review",
     REJECTED: "credential_rejected",
     APPROVED_FOR_PRINT: "credential_approved_for_print",
     PRINTED: "credential_printed",
@@ -1567,14 +1592,16 @@ function notificationTemplate(status: CredentialRequestStatus): string | null {
 
 function notificationSubject(status: CredentialRequestStatus): string {
   const subjects: Partial<Record<CredentialRequestStatus, string>> = {
-    REJECTED: "Tu solicitud de credencial requiere corrección",
-    APPROVED_FOR_PRINT: "Tu credencial fue aprobada para impresión",
-    PRINTED: "Tu credencial ya fue impresa",
-    READY_FOR_PICKUP: "Tu credencial está lista para entrega",
-    DELIVERED: "Entrega de credencial confirmada",
+    SUBMITTED: "Hemos recibido tu solicitud de credencial institucional",
+    UNDER_REVIEW: "Tu solicitud de credencial está en revisión",
+    REJECTED: "Tu solicitud requiere una corrección",
+    APPROVED_FOR_PRINT: "Tu credencial institucional fue aprobada para impresión",
+    PRINTED: "Tu credencial institucional ya fue impresa",
+    READY_FOR_PICKUP: "Tu credencial está lista para recoger",
+    DELIVERED: "Entrega de credencial institucional confirmada",
   };
 
-  return subjects[status] || "Actualización de solicitud de credencial";
+  return subjects[status] || "Actualización de solicitud de credencial institucional";
 }
 
 function notificationText(
@@ -1582,30 +1609,329 @@ function notificationText(
   request: StoredCredentialRequest,
   note: string
 ): string {
-  const base = `Hola ${request.name},\n\n`;
-  const footer = "\n\nTecnológico Universitario Playacar";
+  const copy = notificationCopy(status, note);
+  const detailLines = notificationDetailRows(request, status)
+    .map((row) => `${row.label}: ${row.value}`)
+    .join("\n");
 
-  if (status === "REJECTED") {
-    return `${base}Tu solicitud fue rechazada. Motivo: ${note}.${footer}`;
+  return [
+    `Hola ${request.name},`,
+    "",
+    copy.lead,
+    copy.body,
+    copy.nextStep,
+    "",
+    `Estatus: ${copy.statusLabel}`,
+    detailLines,
+    "",
+    `Consulta tu avance: ${publicAppUrl}/login`,
+    "",
+    "Tecnológico Universitario Playacar",
+    "Innovación con sentido humano",
+  ].filter((line) => line !== "").join("\n");
+}
+
+function notificationHtml(
+  status: CredentialRequestStatus,
+  request: StoredCredentialRequest,
+  note: string
+): string {
+  const copy = notificationCopy(status, note);
+  const rows = notificationDetailRows(request, status)
+    .map((row) => notificationDetailRow(row.label, row.value))
+    .join("");
+
+  return notificationHtmlShell(status, request, copy, rows);
+}
+
+function notificationHtmlShell(
+  status: CredentialRequestStatus,
+  request: StoredCredentialRequest,
+  copy: NotificationCopy,
+  rows: string
+): string {
+  const subject = escapeHtml(notificationSubject(status));
+  const safeName = escapeHtml(request.name);
+  const safeLead = escapeHtml(copy.lead);
+  const safeBody = escapeHtml(copy.body);
+  const safeNextStep = escapeHtml(copy.nextStep);
+  const safeTitle = escapeHtml(copy.title);
+  const safeStatus = escapeHtml(copy.statusLabel);
+  const bodyHtml = notificationBodyHtml(
+    safeName,
+    safeLead,
+    safeBody,
+    safeNextStep,
+    safeStatus,
+    rows
+  );
+
+  return `
+  <!doctype html>
+  <html lang="es">
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      <title>${subject}</title>
+    </head>
+    <body style="margin:0;background:#f7f8fc;font-family:Arial,Helvetica,sans-serif;">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0"
+        style="background:#f7f8fc;padding:28px 12px;">
+        <tr>
+          <td align="center">
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0"
+              style="max-width:640px;background:#ffffff;border:1px solid #d9dcf2;
+                border-radius:14px;overflow:hidden;">
+              ${notificationHeaderHtml(safeTitle)}
+              ${bodyHtml}
+              ${notificationFooterHtml()}
+            </table>
+          </td>
+        </tr>
+      </table>
+    </body>
+  </html>`;
+}
+
+function notificationHeaderHtml(title: string): string {
+  return `
+    <tr>
+      <td style="padding:22px 28px;border-left:6px solid #252a86;">
+        <img src="${logoUrl}" alt="Tecnológico Universitario Playacar"
+          style="display:block;max-width:230px;width:100%;height:auto;">
+      </td>
+    </tr>
+    <tr>
+      <td style="background:#252a86;color:#ffffff;padding:22px 28px;">
+        <p style="margin:0 0 8px;font-size:12px;font-weight:700;
+          letter-spacing:.04em;text-transform:uppercase;">
+          Credenciales institucionales
+        </p>
+        <h1 style="margin:0;font-size:26px;line-height:1.2;font-weight:800;">
+          ${title}
+        </h1>
+      </td>
+    </tr>`;
+}
+
+function notificationBodyHtml(
+  name: string,
+  lead: string,
+  body: string,
+  nextStep: string,
+  statusLabel: string,
+  rows: string
+): string {
+  return `
+    <tr>
+      <td style="padding:28px;">
+        <p style="margin:0 0 16px;color:#271e5d;font-size:18px;line-height:1.5;">
+          Hola <strong>${name}</strong>,
+        </p>
+        <p style="margin:0 0 12px;color:#1c1b33;font-size:16px;line-height:1.6;">
+          ${lead}
+        </p>
+        <p style="margin:0 0 12px;color:#45445a;font-size:15px;line-height:1.6;">
+          ${body}
+        </p>
+        <p style="margin:0 0 22px;color:#45445a;font-size:15px;line-height:1.6;">
+          ${nextStep}
+        </p>
+        ${notificationStatusHtml(statusLabel)}
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0"
+          style="margin-top:20px;border-top:1px solid #e5e7f5;border-bottom:1px solid #e5e7f5;">
+          ${rows}
+        </table>
+        ${notificationButtonHtml()}
+      </td>
+    </tr>`;
+}
+
+function notificationStatusHtml(statusLabel: string): string {
+  return `
+    <div style="background:#f3f4ff;border:1px solid #d9dcf2;
+      border-radius:12px;padding:16px 18px;">
+      <p style="margin:0 0 10px;color:#252a86;font-size:12px;
+        font-weight:800;text-transform:uppercase;">
+        Estatus actual
+      </p>
+      <p style="margin:0;color:#271e5d;font-size:22px;font-weight:800;">
+        ${statusLabel}
+      </p>
+    </div>`;
+}
+
+function notificationButtonHtml(): string {
+  return `
+    <div style="text-align:center;margin:28px 0 6px;">
+      <a href="${publicAppUrl}/login"
+        style="display:inline-block;background:#252a86;color:#ffffff;
+          text-decoration:none;border-radius:8px;padding:13px 22px;
+          font-size:15px;font-weight:700;">
+        Ver estado de mi solicitud
+      </a>
+    </div>`;
+}
+
+function notificationFooterHtml(): string {
+  return `
+    <tr>
+      <td style="background:#271e5d;color:#ffffff;padding:18px 28px;">
+        <p style="margin:0;font-size:14px;font-weight:700;">
+          Tecnológico Universitario Playacar
+        </p>
+        <p style="margin:4px 0 0;color:#d9dcf2;font-size:12px;">
+          Innovación con sentido humano
+        </p>
+      </td>
+    </tr>`;
+}
+
+function notificationCopy(status: CredentialRequestStatus, note: string): NotificationCopy {
+  const copies: Partial<Record<CredentialRequestStatus, NotificationCopy>> = {
+    SUBMITTED: {
+      title: "Solicitud recibida",
+      lead: "Gracias por enviar tu solicitud de credencial institucional.",
+      body: "El área de sistemas revisará que tus datos y fotografía " +
+        "cumplan con los requisitos.",
+      nextStep: "Puedes consultar el avance desde el portal institucional.",
+      statusLabel: "Solicitud enviada",
+    },
+    UNDER_REVIEW: {
+      title: "Solicitud en revisión",
+      lead: "Tu solicitud ya está siendo revisada por el área de sistemas.",
+      body: "Validaremos la información registrada, la fotografía y los archivos requeridos.",
+      nextStep: "Si necesitamos alguna corrección, te notificaremos por este medio.",
+      statusLabel: "En revisión",
+    },
+    REJECTED: {
+      title: "Solicitud con observaciones",
+      lead: "Necesitamos que realices una corrección para continuar con tu trámite.",
+      body: `Motivo: ${
+        note || "Revisa las observaciones registradas por el área administrativa."
+      }`,
+      nextStep: "Ingresa al portal, corrige la información solicitada " +
+        "y vuelve a enviar tu solicitud.",
+      statusLabel: "Requiere corrección",
+    },
+    APPROVED_FOR_PRINT: {
+      title: "Aprobada para impresión",
+      lead: "Tu solicitud cumple con los requisitos institucionales.",
+      body: "El área de sistemas continuará con el proceso de impresión " +
+        "de tu credencial.",
+      nextStep: "Te avisaremos nuevamente cuando la credencial esté impresa " +
+        "o lista para recoger.",
+      statusLabel: "Aprobada para impresión",
+    },
+    PRINTED: {
+      title: "Credencial impresa",
+      lead: "Tu credencial institucional ya fue impresa correctamente.",
+      body: "Estamos preparando el siguiente paso para que pueda ser entregada.",
+      nextStep: "Recibirás una nueva notificación cuando esté lista para recoger.",
+      statusLabel: "Impresa",
+    },
+    READY_FOR_PICKUP: {
+      title: "Lista para recoger",
+      lead: "Tu credencial institucional del Tecnológico Universitario " +
+        "Playacar ya está lista.",
+      body: "Te esperamos en el área de sistemas.",
+      nextStep: "Recuerda presentar una identificación oficial o indicar " +
+        "tu matrícula institucional.",
+      statusLabel: "Lista para recoger",
+    },
+    DELIVERED: {
+      title: "Entrega confirmada",
+      lead: "Confirmamos que tu credencial institucional fue entregada.",
+      body: "Gracias por completar el proceso de credencialización institucional.",
+      nextStep: "Conserva tu credencial en buen estado; es tu identificación " +
+        "dentro de la universidad.",
+      statusLabel: "Entregada",
+    },
+  };
+
+  return copies[status] || {
+    title: "Actualización de solicitud",
+    lead: "Tu solicitud de credencial institucional tuvo una actualización.",
+    body: "Puedes consultar el detalle desde el portal institucional.",
+    nextStep: "Si tienes dudas, acude al área de sistemas.",
+    statusLabel: "Actualizada",
+  };
+}
+
+function notificationDetailRows(
+  request: StoredCredentialRequest,
+  status: CredentialRequestStatus
+): Array<{label: string; value: string}> {
+  const isStudent = !request.applicantType || request.applicantType === "STUDENT";
+  const rows = [
+    {label: "Tipo de credencial", value: emailApplicantLabel(request.applicantType)},
+    {label: isStudent ? "Matrícula" : "Identificador", value: request.studentId},
+    {label: emailDetailLabel(request.applicantType), value: emailDetailValue(request)},
+    {label: "Estatus", value: notificationCopy(status, "").statusLabel},
+  ];
+
+  if (isStudent && request.cycle) {
+    rows.splice(3, 0, {label: "Cuatrimestre", value: request.cycle});
   }
 
-  if (status === "APPROVED_FOR_PRINT") {
-    return `${base}Tu solicitud fue aprobada para impresión.${footer}`;
+  if (request.credentialNumber) {
+    rows.push({label: "Folio", value: request.credentialNumber});
   }
 
-  if (status === "PRINTED") {
-    return `${base}Tu credencial ya fue impresa.${footer}`;
+  return rows.filter((row) => !!row.value);
+}
+
+function notificationDetailRow(label: string, value: string): string {
+  return `
+    <tr>
+      <td style="padding:10px 0;color:#888887;font-size:13px;">
+        ${escapeHtml(label)}
+      </td>
+      <td style="padding:10px 0;color:#271e5d;font-size:13px;text-align:right;">
+        <strong>${escapeHtml(value)}</strong>
+      </td>
+    </tr>`;
+}
+
+function emailApplicantLabel(type: CredentialApplicantType | undefined): string {
+  if (type === "TEACHER") {
+    return "Docente";
   }
 
-  if (status === "READY_FOR_PICKUP") {
-    return `${base}Tu credencial está lista para entrega.${footer}`;
+  if (type === "STAFF") {
+    return "Administrativo";
   }
 
-  if (status === "DELIVERED") {
-    return `${base}Confirmamos la entrega de tu credencial.${footer}`;
+  return "Estudiante";
+}
+
+function emailDetailLabel(type: CredentialApplicantType | undefined): string {
+  if (type === "TEACHER") {
+    return "Perfil";
   }
 
-  return `${base}Tu solicitud cambió de estatus.${footer}`;
+  if (type === "STAFF") {
+    return "Puesto";
+  }
+
+  return "Programa académico";
+}
+
+function emailDetailValue(request: StoredCredentialRequest): string {
+  if (request.applicantType === "TEACHER") {
+    return "Docente";
+  }
+
+  return request.career;
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 function writeAudit(
