@@ -676,8 +676,37 @@ textarea,
   overflow-wrap: anywhere;
 }
 
-.saeko-file-input {
-  min-width: 0;
+.saeko-file-control {
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+  position: absolute;
+  width: 1px;
+}
+
+.saeko-file-button {
+  align-items: center;
+  background: var(--tup-primary);
+  color: var(--tup-white);
+  cursor: pointer;
+  display: inline-flex;
+  font-weight: 700;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: 0.75rem 1.25rem;
+  transition: background 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+  user-select: none;
+}
+
+.saeko-file-button:hover {
+  background: var(--tup-secondary);
+  box-shadow: 0 12px 22px rgb(39 30 93 / 16%);
+  transform: translateY(-1px);
+}
+
+.saeko-file-control:focus-visible + .saeko-file-button {
+  outline: 3px solid rgb(37 42 134 / 22%);
+  outline-offset: 3px;
 }
 
 .saeko-metrics {

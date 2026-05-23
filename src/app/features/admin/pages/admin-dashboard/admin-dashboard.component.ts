@@ -1768,6 +1768,8 @@ export class AdminDashboardComponent implements OnInit {
     } catch (error) {
       this.importErrorMessage =
         error instanceof Error ? error.message : 'No fue posible leer el archivo.';
+    } finally {
+      input.value = '';
     }
   }
 
@@ -1823,6 +1825,8 @@ export class AdminDashboardComponent implements OnInit {
     } catch (error) {
       this.legacyImportErrorMessage =
         error instanceof Error ? error.message : 'No fue posible leer el archivo historico.';
+    } finally {
+      input.value = '';
     }
   }
 
