@@ -681,8 +681,11 @@ export class AdminDashboardComponent implements OnInit {
     return this.modules.find((module) => module.value === this.activeModule)?.eyebrow || 'Operacion';
   }
 
-  toggleSidebar(): void {
+  toggleSidebar(event?: Event): void {
+    event?.preventDefault();
+    event?.stopPropagation();
     this.sidebarVisible = !this.sidebarVisible;
+    this.changeDetectorRef.detectChanges();
   }
 
   countByStatus(status: CredentialRequestStatus): number {

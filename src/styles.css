@@ -468,11 +468,15 @@ textarea,
   border-left: var(--tup-card-accent);
   border-radius: 8px;
   box-shadow: var(--tup-card-shadow);
-  display: grid;
+  display: none;
   gap: 1rem;
   grid-area: sidebar;
   grid-template-rows: 1fr auto;
   padding: 1rem;
+}
+
+.admin-sidebar-open {
+  display: grid;
 }
 
 .admin-sidebar-nav {
