@@ -405,6 +405,10 @@ export const syncUserSession = onCall(callableOptions, async (request) => {
     });
   }
 
+  if (institutionalProfile?.hasLegacyCredential) {
+    await linkLegacyCredentialRequests(email, auth.uid, now);
+  }
+
   return {role};
 });
 
@@ -809,21 +813,23 @@ export const importLegacyCredentials = onCall(callableOptions, async (request) =
 
   const now = Timestamp.now();
   const legacyRows = rows.map((row, index) => validateLegacyCredentialRow(row, index, now));
+  const existingFirstTime = await findExistingFirstTimeKeys(legacyRows);
+  const userUidByEmail = await resolveExistingUserUids(legacyRows.map((row) => row.email));
   let batch = db.batch();
   let pendingWrites = 0;
   let imported = 0;
   let skipped = 0;
 
   for (const legacyRow of legacyRows) {
-    const sameStudent = await requests.where("studentId", "==", legacyRow.studentId).get();
-    const sameEmail = await requests.where("email", "==", legacyRow.email).get();
-
-    if (hasFirstTimeRequest([...sameStudent.docs, ...sameEmail.docs])) {
+    if (
+      existingFirstTime.studentIds.has(legacyRow.studentId) ||
+      existingFirstTime.emails.has(legacyRow.email)
+    ) {
       skipped++;
       continue;
     }
 
-    const uid = await resolveExistingUserUid(legacyRow.email);
+    const uid = userUidByEmail.get(legacyRow.email) || legacyUid(legacyRow.email);
     const requestRef = requests.doc();
     const requestPayload = buildLegacyCredentialPayload(legacyRow, uid, auth.uid, now);
     const profilePayload = buildLegacyInstitutionalProfile(legacyRow, now);
@@ -832,6 +838,8 @@ export const importLegacyCredentials = onCall(callableOptions, async (request) =
     batch.set(institutionalProfiles.doc(legacyRow.email), profilePayload, {merge: true});
     pendingWrites += 2;
     imported++;
+    existingFirstTime.studentIds.add(legacyRow.studentId);
+    existingFirstTime.emails.add(legacyRow.email);
 
     if (pendingWrites >= 420) {
       await batch.commit();
@@ -1034,6 +1042,106 @@ function requireLegacyCredentialStatus(
   );
 }
 
+async function findExistingFirstTimeKeys(rows: ValidatedLegacyCredentialRow[]) {
+  const studentIds = new Set<string>();
+  const emails = new Set<string>();
+  const rowStudentIds = uniqueStrings(rows.map((row) => row.studentId));
+  const rowEmails = uniqueStrings(rows.map((row) => row.email));
+
+  for (const chunk of chunkArray(rowStudentIds, 30)) {
+    const snapshot = await requests.where("studentId", "in", chunk).get();
+    collectFirstTimeKeys(snapshot.docs, studentIds, emails);
+  }
+
+  for (const chunk of chunkArray(rowEmails, 30)) {
+    const snapshot = await requests.where("email", "in", chunk).get();
+    collectFirstTimeKeys(snapshot.docs, studentIds, emails);
+  }
+
+  return {studentIds, emails};
+}
+
+function collectFirstTimeKeys(
+  docs: FirebaseFirestore.QueryDocumentSnapshot[],
+  studentIds: Set<string>,
+  emails: Set<string>
+): void {
+  for (const doc of docs) {
+    const data = doc.data() as StoredCredentialRequest;
+
+    if (!data.requestType || data.requestType === "FIRST_TIME") {
+      studentIds.add(data.studentId);
+      emails.add(data.email);
+    }
+  }
+}
+
+async function resolveExistingUserUids(emails: string[]): Promise<Map<string, string>> {
+  const userUidByEmail = new Map<string, string>();
+
+  for (const chunk of chunkArray(uniqueStrings(emails), 100)) {
+    try {
+      const result = await adminAuth.getUsers(chunk.map((email) => ({email})));
+
+      for (const user of result.users) {
+        if (user.email) {
+          userUidByEmail.set(normalizeEmail(user.email), user.uid);
+        }
+      }
+    } catch (_error) {
+      continue;
+    }
+  }
+
+  return userUidByEmail;
+}
+
+async function linkLegacyCredentialRequests(
+  email: string,
+  uid: string,
+  now: Timestamp
+): Promise<void> {
+  const snapshot = await requests.where("email", "==", email).get();
+  const legacyDocs = snapshot.docs.filter((doc) => {
+    const data = doc.data() as StoredCredentialRequest;
+
+    return data.source === "LEGACY_IMPORT" && data.uid === legacyUid(email);
+  });
+
+  if (!legacyDocs.length) {
+    return;
+  }
+
+  const batch = db.batch();
+
+  for (const doc of legacyDocs) {
+    batch.update(doc.ref, {
+      uid,
+      updatedAt: now,
+    });
+  }
+
+  await batch.commit();
+}
+
+function uniqueStrings(values: string[]): string[] {
+  return Array.from(new Set(values.filter(Boolean)));
+}
+
+function chunkArray<T>(items: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size));
+  }
+
+  return chunks;
+}
+
+function legacyUid(email: string): string {
+  return `legacy:${email}`;
+}
+
 function parseLegacyDate(value: unknown, rowNumber: number, fallback: Timestamp): Timestamp {
   const clean = cleanOptionalString(value);
 
@@ -1051,16 +1159,6 @@ function parseLegacyDate(value: unknown, rowNumber: number, fallback: Timestamp)
   }
 
   return Timestamp.fromDate(date);
-}
-
-async function resolveExistingUserUid(email: string): Promise<string> {
-  try {
-    const userRecord = await adminAuth.getUserByEmail(email);
-
-    return userRecord.uid;
-  } catch (_error) {
-    return `legacy:${email}`;
-  }
 }
 
 function buildLegacyCredentialPayload(

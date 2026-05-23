@@ -1933,6 +1933,7 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   private parseCsv(text: string): string[][] {
+    const delimiter = this.detectCsvDelimiter(text);
     const rows: string[][] = [];
     let row: string[] = [];
     let cell = '';
@@ -1953,7 +1954,7 @@ export class AdminDashboardComponent implements OnInit {
         continue;
       }
 
-      if (char === ',' && !quoted) {
+      if (char === delimiter && !quoted) {
         row.push(cell.trim());
         cell = '';
         continue;
@@ -1978,6 +1979,14 @@ export class AdminDashboardComponent implements OnInit {
     rows.push(row);
 
     return rows;
+  }
+
+  private detectCsvDelimiter(text: string): ',' | ';' {
+    const headerLine = text.split(/\r?\n/).find((line) => line.trim()) || '';
+    const commaCount = (headerLine.match(/,/g) || []).length;
+    const semicolonCount = (headerLine.match(/;/g) || []).length;
+
+    return semicolonCount > commaCount ? ';' : ',';
   }
 
   private validateSaekoPreviewRow(row: SaekoPreviewRow): void {
@@ -2058,6 +2067,7 @@ export class AdminDashboardComponent implements OnInit {
 
   private normalizeHeader(header: string): string {
     return header
+      .replace(/^\uFEFF/, '')
       .trim()
       .toLowerCase()
       .normalize('NFD')
