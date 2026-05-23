@@ -1325,7 +1325,28 @@
         }
       </section>
     } @else if (activeModule === 'saeko') {
-      <section class="saeko-layout">
+      <section class="import-dashboard">
+        <div class="import-tabs rounded-lg" role="tablist" aria-label="Modos de importacion">
+          <button
+            type="button"
+            class="import-tab rounded-md"
+            [class.import-tab-active]="importTab === 'saeko'"
+            (click)="setImportTab('saeko')"
+          >
+            Importacion Saeko
+          </button>
+          <button
+            type="button"
+            class="import-tab rounded-md"
+            [class.import-tab-active]="importTab === 'legacy'"
+            (click)="setImportTab('legacy')"
+          >
+            Importacion Historica
+          </button>
+        </div>
+
+        @if (importTab === 'saeko') {
+          <section class="saeko-layout">
         <mat-card class="saeko-card institution-card !rounded-lg !shadow-none">
           <mat-card-header>
             <mat-card-title>Importacion Saeko</mat-card-title>
@@ -1450,6 +1471,149 @@ TUP2104,tup2104&#64;tecplayacar.edu.mx,Nombre Alumno,Lic. Administracion de Empr
             </mat-card-content>
           </mat-card>
         </aside>
+          </section>
+        } @else {
+          <section class="saeko-layout">
+            <mat-card class="saeko-card institution-card !rounded-lg !shadow-none">
+              <mat-card-header>
+                <mat-card-title>Importacion Historica</mat-card-title>
+                <mat-card-subtitle>
+                  Registra credenciales ya entregadas antes de usar este sistema.
+                </mat-card-subtitle>
+              </mat-card-header>
+
+              <mat-card-content class="saeko-card-content grid gap-5 pt-6">
+                <div class="file-drop rounded-lg p-5">
+                  <label class="block text-sm font-semibold text-[var(--tup-ink)]">
+                    Archivo CSV historico
+                  </label>
+                  <input
+                    class="saeko-file-input mt-3 w-full text-sm"
+                    type="file"
+                    accept=".csv,text/csv"
+                    (change)="loadLegacyFile($event)"
+                  />
+                  <p class="mt-3 text-xs leading-5 text-[var(--tup-muted)]">
+                    Columnas: matricula, correo, nombre, programa, cuatrimestre, folio,
+                    estatus, fecha_entrega, telefono.
+                  </p>
+                  @if (selectedLegacyFileName) {
+                    <p class="saeko-file-name mt-2 text-sm text-emerald-700">
+                      {{ selectedLegacyFileName }}
+                    </p>
+                  }
+                </div>
+
+                <div class="saeko-metrics">
+                  <article class="metric-card rounded-lg p-4">
+                    <p class="text-xs font-semibold uppercase text-[var(--tup-gray)]">Registros</p>
+                    <p class="mt-2 text-2xl font-bold text-[var(--tup-ink)]">{{ legacyRows.length }}</p>
+                  </article>
+                  <article class="metric-card rounded-lg p-4">
+                    <p class="text-xs font-semibold uppercase text-[var(--tup-gray)]">Validos</p>
+                    <p class="mt-2 text-2xl font-bold text-emerald-700">{{ validLegacyRows.length }}</p>
+                  </article>
+                  <article class="metric-card rounded-lg p-4">
+                    <p class="text-xs font-semibold uppercase text-[var(--tup-gray)]">Observaciones</p>
+                    <p class="mt-2 text-2xl font-bold text-red-700">{{ invalidLegacyRows.length }}</p>
+                  </article>
+                </div>
+
+                <p class="saeko-summary rounded-md bg-[var(--tup-soft-blue)] px-3 py-2 text-sm text-[var(--tup-primary)]">
+                  {{ legacySummary }}
+                </p>
+
+                @if (legacyImportErrorMessage) {
+                  <p class="saeko-message rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+                    {{ legacyImportErrorMessage }}
+                  </p>
+                }
+
+                @if (legacyImportSuccessMessage) {
+                  <p class="saeko-message rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+                    {{ legacyImportSuccessMessage }}
+                  </p>
+                }
+
+                @if (legacyRows.length) {
+                  <div class="saeko-preview-table saeko-table-shell rounded-lg border border-[var(--tup-line)] bg-white">
+                    <table class="saeko-table w-full text-left text-sm">
+                      <thead>
+                        <tr>
+                          <th>Fila</th>
+                          <th>Correo</th>
+                          <th>Nombre</th>
+                          <th>Matricula</th>
+                          <th>Programa</th>
+                          <th>Cuatrimestre</th>
+                          <th>Folio</th>
+                          <th>Estatus</th>
+                          <th>Observaciones</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (row of legacyRows; track row.rowNumber) {
+                          <tr [class.saeko-row-error]="row.errors.length">
+                            <td>{{ row.rowNumber }}</td>
+                            <td>{{ row.email }}</td>
+                            <td>{{ row.name || '-' }}</td>
+                            <td>{{ row.studentId || '-' }}</td>
+                            <td>{{ row.career || '-' }}</td>
+                            <td>{{ row.cycle || '-' }}</td>
+                            <td>{{ row.credentialNumber || 'Automatico' }}</td>
+                            <td>{{ row.status === 'PRINTED' ? 'Impresa' : 'Entregada' }}</td>
+                            <td>{{ row.errors.length ? row.errors.join(' ') : 'Listo' }}</td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                }
+
+                <div>
+                  <button
+                    mat-flat-button
+                    color="primary"
+                    type="button"
+                    class="!h-11 !rounded-md"
+                    [disabled]="importingLegacyCredentials || !validLegacyRows.length"
+                    (click)="importLegacyCredentials()"
+                  >
+                    @if (importingLegacyCredentials) {
+                      <mat-progress-spinner diameter="22" mode="indeterminate"></mat-progress-spinner>
+                    } @else {
+                      Aplicar importacion historica
+                    }
+                  </button>
+                </div>
+              </mat-card-content>
+            </mat-card>
+
+            <aside class="saeko-side-panel grid gap-4 content-start">
+              <mat-card class="saeko-card institution-card !rounded-lg !shadow-none">
+                <mat-card-header>
+                  <mat-card-title>Que genera</mat-card-title>
+                </mat-card-header>
+                <mat-card-content class="saeko-copy grid gap-3 pt-4 text-sm leading-6 text-[var(--tup-muted)]">
+                  <p>Crea una solicitud de primera vez marcada como impresa o entregada.</p>
+                  <p>Marca el perfil del alumno con credencial historica para bloquear nuevo tramite de primera vez.</p>
+                  <p>Si el alumno pide otra credencial despues, solo vera reposicion y debera adjuntar comprobante.</p>
+                </mat-card-content>
+              </mat-card>
+
+              <mat-card class="saeko-card institution-card !rounded-lg !shadow-none">
+                <mat-card-header>
+                  <mat-card-title>Ejemplo CSV</mat-card-title>
+                </mat-card-header>
+                <mat-card-content class="saeko-card-content pt-4">
+                  <pre class="csv-example rounded-md p-3 text-xs">matricula,correo,nombre,programa,cuatrimestre,folio,estatus,fecha_entrega,telefono
+TUP2104,tup2104&#64;tecplayacar.edu.mx,Nombre Alumno,Lic. Administracion de Empresas,Segundo cuatrimestre,LEG-2025-001,entregada,2025-08-15,9841234567
+TUP3042,tup3042&#64;tecplayacar.edu.mx,Matias Rodriguez,Maestria en Administracion de Hospitales,Segundo cuatrimestre,,impresa,,</pre>
+                </mat-card-content>
+              </mat-card>
+            </aside>
+          </section>
+        }
       </section>
     } @else {
       <section class="template-designer-layout">

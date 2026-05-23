@@ -610,6 +610,39 @@ textarea,
   }
 }
 
+.import-dashboard {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.import-tabs {
+  align-items: center;
+  background: var(--tup-white);
+  border: 1px solid var(--tup-line);
+  border-left: var(--tup-card-accent);
+  box-shadow: var(--tup-card-shadow);
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  width: fit-content;
+}
+
+.import-tab {
+  border: 1px solid transparent;
+  color: var(--tup-muted);
+  font-weight: 700;
+  padding: 0.75rem 1rem;
+  transition: background 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+.import-tab-active {
+  background: var(--tup-soft-blue);
+  border-color: var(--tup-primary);
+  color: var(--tup-primary);
+}
+
 .saeko-layout {
   align-items: start;
   display: grid;

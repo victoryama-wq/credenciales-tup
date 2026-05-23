@@ -19,6 +19,8 @@ import {
   CredentialRequest,
   CredentialRequestStatus,
   CredentialRequestType,
+  LegacyCredentialImportResult,
+  LegacyCredentialImportRow,
 } from '../models/credential-request.model';
 
 interface CreateCredentialRequestPayload {
@@ -42,6 +44,10 @@ interface UpdateCredentialRequestStatusPayload {
   requestId: string;
   status: CredentialRequestStatus;
   note?: string;
+}
+
+interface ImportLegacyCredentialsPayload {
+  rows: LegacyCredentialImportRow[];
 }
 
 @Injectable({
@@ -110,6 +116,18 @@ export class CredentialRequestService {
       status,
       note,
     });
+  }
+
+  async importLegacyCredentials(
+    rows: LegacyCredentialImportRow[]
+  ): Promise<LegacyCredentialImportResult> {
+    const importLegacyCredentials = httpsCallable<
+      ImportLegacyCredentialsPayload,
+      LegacyCredentialImportResult
+    >(functions, 'importLegacyCredentials');
+    const result = await importLegacyCredentials({ rows });
+
+    return result.data;
   }
 
   private async uploadDocument(

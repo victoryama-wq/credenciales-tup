@@ -20,6 +20,8 @@ import {
   CredentialRequest,
   CredentialRequestStatus,
   CredentialTimelineEvent,
+  LegacyCredentialImportResult,
+  LegacyCredentialImportRow,
   canTransitionCredentialRequestStatus,
   credentialApplicantTypeLabels,
   credentialRequestTypeLabels,
@@ -61,6 +63,7 @@ type AdminModule =
   | 'saeko'
   | 'templates';
 
+type ImportTab = 'saeko' | 'legacy';
 type CredentialTemplateNumericMetric = 'x' | 'y' | 'w' | 'h' | 'fontSize';
 
 interface CredentialTemplateEditorField {
@@ -70,6 +73,10 @@ interface CredentialTemplateEditorField {
 }
 
 interface SaekoPreviewRow extends SaekoImportRow {
+  errors: string[];
+}
+
+interface LegacyCredentialPreviewRow extends LegacyCredentialImportRow {
   errors: string[];
 }
 
@@ -205,9 +212,9 @@ export class AdminDashboardComponent implements OnInit {
     },
     {
       value: 'saeko',
-      label: 'Importacion Saeko',
+      label: 'Importacion',
       eyebrow: 'Control Escolar',
-      description: 'Estatus, programa y cuatrimestre real.',
+      description: 'Perfiles Saeko y credenciales historicas.',
     },
     {
       value: 'templates',
@@ -252,9 +259,15 @@ export class AdminDashboardComponent implements OnInit {
   batchMessage = '';
   batchErrorMessage = '';
   notes: Record<string, string> = {};
+  importTab: ImportTab = 'saeko';
   saekoRows: SaekoPreviewRow[] = [];
   selectedSaekoFileName = '';
   importingProfiles = false;
+  legacyRows: LegacyCredentialPreviewRow[] = [];
+  selectedLegacyFileName = '';
+  importingLegacyCredentials = false;
+  legacyImportErrorMessage = '';
+  legacyImportSuccessMessage = '';
   selectedTemplateApplicant: CredentialApplicantType = 'STUDENT';
   selectedTemplateSide: CredentialTemplateSide = 'front';
   selectedTemplateField: CredentialTemplateFieldKey = 'photo';
@@ -661,11 +674,39 @@ export class AdminDashboardComponent implements OnInit {
     return `${this.validSaekoRows.length} validos, ${this.invalidSaekoRows.length} con observaciones.`;
   }
 
+  get validLegacyRows(): LegacyCredentialImportRow[] {
+    return this.legacyRows
+      .filter((row) => row.errors.length === 0)
+      .map(({ errors: _errors, ...row }) => row);
+  }
+
+  get invalidLegacyRows(): LegacyCredentialPreviewRow[] {
+    return this.legacyRows.filter((row) => row.errors.length > 0);
+  }
+
+  get legacySummary(): string {
+    if (!this.legacyRows.length) {
+      return 'Aun no hay archivo historico cargado.';
+    }
+
+    return `${this.validLegacyRows.length} validos, ${this.invalidLegacyRows.length} con observaciones.`;
+  }
+
   setActiveModule(module: AdminModule): void {
     this.activeModule = module;
     this.errorMessage = '';
     this.importErrorMessage = '';
     this.importSuccessMessage = '';
+    this.legacyImportErrorMessage = '';
+    this.legacyImportSuccessMessage = '';
+  }
+
+  setImportTab(tab: ImportTab): void {
+    this.importTab = tab;
+    this.importErrorMessage = '';
+    this.importSuccessMessage = '';
+    this.legacyImportErrorMessage = '';
+    this.legacyImportSuccessMessage = '';
   }
 
   selectModule(module: AdminModule): void {
@@ -1283,6 +1324,10 @@ export class AdminDashboardComponent implements OnInit {
       return `Importacion Saeko: ${this.auditText(after['imported']) || '0'} de ${this.auditText(after['total']) || '0'} registros.`;
     }
 
+    if (log.action === 'legacy_credentials.import') {
+      return `Importacion historica: ${this.auditText(after['imported']) || '0'} aplicados, ${this.auditText(after['skipped']) || '0'} omitidos.`;
+    }
+
     return 'Evento registrado en bitacora.';
   }
 
@@ -1749,6 +1794,66 @@ export class AdminDashboardComponent implements OnInit {
     }
   }
 
+  async loadLegacyFile(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+
+    this.legacyImportErrorMessage = '';
+    this.legacyImportSuccessMessage = '';
+    this.legacyRows = [];
+    this.selectedLegacyFileName = file?.name || '';
+
+    if (!file) {
+      return;
+    }
+
+    if (!file.name.toLowerCase().endsWith('.csv')) {
+      this.legacyImportErrorMessage = 'Por ahora el importador historico acepta archivos CSV.';
+      input.value = '';
+      return;
+    }
+
+    try {
+      const text = await file.text();
+      this.legacyRows = this.parseLegacyCsv(text);
+
+      if (!this.legacyRows.length) {
+        this.legacyImportErrorMessage = 'El CSV no contiene registros historicos para importar.';
+      }
+    } catch (error) {
+      this.legacyImportErrorMessage =
+        error instanceof Error ? error.message : 'No fue posible leer el archivo historico.';
+    }
+  }
+
+  async importLegacyCredentials(): Promise<void> {
+    const rows = this.validLegacyRows;
+
+    if (!rows.length) {
+      this.legacyImportErrorMessage = 'No hay registros historicos validos para importar.';
+      return;
+    }
+
+    this.importingLegacyCredentials = true;
+    this.legacyImportErrorMessage = '';
+    this.legacyImportSuccessMessage = '';
+
+    try {
+      const result: LegacyCredentialImportResult =
+        await this.requestService.importLegacyCredentials(rows);
+      this.legacyImportSuccessMessage =
+        `Importacion historica completa: ${result.imported} aplicados, ` +
+        `${result.skipped} omitidos de ${result.total}.`;
+    } catch (error) {
+      this.legacyImportErrorMessage =
+        error instanceof Error
+          ? error.message
+          : 'No fue posible importar las credenciales historicas.';
+    } finally {
+      this.importingLegacyCredentials = false;
+    }
+  }
+
   async logout(): Promise<void> {
     await this.authService.logout();
     await this.router.navigate(['/login']);
@@ -1786,6 +1891,38 @@ export class AdminDashboardComponent implements OnInit {
       };
 
       this.validateSaekoPreviewRow(preview);
+
+      return preview;
+    });
+  }
+
+  private parseLegacyCsv(text: string): LegacyCredentialPreviewRow[] {
+    const rows = this.parseCsv(text).filter((row) => row.some((cell) => cell.trim()));
+
+    if (rows.length < 2) {
+      return [];
+    }
+
+    const headers = rows[0].map((header) => this.normalizeHeader(header));
+
+    return rows.slice(1).map((row, index) => {
+      const rowNumber = index + 2;
+      const value = (...names: string[]) => this.valueForHeader(row, headers, names);
+      const preview: LegacyCredentialPreviewRow = {
+        rowNumber,
+        email: value('correo', 'email', 'correo institucional').toLowerCase(),
+        studentId: value('matricula', 'matricula escolar', 'studentid', 'student id'),
+        name: value('nombre', 'nombre completo', 'alumno'),
+        career: value('programa', 'programa academico', 'carrera'),
+        cycle: value('cuatrimestre', 'ciclo', 'periodo'),
+        credentialNumber: value('folio', 'numero credencial', 'numero de credencial'),
+        status: this.normalizeLegacyStatus(value('estatus', 'status', 'estado')),
+        deliveredAt: value('fecha entrega', 'fecha_entrega', 'entregado el', 'fecha'),
+        phone: value('telefono', 'teléfono', 'celular'),
+        errors: [],
+      };
+
+      this.validateLegacyPreviewRow(preview);
 
       return preview;
     });
@@ -1871,6 +2008,40 @@ export class AdminDashboardComponent implements OnInit {
     }
   }
 
+  private validateLegacyPreviewRow(row: LegacyCredentialPreviewRow): void {
+    if (!row.email.endsWith('@tecplayacar.edu.mx')) {
+      row.errors.push('Correo institucional invalido.');
+    }
+
+    if (!/^tup\d{4,}@tecplayacar\.edu\.mx$/.test(row.email)) {
+      row.errors.push('La importacion historica es solo para alumnos.');
+    }
+
+    if (!row.studentId) {
+      row.errors.push('Falta matricula.');
+    }
+
+    if (!row.name) {
+      row.errors.push('Falta nombre.');
+    }
+
+    if (!row.career) {
+      row.errors.push('Falta programa.');
+    }
+
+    if (!row.cycle) {
+      row.errors.push('Falta cuatrimestre.');
+    }
+
+    if (!row.status) {
+      row.errors.push('Estatus historico no reconocido.');
+    }
+
+    if (row.deliveredAt && Number.isNaN(Date.parse(row.deliveredAt))) {
+      row.errors.push('Fecha de entrega invalida.');
+    }
+  }
+
   private valueForHeader(row: string[], headers: string[], names: string[]): string {
     const index = headers.findIndex((header) => names.includes(header));
 
@@ -1910,6 +2081,20 @@ export class AdminDashboardComponent implements OnInit {
     }
 
     return 'STAFF';
+  }
+
+  private normalizeLegacyStatus(value: string): 'PRINTED' | 'DELIVERED' {
+    const normalized = this.normalizeHeader(value);
+
+    if (!normalized || ['entregada', 'entregado', 'delivered'].includes(normalized)) {
+      return 'DELIVERED';
+    }
+
+    if (['impresa', 'impreso', 'printed'].includes(normalized)) {
+      return 'PRINTED';
+    }
+
+    return '' as 'PRINTED' | 'DELIVERED';
   }
 
   private credentialTemplateKey(request: CredentialRequest): CredentialTemplateKey {

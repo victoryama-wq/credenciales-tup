@@ -89,6 +89,36 @@ interface ImportInstitutionalProfilesData {
   rows?: InstitutionalProfileImportRow[];
 }
 
+interface LegacyCredentialImportRow {
+  rowNumber?: number;
+  email?: string;
+  studentId?: string;
+  name?: string;
+  career?: string;
+  cycle?: string;
+  credentialNumber?: string;
+  status?: CredentialRequestStatus;
+  deliveredAt?: string;
+  phone?: string;
+}
+
+interface ImportLegacyCredentialsData {
+  rows?: LegacyCredentialImportRow[];
+}
+
+interface ValidatedLegacyCredentialRow {
+  rowNumber: number;
+  email: string;
+  studentId: string;
+  name: string;
+  career: string;
+  cycle: string;
+  credentialNumber: string;
+  status: "PRINTED" | "DELIVERED";
+  issuedAt: Timestamp;
+  phone: string;
+}
+
 interface InstitutionalProfile {
   email: string;
   applicantType: CredentialApplicantType;
@@ -99,7 +129,11 @@ interface InstitutionalProfile {
   currentTerm?: string;
   position?: string;
   active: boolean;
-  source: "SAEKO";
+  source: "SAEKO" | "LEGACY_IMPORT";
+  hasLegacyCredential?: boolean;
+  legacyCredentialStatus?: "PRINTED" | "DELIVERED";
+  legacyCredentialNumber?: string;
+  legacyCredentialImportedAt?: Timestamp;
   importedAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -123,6 +157,8 @@ interface StoredCredentialRequest {
   printBatchId?: string;
   reviewedAt?: Timestamp;
   updatedAt?: Timestamp;
+  source?: string;
+  importedAt?: Timestamp;
 }
 
 interface StoredPrintBatch {
@@ -210,6 +246,14 @@ export const createCredentialRequest = onCall(callableOptions, async (request) =
   assertVerifiedEmail(auth.token.email_verified);
   const institutionalProfile = await getInstitutionalProfile(normalizedEmail);
   const input = validateCreateData(data, auth.uid, normalizedEmail, institutionalProfile);
+
+  if (input.requestType === "FIRST_TIME" && institutionalProfile?.hasLegacyCredential) {
+    throw new HttpsError(
+      "already-exists",
+      "La credencial por primera vez ya existe en el historico institucional."
+    );
+  }
+
   const now = Timestamp.now();
   const requestRef = requests.doc();
 
@@ -348,7 +392,7 @@ export const syncUserSession = onCall(callableOptions, async (request) => {
     career: institutionalProfile?.career || "",
     currentTerm: institutionalProfile?.currentTerm || "",
     position: institutionalProfile?.position || "",
-    statusSource: institutionalProfile ? "SAEKO" : "EMAIL_PATTERN",
+    statusSource: institutionalProfile?.source || "EMAIL_PATTERN",
     updatedAt: now,
   };
 
@@ -738,6 +782,89 @@ export const importInstitutionalProfiles = onCall(callableOptions, async (reques
   };
 });
 
+export const importLegacyCredentials = onCall(callableOptions, async (request) => {
+  const auth = request.auth;
+
+  if (!auth) {
+    throw new HttpsError("unauthenticated", "Inicia sesion.");
+  }
+
+  if (!isAdmin(auth.token)) {
+    throw new HttpsError("permission-denied", "Requiere rol administrativo.");
+  }
+
+  const data = request.data as ImportLegacyCredentialsData;
+  const rows = Array.isArray(data.rows) ? data.rows : [];
+
+  if (!rows.length) {
+    throw new HttpsError("invalid-argument", "El archivo no contiene registros.");
+  }
+
+  if (rows.length > 3000) {
+    throw new HttpsError(
+      "invalid-argument",
+      "Importa un maximo de 3000 registros por archivo."
+    );
+  }
+
+  const now = Timestamp.now();
+  const legacyRows = rows.map((row, index) => validateLegacyCredentialRow(row, index, now));
+  let batch = db.batch();
+  let pendingWrites = 0;
+  let imported = 0;
+  let skipped = 0;
+
+  for (const legacyRow of legacyRows) {
+    const sameStudent = await requests.where("studentId", "==", legacyRow.studentId).get();
+    const sameEmail = await requests.where("email", "==", legacyRow.email).get();
+
+    if (hasFirstTimeRequest([...sameStudent.docs, ...sameEmail.docs])) {
+      skipped++;
+      continue;
+    }
+
+    const uid = await resolveExistingUserUid(legacyRow.email);
+    const requestRef = requests.doc();
+    const requestPayload = buildLegacyCredentialPayload(legacyRow, uid, auth.uid, now);
+    const profilePayload = buildLegacyInstitutionalProfile(legacyRow, now);
+
+    batch.set(requestRef, requestPayload);
+    batch.set(institutionalProfiles.doc(legacyRow.email), profilePayload, {merge: true});
+    pendingWrites += 2;
+    imported++;
+
+    if (pendingWrites >= 420) {
+      await batch.commit();
+      batch = db.batch();
+      pendingWrites = 0;
+    }
+  }
+
+  batch.set(db.collection("audit_logs").doc(), {
+    actorUid: auth.uid,
+    action: "legacy_credentials.import",
+    entity: "credential_requests",
+    entityId: "legacy-import",
+    before: null,
+    after: {
+      imported,
+      skipped,
+      total: rows.length,
+      source: "LEGACY_IMPORT",
+    },
+    timestamp: now,
+  });
+
+  await batch.commit();
+
+  return {
+    ok: true,
+    imported,
+    skipped,
+    total: rows.length,
+  };
+});
+
 function validateCreateData(
   data: CreateCredentialRequestData,
   uid: string,
@@ -845,6 +972,191 @@ function validateInstitutionalProfileRow(
   }
 
   return profile;
+}
+
+function validateLegacyCredentialRow(
+  row: LegacyCredentialImportRow,
+  index: number,
+  now: Timestamp
+): ValidatedLegacyCredentialRow {
+  const rowNumber = row.rowNumber || index + 2;
+  const email = normalizeEmail(row.email);
+  assertInstitutionalEmail(email);
+
+  if (resolveApplicantTypeByEmail(email) !== "STUDENT") {
+    throw new HttpsError(
+      "invalid-argument",
+      `La fila ${rowNumber} no corresponde a una cuenta de alumno.`
+    );
+  }
+
+  const studentId = normalizeIdentifier(
+    requireBoundedString(row.studentId, `matricula fila ${rowNumber}`, maxIdentifierLength),
+    `matricula fila ${rowNumber}`
+  );
+  const credentialNumber = cleanBoundedString(
+    row.credentialNumber,
+    `folio fila ${rowNumber}`,
+    maxIdentifierLength
+  ) || `LEG-${studentId}`;
+  const status = requireLegacyCredentialStatus(row.status, rowNumber);
+  const phone = cleanBoundedString(row.phone, `telefono fila ${rowNumber}`, maxPhoneLength);
+
+  if (phone) {
+    normalizePhone(phone);
+  }
+
+  return {
+    rowNumber,
+    email,
+    studentId,
+    name: requireBoundedString(row.name, `nombre fila ${rowNumber}`, maxNameLength),
+    career: requireBoundedString(row.career, `programa fila ${rowNumber}`, maxCareerLength),
+    cycle: requireBoundedString(row.cycle, `cuatrimestre fila ${rowNumber}`, maxCycleLength),
+    credentialNumber: normalizeIdentifier(credentialNumber, `folio fila ${rowNumber}`),
+    status,
+    issuedAt: parseLegacyDate(row.deliveredAt, rowNumber, now),
+    phone: phone || "No registrado",
+  };
+}
+
+function requireLegacyCredentialStatus(
+  value: unknown,
+  rowNumber: number
+): "PRINTED" | "DELIVERED" {
+  if (value === "PRINTED" || value === "DELIVERED") {
+    return value;
+  }
+
+  throw new HttpsError(
+    "invalid-argument",
+    `Estatus historico invalido en fila ${rowNumber}.`
+  );
+}
+
+function parseLegacyDate(value: unknown, rowNumber: number, fallback: Timestamp): Timestamp {
+  const clean = cleanOptionalString(value);
+
+  if (!clean) {
+    return fallback;
+  }
+
+  const date = new Date(clean);
+
+  if (Number.isNaN(date.getTime())) {
+    throw new HttpsError(
+      "invalid-argument",
+      `Fecha de entrega invalida en fila ${rowNumber}.`
+    );
+  }
+
+  return Timestamp.fromDate(date);
+}
+
+async function resolveExistingUserUid(email: string): Promise<string> {
+  try {
+    const userRecord = await adminAuth.getUserByEmail(email);
+
+    return userRecord.uid;
+  } catch (_error) {
+    return `legacy:${email}`;
+  }
+}
+
+function buildLegacyCredentialPayload(
+  row: ValidatedLegacyCredentialRow,
+  uid: string,
+  actorUid: string,
+  now: Timestamp
+) {
+  const qrToken = randomUUID();
+  const timeline = [
+    {
+      status: "SUBMITTED",
+      actorUid,
+      note: "Registro historico importado.",
+      timestamp: row.issuedAt,
+    },
+    {
+      status: "APPROVED_FOR_PRINT",
+      actorUid,
+      note: "Credencial historica aprobada para impresion.",
+      timestamp: row.issuedAt,
+    },
+    {
+      status: "PRINTED",
+      actorUid,
+      note: "Credencial historica impresa.",
+      timestamp: row.issuedAt,
+    },
+  ];
+
+  if (row.status === "DELIVERED") {
+    timeline.push(
+      {
+        status: "READY_FOR_PICKUP",
+        actorUid,
+        note: "Credencial historica lista para entrega.",
+        timestamp: row.issuedAt,
+      },
+      {
+        status: "DELIVERED",
+        actorUid,
+        note: "Credencial historica entregada.",
+        timestamp: row.issuedAt,
+      }
+    );
+  }
+
+  return {
+    uid,
+    applicantType: "STUDENT",
+    requestType: "FIRST_TIME",
+    email: row.email,
+    studentId: row.studentId,
+    name: row.name,
+    career: row.career,
+    cycle: row.cycle,
+    phone: row.phone,
+    status: row.status,
+    photoUrl: `${publicAppUrl}/logo-tup.png`,
+    documents: [],
+    timeline,
+    submittedAt: row.issuedAt,
+    reviewedAt: row.issuedAt,
+    printedAt: row.issuedAt,
+    readyForPickupAt: row.status === "DELIVERED" ? row.issuedAt : null,
+    deliveredAt: row.status === "DELIVERED" ? row.issuedAt : null,
+    updatedAt: now,
+    credentialNumber: row.credentialNumber,
+    qrToken,
+    verificationUrl: buildVerificationUrl(qrToken),
+    source: "LEGACY_IMPORT",
+    importedAt: now,
+  };
+}
+
+function buildLegacyInstitutionalProfile(
+  row: ValidatedLegacyCredentialRow,
+  now: Timestamp
+): InstitutionalProfile {
+  return {
+    email: row.email,
+    applicantType: "STUDENT",
+    academicStatus: "ACTIVE",
+    studentId: row.studentId,
+    name: row.name,
+    career: row.career,
+    currentTerm: row.cycle,
+    active: true,
+    source: "LEGACY_IMPORT",
+    hasLegacyCredential: true,
+    legacyCredentialStatus: row.status,
+    legacyCredentialNumber: row.credentialNumber,
+    legacyCredentialImportedAt: now,
+    importedAt: now,
+    updatedAt: now,
+  };
 }
 
 async function getInstitutionalProfile(email: string): Promise<InstitutionalProfile | null> {

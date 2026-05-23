@@ -7,7 +7,7 @@ export type InstitutionalAcademicStatus =
   | 'GRADUATED'
   | 'SUSPENDED';
 
-export type InstitutionalProfileSource = 'SAEKO' | 'ADMIN' | 'EMAIL_PATTERN';
+export type InstitutionalProfileSource = 'SAEKO' | 'ADMIN' | 'EMAIL_PATTERN' | 'LEGACY_IMPORT';
 
 export const institutionalAcademicStatusLabels: Record<InstitutionalAcademicStatus, string> = {
   ACTIVE: 'Activo',
@@ -28,6 +28,10 @@ export interface InstitutionalProfile {
   position?: string;
   active: boolean;
   source: InstitutionalProfileSource;
+  hasLegacyCredential?: boolean;
+  legacyCredentialStatus?: 'PRINTED' | 'DELIVERED';
+  legacyCredentialNumber?: string;
+  legacyCredentialImportedAt?: Timestamp;
   importedAt?: Timestamp;
   updatedAt?: Timestamp;
 }

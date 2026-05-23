@@ -141,7 +141,10 @@ export class StudentDashboardComponent implements OnInit {
   }
 
   get hasFirstTimeRequest(): boolean {
-    return this.requests.some((request) => request.requestType !== 'REPLACEMENT');
+    return (
+      this.institutionalProfile?.hasLegacyCredential === true ||
+      this.requests.some((request) => request.requestType !== 'REPLACEMENT')
+    );
   }
 
   get hasInstitutionalProfile(): boolean {
@@ -193,6 +196,9 @@ export class StudentDashboardComponent implements OnInit {
 
             if (profile) {
               this.applyInstitutionalProfile(profile);
+              if (this.hasFirstTimeRequest && this.selectedRequestType === 'FIRST_TIME') {
+                this.form.controls.requestType.setValue('REPLACEMENT');
+              }
             }
           },
           error: (error) => {
@@ -367,6 +373,10 @@ export class StudentDashboardComponent implements OnInit {
     this.form.controls.studentId.disable({ emitEvent: false });
     this.form.controls.career.disable({ emitEvent: false });
     this.form.controls.cycle.disable({ emitEvent: false });
+
+    if (profile.hasLegacyCredential && this.selectedRequestType === 'FIRST_TIME') {
+      this.form.controls.requestType.setValue('REPLACEMENT', { emitEvent: false });
+    }
   }
 
   private buildMissingDataMessage(): string {

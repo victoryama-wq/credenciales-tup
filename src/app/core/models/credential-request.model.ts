@@ -105,6 +105,8 @@ export interface CredentialRequest {
   printedAt?: Timestamp;
   readyForPickupAt?: Timestamp;
   deliveredAt?: Timestamp;
+  source?: 'LEGACY_IMPORT' | string;
+  importedAt?: Timestamp;
 }
 
 export interface CreateCredentialRequestInput {
@@ -131,4 +133,24 @@ export interface CredentialVerificationResult {
   career?: string;
   cycle?: string;
   verifiedAt?: string;
+}
+
+export interface LegacyCredentialImportRow {
+  rowNumber: number;
+  email: string;
+  studentId: string;
+  name: string;
+  career: string;
+  cycle: string;
+  credentialNumber?: string;
+  status?: 'PRINTED' | 'DELIVERED';
+  deliveredAt?: string;
+  phone?: string;
+}
+
+export interface LegacyCredentialImportResult {
+  ok: boolean;
+  imported: number;
+  skipped: number;
+  total: number;
 }

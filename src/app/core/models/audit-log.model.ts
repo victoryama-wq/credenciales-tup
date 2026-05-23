@@ -30,4 +30,5 @@ export const auditActionLabels: Record<string, string> = {
   'print_batch.create': 'Lote creado',
   'print_batch.printed': 'Lote marcado como impreso',
   'institutional_profiles.import': 'Importacion Saeko',
+  'legacy_credentials.import': 'Importacion historica',
 };
