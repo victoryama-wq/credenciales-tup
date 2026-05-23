@@ -176,6 +176,76 @@ textarea,
   color: var(--tup-primary);
 }
 
+.request-type-tabs {
+  align-items: stretch;
+  background: var(--tup-white);
+  border: 1px solid var(--tup-line);
+  border-left: var(--tup-card-accent);
+  box-shadow: var(--tup-card-shadow);
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.75rem;
+}
+
+.request-type-tab {
+  align-items: center;
+  background: var(--tup-white);
+  border: 1px solid var(--tup-line);
+  color: var(--tup-muted);
+  cursor: pointer;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  min-height: 78px;
+  padding: 0.9rem 1rem;
+  text-align: left;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+  width: 100%;
+}
+
+.request-type-tab:hover,
+.request-type-tab-active {
+  background: var(--tup-soft-blue);
+  border-color: rgb(37 42 134 / 32%);
+  box-shadow: inset 4px 0 0 var(--tup-primary);
+  color: var(--tup-primary);
+}
+
+.request-type-tab:hover {
+  transform: translateY(-1px);
+}
+
+.request-type-tab-label {
+  color: var(--tup-ink);
+  display: grid;
+  font-weight: 700;
+  gap: 0.25rem;
+}
+
+.request-type-tab-label strong {
+  color: var(--tup-primary);
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+.request-type-tab-description {
+  color: var(--tup-muted);
+  font-size: 0.88rem;
+  line-height: 1.35;
+  max-width: 18rem;
+}
+
+@media (min-width: 768px) {
+  .request-type-tabs {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 .metric-card {
   border: 1px solid var(--tup-line);
   border-left: var(--tup-card-accent);
@@ -586,7 +656,7 @@ textarea,
   }
 
   .admin-dashboard-filters {
-    grid-template-columns: 240px 288px;
+    grid-template-columns: minmax(280px, 320px) 288px;
     width: auto;
   }
 }

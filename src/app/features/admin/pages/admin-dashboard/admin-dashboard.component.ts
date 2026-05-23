@@ -86,6 +86,12 @@ interface DashboardBreakdownRow {
   percent: number;
 }
 
+interface RequestApplicantTab {
+  value: CredentialApplicantType;
+  label: string;
+  description: string;
+}
+
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
@@ -121,6 +127,23 @@ export class AdminDashboardComponent implements OnInit {
   readonly auditEntityLabels = auditEntityLabels;
   readonly academicStatusLabels = institutionalAcademicStatusLabels;
   readonly applicantTypes: CredentialApplicantType[] = ['STUDENT', 'TEACHER', 'STAFF'];
+  readonly requestApplicantTabs: RequestApplicantTab[] = [
+    {
+      value: 'STUDENT',
+      label: 'Estudiantes',
+      description: 'Matricula, programa y cuatrimestre.',
+    },
+    {
+      value: 'TEACHER',
+      label: 'Docentes',
+      description: 'Personal docente institucional.',
+    },
+    {
+      value: 'STAFF',
+      label: 'Administrativos',
+      description: 'Colaboradores y personal administrativo.',
+    },
+  ];
   readonly deliveryStatuses: CredentialRequestStatus[] = [
     'PRINTED',
     'READY_FOR_PICKUP',
@@ -232,7 +255,8 @@ export class AdminDashboardComponent implements OnInit {
   importErrorMessage = '';
   importSuccessMessage = '';
   statusFilter: CredentialRequestStatus | 'ALL' = 'ALL';
-  applicantFilter: CredentialApplicantType | 'ALL' = 'ALL';
+  requestApplicantTab: CredentialApplicantType = 'STUDENT';
+  requestSearchTerm = '';
   deliveryStatusFilter: CredentialRequestStatus | 'ALL' = 'ALL';
   deliveryApplicantFilter: CredentialApplicantType | 'ALL' = 'ALL';
   reportStatusFilter: CredentialRequestStatus | 'ALL' = 'ALL';
@@ -361,14 +385,18 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   get filteredRequests(): CredentialRequest[] {
-    return this.requests.filter((request) => {
+    return this.requestTabRequests.filter((request) => {
       const matchesStatus = this.statusFilter === 'ALL' || request.status === this.statusFilter;
-      const matchesApplicant =
-        this.applicantFilter === 'ALL' ||
-        (request.applicantType || 'STUDENT') === this.applicantFilter;
+      const matchesSearch = this.matchesRequestSearch(request);
 
-      return matchesStatus && matchesApplicant;
+      return matchesStatus && matchesSearch;
     });
+  }
+
+  get requestTabRequests(): CredentialRequest[] {
+    return this.requests.filter(
+      (request) => (request.applicantType || 'STUDENT') === this.requestApplicantTab
+    );
   }
 
   get batchCandidateRequests(): CredentialRequest[] {
@@ -733,6 +761,23 @@ export class AdminDashboardComponent implements OnInit {
     return this.requests.filter((request) => request.status === status).length;
   }
 
+  requestStatusCount(status: CredentialRequestStatus): number {
+    return this.requestTabRequests.filter((request) => request.status === status).length;
+  }
+
+  requestApplicantCount(type: CredentialApplicantType): number {
+    return this.requests.filter((request) => (request.applicantType || 'STUDENT') === type).length;
+  }
+
+  setRequestApplicantTab(type: CredentialApplicantType): void {
+    this.requestApplicantTab = type;
+  }
+
+  updateRequestSearch(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.requestSearchTerm = input.value;
+  }
+
   deliveryCountByStatus(status: CredentialRequestStatus): number {
     return this.requests.filter((request) => request.status === status).length;
   }
@@ -931,6 +976,34 @@ export class AdminDashboardComponent implements OnInit {
 
   timelineDate(event: CredentialTimelineEvent): Date {
     return event.timestamp.toDate();
+  }
+
+  private matchesRequestSearch(request: CredentialRequest): boolean {
+    const term = this.normalizeSearchTerm(this.requestSearchTerm);
+
+    if (!term) {
+      return true;
+    }
+
+    return [
+      request.name,
+      request.email,
+      request.studentId,
+      request.career,
+      request.cycle,
+      request.phone,
+      request.credentialNumber || '',
+      this.applicantLabel(request.applicantType),
+      this.statusLabels[request.status],
+    ].some((value) => this.normalizeSearchTerm(value).includes(term));
+  }
+
+  private normalizeSearchTerm(value: string): string {
+    return value
+      .trim()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
   }
 
   private timestampMillis(value?: { toMillis: () => number } | null): number | null {

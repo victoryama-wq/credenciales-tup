@@ -82,14 +82,15 @@
 
       @if (activeModule === 'requests') {
         <div class="admin-dashboard-filters">
-          <mat-form-field appearance="outline" class="w-full md:w-60">
-            <mat-label>Tipo de solicitante</mat-label>
-            <mat-select [(value)]="applicantFilter">
-              <mat-option value="ALL">Todos</mat-option>
-              @for (type of applicantTypes; track type) {
-                <mat-option [value]="type">{{ applicantTypeLabels[type] }}</mat-option>
-              }
-            </mat-select>
+          <mat-form-field appearance="outline" class="w-full md:w-80">
+            <mat-label>Buscar en esta pestaña</mat-label>
+            <input
+              matInput
+              type="search"
+              [value]="requestSearchTerm"
+              (input)="updateRequestSearch($event)"
+              placeholder="Matricula, nombre, programa o puesto"
+            />
           </mat-form-field>
 
           <mat-form-field appearance="outline" class="w-full md:w-72">
@@ -678,8 +679,25 @@
         @for (status of statuses; track status) {
           <article class="metric-card rounded-lg p-4">
             <p class="text-xs font-semibold uppercase text-[var(--tup-gray)]">{{ statusLabels[status] }}</p>
-            <p class="mt-2 text-2xl font-bold text-[var(--tup-ink)]">{{ countByStatus(status) }}</p>
+            <p class="mt-2 text-2xl font-bold text-[var(--tup-ink)]">{{ requestStatusCount(status) }}</p>
           </article>
+        }
+      </section>
+
+      <section class="request-type-tabs mb-6 rounded-lg" aria-label="Tipo de credencial">
+        @for (tab of requestApplicantTabs; track tab.value) {
+          <button
+            type="button"
+            class="request-type-tab rounded-md"
+            [class.request-type-tab-active]="requestApplicantTab === tab.value"
+            (click)="setRequestApplicantTab(tab.value)"
+          >
+            <span class="request-type-tab-label">
+              {{ tab.label }}
+              <strong>{{ requestApplicantCount(tab.value) }}</strong>
+            </span>
+            <span class="request-type-tab-description">{{ tab.description }}</span>
+          </button>
         }
       </section>
 
@@ -694,7 +712,9 @@
       } @else if (!filteredRequests.length) {
         <mat-card class="institution-card !rounded-lg !shadow-none">
           <mat-card-content class="py-8">
-            <p class="text-center text-[var(--tup-muted)]">No hay solicitudes con este filtro.</p>
+            <p class="text-center text-[var(--tup-muted)]">
+              No hay solicitudes en esta categoria con los filtros actuales.
+            </p>
           </mat-card-content>
         </mat-card>
       } @else {
