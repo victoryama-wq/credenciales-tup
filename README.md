@@ -38,6 +38,7 @@ URL publica: `https://credencial-tup.web.app`
 - Comprobante obligatorio en reposicion.
 - Guia de fotografia, carga desde camara o archivo, preview de imagen y limite
   maximo de 10 MB.
+- Optimizacion automatica de foto de credencial antes de subirla a Storage.
 - Seguimiento de solicitudes rechazadas con carga de correcciones.
 
 ### Portal administrativo
@@ -94,3 +95,5 @@ firebase deploy --only hosting
   a que el siguiente tramite del alumno sea reposicion con comprobante.
 - Las correcciones de solicitudes rechazadas suben archivos a subcarpetas
   `correction-*` dentro de `credential-requests/{uid}/{requestId}`.
+- Las fotos de credencial se convierten a JPEG y se reducen en navegador; los
+  comprobantes se conservan sin compresion para mantener legibilidad.

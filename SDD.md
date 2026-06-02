@@ -165,6 +165,17 @@ Reglas:
 El frontend normaliza MIME de `.jpg` a `image/jpeg` para compatibilidad con
 celulares y reglas de Storage.
 
+Las fotos de credencial se comprimen en el navegador antes de subirse:
+
+- Salida: JPEG.
+- Dimension maxima: 1200 px por lado.
+- Calidad inicial: 0.86.
+- Objetivo aproximado: menor a 900 KB cuando sea posible.
+- Aplica a solicitudes nuevas, reposiciones y correcciones.
+
+Los comprobantes no se comprimen por defecto para conservar legibilidad de
+recibos y documentos PDF.
+
 ## 6. Cloud Functions
 
 Funciones callable principales:

@@ -29,7 +29,8 @@ El sistema cubre:
 - Portal administrativo por modulos.
 - Reglas de primera vez contra reposicion.
 - Comprobante de pago obligatorio en reposicion.
-- Foto obligatoria con preview, guia visual y limite de 10 MB.
+- Foto obligatoria con preview, guia visual, optimizacion previa a la subida y
+  limite de 10 MB.
 - Validacion backend en Cloud Functions.
 - Correo transaccional por estatus.
 - Verificacion publica por QR.
@@ -129,7 +130,8 @@ Capacidades:
 2. El sistema valida dominio institucional.
 3. El sistema detecta el tipo de solicitante.
 4. El usuario llena solo los campos que le corresponden.
-5. El usuario adjunta foto JPG/PNG de hasta 10 MB.
+5. El usuario adjunta foto JPG/PNG de hasta 10 MB; el navegador la optimiza a
+   JPEG antes de subirla a Storage.
 6. Si el tramite es reposicion, adjunta comprobante JPG/PNG/PDF de hasta 10 MB.
 7. La solicitud se crea con estatus `SUBMITTED`.
 8. El sistema registra timeline, auditoria y notificacion.
@@ -162,6 +164,7 @@ Cuando una solicitud se rechaza:
 - El administrador debe registrar motivo.
 - El solicitante ve el motivo en su portal.
 - El solicitante puede cargar foto corregida, comprobante corregido o nota.
+- Las fotos corregidas tambien se optimizan antes de subirse a Storage.
 - El boton administrativo para retomar revision debe habilitarse solo cuando
   existe seguimiento del solicitante.
 - El seguimiento de correccion debe adjuntarse a la solicitud rechazada

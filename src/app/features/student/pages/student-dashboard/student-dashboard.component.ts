@@ -28,6 +28,7 @@ import {
 } from '../../../../core/models/institutional-profile.model';
 import { InstitutionalProfileService } from '../../../../core/services/institutional-profile.service';
 import { InstitutionalDialogService } from '../../../../core/services/institutional-dialog.service';
+import { ImageCompressionService } from '../../../../core/services/image-compression.service';
 
 @Component({
   selector: 'app-student-dashboard',
@@ -52,6 +53,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
   private requestService = inject(CredentialRequestService);
   private institutionalProfileService = inject(InstitutionalProfileService);
   private dialogService = inject(InstitutionalDialogService);
+  private imageCompressionService = inject(ImageCompressionService);
   private destroyRef = inject(DestroyRef);
   private router = inject(Router);
 
@@ -108,10 +110,12 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
   evidenceFile: File | null = null;
   photoPreviewUrl = '';
   evidencePreviewUrl = '';
+  optimizingPhoto = false;
   correctionPhotoFiles: Record<string, File | null> = {};
   correctionEvidenceFiles: Record<string, File | null> = {};
   correctionPhotoPreviewUrls: Record<string, string> = {};
   correctionEvidencePreviewUrls: Record<string, string> = {};
+  optimizingCorrectionPhotoIds: Record<string, boolean> = {};
   correctionNotes: Record<string, string> = {};
   correctionSubmittingId = '';
   recentFirstTimeSubmitted = false;
@@ -253,7 +257,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
     );
   }
 
-  setFile(event: Event, type: 'photo' | 'evidence'): void {
+  async setFile(event: Event, type: 'photo' | 'evidence'): Promise<void> {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0] ?? null;
 
@@ -267,24 +271,35 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
     }
 
     if (type === 'photo') {
-      this.photoFile = file;
-      this.recentFirstTimeSubmitted = false;
-      this.revokePhotoPreview();
-      this.photoPreviewUrl = this.createPreviewUrl(file);
-    } else {
-      this.evidenceFile = file;
-      this.revokeEvidencePreview();
-      this.evidencePreviewUrl = this.createPreviewUrl(file);
+      this.optimizingPhoto = true;
+
+      try {
+        const optimizedPhoto = await this.prepareCredentialPhoto(file);
+        this.photoFile = optimizedPhoto;
+        this.recentFirstTimeSubmitted = false;
+        this.revokePhotoPreview();
+        this.photoPreviewUrl = this.createPreviewUrl(optimizedPhoto);
+      } catch (error) {
+        this.showPhotoCompressionError(error);
+      } finally {
+        this.optimizingPhoto = false;
+        input.value = '';
+      }
+
+      return;
     }
 
+    this.evidenceFile = file;
+    this.revokeEvidencePreview();
+    this.evidencePreviewUrl = this.createPreviewUrl(file);
     input.value = '';
   }
 
-  setCorrectionFile(
+  async setCorrectionFile(
     requestId: string,
     event: Event,
     type: 'photo' | 'evidence'
-  ): void {
+  ): Promise<void> {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0] ?? null;
 
@@ -298,15 +313,26 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
     }
 
     if (type === 'photo') {
-      this.correctionPhotoFiles[requestId] = file;
-      this.revokeCorrectionPhotoPreview(requestId);
-      this.correctionPhotoPreviewUrls[requestId] = this.createPreviewUrl(file);
-    } else {
-      this.correctionEvidenceFiles[requestId] = file;
-      this.revokeCorrectionEvidencePreview(requestId);
-      this.correctionEvidencePreviewUrls[requestId] = this.createPreviewUrl(file);
+      this.optimizingCorrectionPhotoIds[requestId] = true;
+
+      try {
+        const optimizedPhoto = await this.prepareCredentialPhoto(file);
+        this.correctionPhotoFiles[requestId] = optimizedPhoto;
+        this.revokeCorrectionPhotoPreview(requestId);
+        this.correctionPhotoPreviewUrls[requestId] = this.createPreviewUrl(optimizedPhoto);
+      } catch (error) {
+        this.showPhotoCompressionError(error);
+      } finally {
+        delete this.optimizingCorrectionPhotoIds[requestId];
+        input.value = '';
+      }
+
+      return;
     }
 
+    this.correctionEvidenceFiles[requestId] = file;
+    this.revokeCorrectionEvidencePreview(requestId);
+    this.correctionEvidencePreviewUrls[requestId] = this.createPreviewUrl(file);
     input.value = '';
   }
 
@@ -672,6 +698,25 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
     }
 
     return URL.createObjectURL(file);
+  }
+
+  private async prepareCredentialPhoto(file: File): Promise<File> {
+    const result = await this.imageCompressionService.compressCredentialPhoto(file);
+
+    return result.file;
+  }
+
+  private showPhotoCompressionError(error: unknown): void {
+    this.errorMessage =
+      error instanceof Error ? error.message : 'No fue posible optimizar la foto.';
+    this.dialogService.open({
+      title: 'No fue posible optimizar la foto',
+      message:
+        'La foto no pudo procesarse correctamente. Intenta con otra imagen en formato JPG o PNG. ' +
+        'Si tu celular la guardo como HEIC, cambia el formato de camara o exportala como JPG.',
+      actionLabel: 'Entendido',
+      variant: 'warning',
+    });
   }
 
   private normalizedFileContentType(file: File): string {
