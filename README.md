@@ -92,3 +92,5 @@ firebase deploy --only hosting
 - Las reglas criticas tambien se validan en Functions, no solo en la UI.
 - Las credenciales historicas importadas se consideran ya entregadas y obligan
   a que el siguiente tramite del alumno sea reposicion con comprobante.
+- Las correcciones de solicitudes rechazadas suben archivos a subcarpetas
+  `correction-*` dentro de `credential-requests/{uid}/{requestId}`.

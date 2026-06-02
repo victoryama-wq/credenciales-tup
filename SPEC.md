@@ -164,6 +164,8 @@ Cuando una solicitud se rechaza:
 - El solicitante puede cargar foto corregida, comprobante corregido o nota.
 - El boton administrativo para retomar revision debe habilitarse solo cuando
   existe seguimiento del solicitante.
+- El seguimiento de correccion debe adjuntarse a la solicitud rechazada
+  original; no debe crear una solicitud nueva.
 
 ## 7. Credenciales historicas
 

@@ -41,6 +41,16 @@ service firebase.storage {
       allow delete: if false;
     }
 
+    match /credential-requests/{uid}/{requestId}/{correctionFolder}/{fileName} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow create: if signedIn()
+        && request.auth.uid == uid
+        && correctionFolder.matches('correction-.*')
+        && (isPhoto(fileName) || isEvidence(fileName));
+      allow update: if false;
+      allow delete: if false;
+    }
+
     match /credential-templates/{fileName} {
       allow read: if isAdmin();
       allow create, update: if isAdmin() && isCredentialTemplate(fileName);

@@ -147,6 +147,8 @@ Rutas:
 
 - `credential-requests/{uid}/{folder}/photo-{fileName}`
 - `credential-requests/{uid}/{folder}/evidence-{fileName}`
+- `credential-requests/{uid}/{requestId}/correction-{timestamp}/photo-{fileName}`
+- `credential-requests/{uid}/{requestId}/correction-{timestamp}/evidence-{fileName}`
 - `credential-templates/{type}-{side}.png`
 - `credential-templates/{type}-{side}.svg`
 
@@ -157,6 +159,8 @@ Reglas:
 - Templates: PNG/SVG, maximo 5 MB.
 - Usuarios solo crean archivos propios.
 - Administradores pueden leer archivos de solicitudes.
+- Las correcciones de solicitudes rechazadas se guardan en subcarpetas
+  `correction-*` bajo el `requestId` original.
 
 El frontend normaliza MIME de `.jpg` a `image/jpeg` para compatibilidad con
 celulares y reglas de Storage.
