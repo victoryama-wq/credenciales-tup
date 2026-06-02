@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { Component, DestroyRef, OnDestroy, OnInit, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -12,6 +12,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../../core/services/auth.service';
+import { resolveApplicantTypeByEmail } from '../../../../core/auth/institutional-email.util';
 import {
   CredentialApplicantType,
   CredentialRequest,
@@ -26,6 +27,7 @@ import {
   institutionalAcademicStatusLabels,
 } from '../../../../core/models/institutional-profile.model';
 import { InstitutionalProfileService } from '../../../../core/services/institutional-profile.service';
+import { InstitutionalDialogService } from '../../../../core/services/institutional-dialog.service';
 
 @Component({
   selector: 'app-student-dashboard',
@@ -44,11 +46,12 @@ import { InstitutionalProfileService } from '../../../../core/services/instituti
   ],
   templateUrl: './student-dashboard.component.html',
 })
-export class StudentDashboardComponent implements OnInit {
+export class StudentDashboardComponent implements OnInit, OnDestroy {
   private fb = inject(FormBuilder);
   private authService = inject(AuthService);
   private requestService = inject(CredentialRequestService);
   private institutionalProfileService = inject(InstitutionalProfileService);
+  private dialogService = inject(InstitutionalDialogService);
   private destroyRef = inject(DestroyRef);
   private router = inject(Router);
 
@@ -57,6 +60,7 @@ export class StudentDashboardComponent implements OnInit {
   readonly academicStatusLabels = institutionalAcademicStatusLabels;
   readonly requestTypeLabels = credentialRequestTypeLabels;
   readonly requestTypes: CredentialRequestType[] = ['FIRST_TIME', 'REPLACEMENT'];
+  readonly studentIdPattern = /^TUP\d{3,}$/;
   readonly careers = [
     'Lic. Administración de Empresas',
     'Lic. Administración de Empresas Turísticas',
@@ -102,14 +106,24 @@ export class StudentDashboardComponent implements OnInit {
   successMessage = '';
   photoFile: File | null = null;
   evidenceFile: File | null = null;
+  photoPreviewUrl = '';
+  evidencePreviewUrl = '';
+  correctionPhotoFiles: Record<string, File | null> = {};
+  correctionEvidenceFiles: Record<string, File | null> = {};
+  correctionPhotoPreviewUrls: Record<string, string> = {};
+  correctionEvidencePreviewUrls: Record<string, string> = {};
+  correctionNotes: Record<string, string> = {};
+  correctionSubmittingId = '';
+  recentFirstTimeSubmitted = false;
   requests: CredentialRequest[] = [];
   detectedApplicantType: CredentialApplicantType = 'STUDENT';
   institutionalProfile: InstitutionalProfile | null = null;
+  private blockedProfileModalShownFor = '';
 
   form = this.fb.nonNullable.group({
     applicantType: ['STUDENT' as CredentialApplicantType, Validators.required],
     requestType: ['FIRST_TIME' as CredentialRequestType, Validators.required],
-    studentId: ['', [Validators.required, Validators.minLength(4)]],
+    studentId: ['', [Validators.required, Validators.pattern(this.studentIdPattern)]],
     name: ['', [Validators.required, Validators.minLength(3)]],
     career: ['', Validators.required],
     cycle: ['Primer cuatrimestre', Validators.required],
@@ -175,6 +189,7 @@ export class StudentDashboardComponent implements OnInit {
       .subscribe((requestType) => {
         if (requestType === 'FIRST_TIME') {
           this.evidenceFile = null;
+          this.revokeEvidencePreview();
         }
       });
 
@@ -196,6 +211,7 @@ export class StudentDashboardComponent implements OnInit {
 
             if (profile) {
               this.applyInstitutionalProfile(profile);
+              this.showBlockedProfileModal(profile);
               if (this.hasFirstTimeRequest && this.selectedRequestType === 'FIRST_TIME') {
                 this.form.controls.requestType.setValue('REPLACEMENT');
               }
@@ -225,6 +241,18 @@ export class StudentDashboardComponent implements OnInit {
       });
   }
 
+  ngOnDestroy(): void {
+    this.revokePhotoPreview();
+    this.revokeEvidencePreview();
+
+    Object.keys(this.correctionPhotoPreviewUrls).forEach((requestId) =>
+      this.revokeCorrectionPhotoPreview(requestId)
+    );
+    Object.keys(this.correctionEvidencePreviewUrls).forEach((requestId) =>
+      this.revokeCorrectionEvidencePreview(requestId)
+    );
+  }
+
   setFile(event: Event, type: 'photo' | 'evidence'): void {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0] ?? null;
@@ -240,8 +268,117 @@ export class StudentDashboardComponent implements OnInit {
 
     if (type === 'photo') {
       this.photoFile = file;
+      this.recentFirstTimeSubmitted = false;
+      this.revokePhotoPreview();
+      this.photoPreviewUrl = this.createPreviewUrl(file);
     } else {
       this.evidenceFile = file;
+      this.revokeEvidencePreview();
+      this.evidencePreviewUrl = this.createPreviewUrl(file);
+    }
+
+    input.value = '';
+  }
+
+  setCorrectionFile(
+    requestId: string,
+    event: Event,
+    type: 'photo' | 'evidence'
+  ): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+
+    if (!file) {
+      return;
+    }
+
+    if (!this.isAllowedFile(file, type)) {
+      input.value = '';
+      return;
+    }
+
+    if (type === 'photo') {
+      this.correctionPhotoFiles[requestId] = file;
+      this.revokeCorrectionPhotoPreview(requestId);
+      this.correctionPhotoPreviewUrls[requestId] = this.createPreviewUrl(file);
+    } else {
+      this.correctionEvidenceFiles[requestId] = file;
+      this.revokeCorrectionEvidencePreview(requestId);
+      this.correctionEvidencePreviewUrls[requestId] = this.createPreviewUrl(file);
+    }
+
+    input.value = '';
+  }
+
+  updateCorrectionNote(requestId: string, event: Event): void {
+    const input = event.target as HTMLTextAreaElement;
+    this.correctionNotes[requestId] = input.value;
+  }
+
+  hasCorrectionData(requestId: string): boolean {
+    return !!(
+      this.correctionPhotoFiles[requestId] ||
+      this.correctionEvidenceFiles[requestId] ||
+      this.correctionNotes[requestId]?.trim()
+    );
+  }
+
+  async submitCorrection(request: CredentialRequest): Promise<void> {
+    const user = await this.authService.waitForCurrentUser();
+
+    if (!user) {
+      this.errorMessage = 'Inicia sesión para enviar el seguimiento.';
+      return;
+    }
+
+    if (!this.hasCorrectionData(request.id)) {
+      this.errorMessage = 'Adjunta la corrección solicitada o escribe una nota de seguimiento.';
+      return;
+    }
+
+    this.correctionSubmittingId = request.id;
+    this.errorMessage = '';
+    this.successMessage = '';
+
+    try {
+      await this.requestService.submitCorrection({
+        uid: user.uid,
+        requestId: request.id,
+        note: this.correctionNotes[request.id]?.trim(),
+        photo: this.correctionPhotoFiles[request.id],
+        evidence: this.correctionEvidenceFiles[request.id],
+      });
+      this.correctionPhotoFiles[request.id] = null;
+      this.correctionEvidenceFiles[request.id] = null;
+      this.revokeCorrectionPhotoPreview(request.id);
+      this.revokeCorrectionEvidencePreview(request.id);
+      this.correctionNotes[request.id] = '';
+      this.successMessage = 'Seguimiento enviado correctamente. El área administrativa podrá reabrir la revisión.';
+    } catch (error) {
+      this.errorMessage =
+        error instanceof Error ? error.message : 'No fue posible enviar el seguimiento.';
+      this.dialogService.open({
+        title: 'No fue posible enviar el seguimiento',
+        message:
+          'No pudimos registrar la correccion en este momento. Revisa tu conexion e intenta nuevamente.',
+        actionLabel: 'Entendido',
+        variant: 'error',
+      });
+    } finally {
+      this.correctionSubmittingId = '';
+    }
+  }
+
+  formatStudentIdInput(): void {
+    if (!this.isStudentApplicant || this.form.controls.studentId.disabled) {
+      return;
+    }
+
+    const current = this.form.controls.studentId.value;
+    const formatted = this.normalizeStudentId(current);
+
+    if (formatted !== current) {
+      this.form.controls.studentId.setValue(formatted, { emitEvent: false });
     }
   }
 
@@ -256,6 +393,9 @@ export class StudentDashboardComponent implements OnInit {
     if (!this.canSubmitCredentialRequest) {
       const status = this.institutionalProfile?.academicStatus || 'WITHDRAWN';
       this.errorMessage = `Tu perfil institucional aparece como ${this.academicStatusLabels[status]}. Contacta a Control Escolar.`;
+      if (this.institutionalProfile) {
+        this.showBlockedProfileModal(this.institutionalProfile, true);
+      }
       return;
     }
 
@@ -281,7 +421,7 @@ export class StudentDashboardComponent implements OnInit {
         email: user.email || '',
         applicantType,
         requestType: formValue.requestType,
-        studentId: isStudent ? formValue.studentId : generatedIdentifier,
+        studentId: isStudent ? this.normalizeStudentId(formValue.studentId) : generatedIdentifier,
         name: formValue.name,
         career: isStudent || isStaff ? formValue.career : 'Docente',
         cycle: isStudent ? formValue.cycle : 'No aplica',
@@ -301,10 +441,21 @@ export class StudentDashboardComponent implements OnInit {
       });
       this.photoFile = null;
       this.evidenceFile = null;
+      this.revokePhotoPreview();
+      this.revokeEvidencePreview();
+      this.recentFirstTimeSubmitted = formValue.requestType === 'FIRST_TIME';
       this.successMessage = 'Solicitud enviada correctamente.';
     } catch (error) {
       this.errorMessage =
         error instanceof Error ? error.message : 'No fue posible enviar la solicitud.';
+      this.dialogService.open({
+        title: 'No fue posible enviar la solicitud',
+        message:
+          'No pudimos registrar tu tramite en este momento. Revisa tu conexion e intenta nuevamente. ' +
+          'Si el problema continua, contacta al area de sistemas.',
+        actionLabel: 'Entendido',
+        variant: 'error',
+      });
     } finally {
       this.submitting = false;
     }
@@ -349,6 +500,13 @@ export class StudentDashboardComponent implements OnInit {
       : '';
   }
 
+  isReplacementRequest(request: CredentialRequest): boolean {
+    return (
+      request.requestType === 'REPLACEMENT' ||
+      request.documents?.some((document) => document.type === 'evidence') === true
+    );
+  }
+
   private applyInstitutionalProfile(profile: InstitutionalProfile): void {
     this.detectedApplicantType = profile.applicantType;
     this.form.controls.applicantType.setValue(profile.applicantType, { emitEvent: false });
@@ -357,7 +515,7 @@ export class StudentDashboardComponent implements OnInit {
     this.form.patchValue(
       {
         name: profile.name,
-        studentId: profile.studentId || '',
+        studentId: profile.studentId ? this.normalizeStudentId(profile.studentId) : '',
         career:
           profile.applicantType === 'STAFF'
             ? profile.position || profile.career || ''
@@ -379,6 +537,29 @@ export class StudentDashboardComponent implements OnInit {
     }
   }
 
+  private showBlockedProfileModal(profile: InstitutionalProfile, force = false): void {
+    if (profile.academicStatus === 'ACTIVE') {
+      return;
+    }
+
+    const modalKey = `${profile.email}:${profile.academicStatus}`;
+
+    if (!force && this.blockedProfileModalShownFor === modalKey) {
+      return;
+    }
+
+    this.blockedProfileModalShownFor = modalKey;
+    this.dialogService.open({
+      title: 'No es posible iniciar el tramite',
+      message:
+        `Tu perfil institucional aparece como ${this.academicStatusLabels[profile.academicStatus]}. ` +
+        'Por este estatus no se puede generar una nueva solicitud de credencial. ' +
+        'Si consideras que es un error, contacta al area de sistemas.',
+      actionLabel: 'Entendido',
+      variant: 'warning',
+    });
+  }
+
   private buildMissingDataMessage(): string {
     if (this.isReplacement && !this.evidenceFile) {
       return 'Completa el formulario y adjunta foto y comprobante de pago.';
@@ -396,18 +577,7 @@ export class StudentDashboardComponent implements OnInit {
   }
 
   private detectApplicantType(email: string): CredentialApplicantType {
-    const cleanEmail = email.trim().toLowerCase();
-    const account = cleanEmail.split('@')[0] || '';
-
-    if (/^tup-d\d{4,}$/.test(account)) {
-      return 'TEACHER';
-    }
-
-    if (/^tup\d{4,}$/.test(account)) {
-      return 'STUDENT';
-    }
-
-    return 'STAFF';
+    return resolveApplicantTypeByEmail(email);
   }
 
   private applyApplicantValidators(applicantType: CredentialApplicantType): void {
@@ -415,7 +585,7 @@ export class StudentDashboardComponent implements OnInit {
     const isStaff = applicantType === 'STAFF';
 
     this.form.controls.studentId.setValidators(
-      isStudent ? [Validators.required, Validators.minLength(4)] : []
+      isStudent ? [Validators.required, Validators.pattern(this.studentIdPattern)] : []
     );
     this.form.controls.career.setValidators(
       isStudent || isStaff ? [Validators.required, Validators.minLength(2)] : []
@@ -446,12 +616,22 @@ export class StudentDashboardComponent implements OnInit {
     const validPhoto = ['image/jpeg', 'image/png'];
     const validEvidence = ['image/jpeg', 'image/png', 'application/pdf'];
     const validTypes = type === 'photo' ? validPhoto : validEvidence;
+    const contentType = this.normalizedFileContentType(file);
 
-    if (!validTypes.includes(file.type)) {
+    if (!validTypes.includes(contentType)) {
       this.errorMessage =
         type === 'photo'
           ? 'La foto debe ser JPG o PNG.'
           : 'La evidencia debe ser JPG, PNG o PDF.';
+      this.dialogService.open({
+        title: 'Formato no permitido',
+        message:
+          type === 'photo'
+            ? 'La foto debe estar en formato JPG o PNG. Si tomaste la foto en celular, revisa que no se haya guardado como HEIC.'
+            : 'El comprobante debe estar en formato JPG, PNG o PDF.',
+        actionLabel: 'Entendido',
+        variant: 'warning',
+      });
       return false;
     }
 
@@ -460,10 +640,96 @@ export class StudentDashboardComponent implements OnInit {
         type === 'photo'
           ? 'La foto no debe superar 10 MB.'
           : 'El comprobante no debe superar 10 MB.';
+      this.dialogService.open({
+        title: 'Archivo demasiado grande',
+        message:
+          type === 'photo'
+            ? 'La foto supera el limite permitido de 10 MB. Toma una nueva foto o comprime la imagen antes de subirla.'
+            : 'El comprobante supera el limite permitido de 10 MB. Sube una imagen o PDF mas ligero para continuar.',
+        actionLabel: 'Entendido',
+        variant: 'warning',
+      });
       return false;
     }
 
     this.errorMessage = '';
     return true;
+  }
+
+  private normalizeStudentId(value: string): string {
+    const clean = value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+
+    if (/^\d+$/.test(clean)) {
+      return `TUP${clean}`;
+    }
+
+    return clean;
+  }
+
+  private createPreviewUrl(file: File): string {
+    if (!this.normalizedFileContentType(file).startsWith('image/')) {
+      return '';
+    }
+
+    return URL.createObjectURL(file);
+  }
+
+  private normalizedFileContentType(file: File): string {
+    const contentType = file.type.toLowerCase();
+    const fileName = file.name.toLowerCase();
+
+    if (contentType === 'image/jpg' || contentType === 'image/pjpeg') {
+      return 'image/jpeg';
+    }
+
+    if (contentType) {
+      return contentType;
+    }
+
+    if (fileName.endsWith('.jpg') || fileName.endsWith('.jpeg')) {
+      return 'image/jpeg';
+    }
+
+    if (fileName.endsWith('.png')) {
+      return 'image/png';
+    }
+
+    if (fileName.endsWith('.pdf')) {
+      return 'application/pdf';
+    }
+
+    return '';
+  }
+
+  private revokePhotoPreview(): void {
+    if (this.photoPreviewUrl) {
+      URL.revokeObjectURL(this.photoPreviewUrl);
+      this.photoPreviewUrl = '';
+    }
+  }
+
+  private revokeEvidencePreview(): void {
+    if (this.evidencePreviewUrl) {
+      URL.revokeObjectURL(this.evidencePreviewUrl);
+      this.evidencePreviewUrl = '';
+    }
+  }
+
+  private revokeCorrectionPhotoPreview(requestId: string): void {
+    const previewUrl = this.correctionPhotoPreviewUrls[requestId];
+
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      delete this.correctionPhotoPreviewUrls[requestId];
+    }
+  }
+
+  private revokeCorrectionEvidencePreview(requestId: string): void {
+    const previewUrl = this.correctionEvidencePreviewUrls[requestId];
+
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      delete this.correctionEvidencePreviewUrls[requestId];
+    }
   }
 }

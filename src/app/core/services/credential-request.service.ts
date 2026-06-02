@@ -21,6 +21,7 @@ import {
   CredentialRequestType,
   LegacyCredentialImportResult,
   LegacyCredentialImportRow,
+  SubmitCredentialCorrectionInput,
 } from '../models/credential-request.model';
 
 interface CreateCredentialRequestPayload {
@@ -46,8 +47,24 @@ interface UpdateCredentialRequestStatusPayload {
   note?: string;
 }
 
+interface SubmitCredentialCorrectionPayload {
+  requestId: string;
+  note?: string;
+  photo?: CredentialDocument;
+  evidence?: CredentialDocument;
+}
+
 interface ImportLegacyCredentialsPayload {
   rows: LegacyCredentialImportRow[];
+}
+
+interface EnsureCredentialQrImagePayload {
+  requestId: string;
+}
+
+interface EnsureCredentialQrImageResponse {
+  qrImageUrl: string;
+  qrImageStoragePath: string;
 }
 
 @Injectable({
@@ -118,6 +135,35 @@ export class CredentialRequestService {
     });
   }
 
+  async submitCorrection(input: SubmitCredentialCorrectionInput): Promise<void> {
+    const basePath = `credential-requests/${input.uid}/${input.requestId}/correction-${Date.now()}`;
+    const photo = input.photo
+      ? await this.uploadDocument(
+          `${basePath}/photo-${this.safeName(input.photo.name)}`,
+          input.photo,
+          'photo'
+        )
+      : undefined;
+    const evidence = input.evidence
+      ? await this.uploadDocument(
+          `${basePath}/evidence-${this.safeName(input.evidence.name)}`,
+          input.evidence,
+          'evidence'
+        )
+      : undefined;
+    const submitCredentialCorrection = httpsCallable<
+      SubmitCredentialCorrectionPayload,
+      { ok: boolean }
+    >(functions, 'submitCredentialCorrection');
+
+    await submitCredentialCorrection({
+      requestId: input.requestId,
+      note: input.note,
+      photo,
+      evidence,
+    });
+  }
+
   async importLegacyCredentials(
     rows: LegacyCredentialImportRow[]
   ): Promise<LegacyCredentialImportResult> {
@@ -130,13 +176,24 @@ export class CredentialRequestService {
     return result.data;
   }
 
+  async ensureQrImage(requestId: string): Promise<EnsureCredentialQrImageResponse> {
+    const ensureCredentialQrImage = httpsCallable<
+      EnsureCredentialQrImagePayload,
+      EnsureCredentialQrImageResponse
+    >(functions, 'ensureCredentialQrImage');
+    const result = await ensureCredentialQrImage({ requestId });
+
+    return result.data;
+  }
+
   private async uploadDocument(
     storagePath: string,
     file: File,
     type: CredentialDocument['type']
   ): Promise<CredentialDocument> {
     const fileRef = ref(storage, storagePath);
-    await uploadBytes(fileRef, file, { contentType: file.type });
+    const contentType = this.normalizedFileContentType(file);
+    await uploadBytes(fileRef, file, { contentType });
     const url = await getDownloadURL(fileRef);
 
     return {
@@ -144,7 +201,7 @@ export class CredentialRequestService {
       name: file.name,
       url,
       storagePath,
-      contentType: file.type || 'application/octet-stream',
+      contentType,
     };
   }
 
@@ -175,5 +232,32 @@ export class CredentialRequestService {
 
   private safeName(fileName: string): string {
     return fileName.toLowerCase().replace(/[^a-z0-9.]+/g, '-');
+  }
+
+  private normalizedFileContentType(file: File): string {
+    const contentType = file.type.toLowerCase();
+    const fileName = file.name.toLowerCase();
+
+    if (contentType === 'image/jpg' || contentType === 'image/pjpeg') {
+      return 'image/jpeg';
+    }
+
+    if (contentType) {
+      return contentType;
+    }
+
+    if (fileName.endsWith('.jpg') || fileName.endsWith('.jpeg')) {
+      return 'image/jpeg';
+    }
+
+    if (fileName.endsWith('.png')) {
+      return 'image/png';
+    }
+
+    if (fileName.endsWith('.pdf')) {
+      return 'application/pdf';
+    }
+
+    return 'application/octet-stream';
   }
 }

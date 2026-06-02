@@ -6,10 +6,14 @@ import {
   Timestamp,
   getFirestore,
 } from "firebase-admin/firestore";
+import {getStorage} from "firebase-admin/storage";
 import {setGlobalOptions} from "firebase-functions/v2";
 import {CallableOptions, onCall, HttpsError} from "firebase-functions/v2/https";
+import {toBuffer} from "qrcode";
 
-initializeApp();
+initializeApp({
+  storageBucket: "credencial-tup.firebasestorage.app",
+});
 setGlobalOptions({region: "us-central1"});
 
 type CredentialRequestStatus =
@@ -49,6 +53,22 @@ interface UpdateStatusData {
   requestId?: string;
   status?: CredentialRequestStatus;
   note?: string;
+}
+
+interface SubmitCorrectionData {
+  requestId?: string;
+  note?: string;
+  photo?: CredentialDocument;
+  evidence?: CredentialDocument;
+}
+
+interface EnsureQrImageData {
+  requestId?: string;
+}
+
+interface AdminUserData {
+  email?: string;
+  name?: string;
 }
 
 type PrintBatchStatus = "CREATED" | "PRINTED";
@@ -154,7 +174,14 @@ interface StoredCredentialRequest {
   credentialNumber?: string;
   qrToken?: string;
   verificationUrl?: string;
+  qrImageUrl?: string;
+  qrImageStoragePath?: string;
   printBatchId?: string;
+  photoUrl?: string;
+  documents?: CredentialDocument[];
+  studentFollowUpAt?: Timestamp;
+  studentFollowUpNote?: string;
+  studentFollowUpPending?: boolean;
   reviewedAt?: Timestamp;
   updatedAt?: Timestamp;
   source?: string;
@@ -181,12 +208,25 @@ interface NotificationCopy {
   statusLabel: string;
 }
 
+interface StoredAdminUser {
+  email: string;
+  name?: string;
+  active: boolean;
+  protected?: boolean;
+  createdAt?: Timestamp;
+  createdBy?: string;
+  updatedAt?: Timestamp;
+  updatedBy?: string;
+}
+
 const db = getFirestore();
 const adminAuth = getAuth();
+const storageBucket = getStorage().bucket();
 const requests = db.collection("credential_requests");
 const credentialCounters = db.collection("credential_counters");
 const institutionalProfiles = db.collection("institutional_profiles");
 const printBatches = db.collection("print_batches");
+const adminUsers = db.collection("admin_users");
 const institutionalEmailDomain = "tecplayacar.edu.mx";
 const publicAppUrl = "https://credencial-tup.web.app";
 const logoUrl = `${publicAppUrl}/logo-tup.png`;
@@ -199,7 +239,7 @@ const callableOptions: CallableOptions = {
   ],
   invoker: "public",
 };
-const adminEmails = new Set([
+const bootstrapAdminEmails = new Set([
   "victor.yama@tecplayacar.edu.mx",
   "omar.sanchez@tecplayacar.edu.mx",
   "lizett.mendez@tecplayacar.edu.mx",
@@ -374,7 +414,7 @@ export const syncUserSession = onCall(callableOptions, async (request) => {
 
   assertVerifiedEmail(auth.token.email_verified);
 
-  const role = resolveUserRole(email);
+  const role = await resolveUserRole(email);
   const institutionalProfile = await getInstitutionalProfile(email);
   const userRecord = await adminAuth.getUser(auth.uid);
   const customClaims = userRecord.customClaims || {};
@@ -432,6 +472,163 @@ export const syncUserSession = onCall(callableOptions, async (request) => {
   return {role};
 });
 
+export const listAdminUsers = onCall(callableOptions, async (request) => {
+  const auth = request.auth;
+
+  if (!auth) {
+    throw new HttpsError("unauthenticated", "Inicia sesion.");
+  }
+
+  if (!isAdmin(auth.token)) {
+    throw new HttpsError("permission-denied", "Requiere rol administrativo.");
+  }
+
+  const snapshot = await adminUsers.get();
+  const rows = new Map<string, ReturnType<typeof serializeAdminUser>>();
+
+  for (const email of bootstrapAdminEmails) {
+    const doc = snapshot.docs.find((item) => item.id === email);
+    const data = doc?.data() as StoredAdminUser | undefined;
+
+    rows.set(email, serializeAdminUser(email, {
+      ...data,
+      email,
+      active: true,
+      protected: true,
+    }));
+  }
+
+  for (const doc of snapshot.docs) {
+    const data = doc.data() as StoredAdminUser;
+    const email = normalizeEmail(data.email || doc.id);
+
+    if (!email || data.active === false || bootstrapAdminEmails.has(email)) {
+      continue;
+    }
+
+    rows.set(email, serializeAdminUser(email, {
+      ...data,
+      email,
+      protected: false,
+    }));
+  }
+
+  return {
+    admins: Array.from(rows.values()).sort((left, right) =>
+      left.email.localeCompare(right.email)
+    ),
+  };
+});
+
+export const addAdminUser = onCall(callableOptions, async (request) => {
+  const auth = request.auth;
+
+  if (!auth) {
+    throw new HttpsError("unauthenticated", "Inicia sesion.");
+  }
+
+  if (!isAdmin(auth.token)) {
+    throw new HttpsError("permission-denied", "Requiere rol administrativo.");
+  }
+
+  const data = request.data as AdminUserData;
+  const email = normalizeEmail(data.email);
+  const name = cleanBoundedString(data.name, "nombre", maxNameLength);
+
+  assertInstitutionalEmail(email);
+
+  const now = Timestamp.now();
+  const adminRef = adminUsers.doc(email);
+  const before = await adminRef.get();
+  const payload: StoredAdminUser = {
+    email,
+    name,
+    active: true,
+    protected: bootstrapAdminEmails.has(email),
+    createdAt: (before.data() as StoredAdminUser | undefined)?.createdAt || now,
+    createdBy: (before.data() as StoredAdminUser | undefined)?.createdBy || auth.uid,
+    updatedAt: now,
+    updatedBy: auth.uid,
+  };
+
+  await adminRef.set(payload, {merge: true});
+  const claimsUpdated = await updateAdminClaimsForEmail(email, true);
+  await writeAuditLog(
+    auth.uid,
+    "admin_user.added",
+    "admin_users",
+    email,
+    before.exists ? before.data() : null,
+    {...payload, claimsUpdated}
+  );
+
+  return {
+    ok: true,
+    admin: serializeAdminUser(email, payload),
+    claimsUpdated,
+  };
+});
+
+export const removeAdminUser = onCall(callableOptions, async (request) => {
+  const auth = request.auth;
+
+  if (!auth) {
+    throw new HttpsError("unauthenticated", "Inicia sesion.");
+  }
+
+  if (!isAdmin(auth.token)) {
+    throw new HttpsError("permission-denied", "Requiere rol administrativo.");
+  }
+
+  const data = request.data as AdminUserData;
+  const email = normalizeEmail(data.email);
+
+  assertInstitutionalEmail(email);
+
+  const actorEmail = normalizeEmail(auth.token.email as string | undefined);
+
+  if (email === actorEmail) {
+    throw new HttpsError(
+      "failed-precondition",
+      "No puedes quitar tu propio acceso administrativo."
+    );
+  }
+
+  if (bootstrapAdminEmails.has(email)) {
+    throw new HttpsError(
+      "failed-precondition",
+      "Este administrador base esta protegido."
+    );
+  }
+
+  const now = Timestamp.now();
+  const adminRef = adminUsers.doc(email);
+  const before = await adminRef.get();
+
+  if (!before.exists || (before.data() as StoredAdminUser).active === false) {
+    throw new HttpsError("not-found", "El administrador no existe o ya fue removido.");
+  }
+
+  const changes = {
+    active: false,
+    updatedAt: now,
+    updatedBy: auth.uid,
+  };
+
+  await adminRef.set(changes, {merge: true});
+  const claimsUpdated = await updateAdminClaimsForEmail(email, false);
+  await writeAuditLog(
+    auth.uid,
+    "admin_user.removed",
+    "admin_users",
+    email,
+    before.data(),
+    {...changes, claimsUpdated}
+  );
+
+  return {ok: true, claimsUpdated};
+});
+
 export const updateCredentialRequestStatus = onCall(callableOptions, async (request) => {
   const auth = request.auth;
 
@@ -473,6 +670,17 @@ export const updateCredentialRequestStatus = onCall(callableOptions, async (requ
       );
     }
 
+    if (
+      before.status === "REJECTED" &&
+      status === "UNDER_REVIEW" &&
+      before.studentFollowUpPending !== true
+    ) {
+      throw new HttpsError(
+        "failed-precondition",
+        "El alumno debe enviar seguimiento antes de reabrir la revision."
+      );
+    }
+
     const credentialIdentity = status === "APPROVED_FOR_PRINT" ?
       await ensureCredentialIdentity(transaction, before, now) :
       null;
@@ -495,6 +703,87 @@ export const updateCredentialRequestStatus = onCall(callableOptions, async (requ
       buildAuditAfter(before, changes)
     );
     queueStatusNotification(transaction, requestRef.id, before, status, note, now);
+  });
+
+  return {ok: true};
+});
+
+export const submitCredentialCorrection = onCall(callableOptions, async (request) => {
+  const auth = request.auth;
+
+  if (!auth) {
+    throw new HttpsError("unauthenticated", "Inicia sesion.");
+  }
+
+  const data = request.data as SubmitCorrectionData;
+  const requestId = requireString(data.requestId, "requestId");
+  const note = cleanBoundedString(data.note, "nota", maxNoteLength);
+  const requestRef = requests.doc(requestId);
+  const now = Timestamp.now();
+
+  await db.runTransaction(async (transaction) => {
+    const snapshot = await transaction.get(requestRef);
+
+    if (!snapshot.exists) {
+      throw new HttpsError("not-found", "La solicitud no existe.");
+    }
+
+    const before = snapshot.data() as StoredCredentialRequest;
+
+    if (before.uid !== auth.uid) {
+      throw new HttpsError(
+        "permission-denied",
+        "Solo puedes dar seguimiento a tu propia solicitud."
+      );
+    }
+
+    if (before.status !== "REJECTED") {
+      throw new HttpsError(
+        "failed-precondition",
+        "Solo se puede dar seguimiento a solicitudes rechazadas."
+      );
+    }
+
+    const photo = data.photo ? validateDocument(data.photo, "photo", auth.uid) : null;
+    const evidence = data.evidence ?
+      validateDocument(data.evidence, "evidence", auth.uid) :
+      null;
+
+    if (!photo && !evidence && !note) {
+      throw new HttpsError(
+        "invalid-argument",
+        "Adjunta una correccion o escribe una nota de seguimiento."
+      );
+    }
+
+    const nextDocuments = mergeCorrectionDocuments(before.documents || [], photo, evidence);
+    const changes: Record<string, unknown> = {
+      documents: nextDocuments,
+      studentFollowUpAt: now,
+      studentFollowUpNote: note,
+      studentFollowUpPending: true,
+      updatedAt: now,
+      timeline: FieldValue.arrayUnion({
+        status: "REJECTED",
+        actorUid: auth.uid,
+        note: note || "Alumno envio seguimiento de correccion.",
+        timestamp: now,
+      }),
+    };
+
+    if (photo) {
+      changes.photoUrl = photo.url;
+    }
+
+    transaction.update(requestRef, changes);
+    writeAudit(
+      transaction,
+      auth.uid,
+      "credential_request.student_follow_up",
+      requestRef.id,
+      before,
+      buildAuditAfter(before, changes)
+    );
   });
 
   return {ok: true};
@@ -740,6 +1029,74 @@ export const verifyCredential = onCall(callableOptions, async (request) => {
   };
 });
 
+export const ensureCredentialQrImage = onCall(callableOptions, async (request) => {
+  const auth = request.auth;
+
+  if (!auth) {
+    throw new HttpsError("unauthenticated", "Inicia sesion.");
+  }
+
+  if (!isAdmin(auth.token)) {
+    throw new HttpsError("permission-denied", "Requiere rol administrativo.");
+  }
+
+  const data = request.data as EnsureQrImageData;
+  const requestId = requireString(data.requestId, "requestId");
+  const snapshot = await requests.doc(requestId).get();
+
+  if (!snapshot.exists) {
+    throw new HttpsError("not-found", "La solicitud no existe.");
+  }
+
+  const credential = snapshot.data() as StoredCredentialRequest;
+
+  if (credential.qrImageUrl) {
+    return {
+      qrImageUrl: credential.qrImageUrl,
+      qrImageStoragePath: credential.qrImageStoragePath || "",
+    };
+  }
+
+  if (!credential.qrToken) {
+    throw new HttpsError(
+      "failed-precondition",
+      "La solicitud aun no tiene token QR."
+    );
+  }
+
+  const verificationUrl = credential.verificationUrl || buildVerificationUrl(credential.qrToken);
+  const qrImageStoragePath = `credential-qrs/${requestId}.png`;
+  const downloadToken = randomUUID();
+  const qrBuffer = await toBuffer(verificationUrl, {
+    errorCorrectionLevel: "M",
+    margin: 1,
+    scale: 5,
+  });
+
+  await storageBucket.file(qrImageStoragePath).save(qrBuffer, {
+    metadata: {
+      cacheControl: "public,max-age=31536000,immutable",
+      contentType: "image/png",
+      metadata: {
+        firebaseStorageDownloadTokens: downloadToken,
+      },
+    },
+  });
+
+  const qrImageUrl = buildStorageDownloadUrl(qrImageStoragePath, downloadToken);
+
+  await snapshot.ref.update({
+    qrImageUrl,
+    qrImageStoragePath,
+    updatedAt: Timestamp.now(),
+  });
+
+  return {
+    qrImageUrl,
+    qrImageStoragePath,
+  };
+});
+
 export const importInstitutionalProfiles = onCall(callableOptions, async (request) => {
   const auth = request.auth;
 
@@ -932,7 +1289,7 @@ function validateCreateData(
     requestType,
     email: normalizedEmail,
     studentId: isStudent ?
-      normalizeIdentifier(
+      normalizeStudentId(
         requireBoundedString(rawStudentId, "studentId", maxIdentifierLength)
       ) :
       buildNonStudentIdentifier(normalizedEmail, uid),
@@ -973,7 +1330,7 @@ function validateInstitutionalProfileRow(
   };
 
   if (isStudent) {
-    profile.studentId = normalizeIdentifier(
+    profile.studentId = normalizeStudentId(
       requireBoundedString(row.studentId, `matricula fila ${rowNumber}`, maxIdentifierLength),
       `matricula fila ${rowNumber}`
     );
@@ -1018,7 +1375,7 @@ function validateLegacyCredentialRow(
     );
   }
 
-  const studentId = normalizeIdentifier(
+  const studentId = normalizeStudentId(
     requireBoundedString(row.studentId, `matricula fila ${rowNumber}`, maxIdentifierLength),
     `matricula fila ${rowNumber}`
   );
@@ -1381,6 +1738,28 @@ function validateDocument(
   };
 }
 
+function mergeCorrectionDocuments(
+  currentDocuments: CredentialDocument[],
+  photo: CredentialDocument | null,
+  evidence: CredentialDocument | null
+): CredentialDocument[] {
+  const replacements = new Map<CredentialDocument["type"], CredentialDocument>();
+
+  if (photo) {
+    replacements.set("photo", photo);
+  }
+
+  if (evidence) {
+    replacements.set("evidence", evidence);
+  }
+
+  const merged = currentDocuments
+    .filter((document) => !replacements.has(document.type))
+    .concat(Array.from(replacements.values()));
+
+  return merged;
+}
+
 function isAllowedDocumentContentType(
   type: CredentialDocument["type"],
   contentType: string
@@ -1428,6 +1807,11 @@ function buildStatusChanges(
 
   if (status === "REJECTED") {
     changes.rejectionReason = note;
+    changes.studentFollowUpPending = false;
+  }
+
+  if (before.status === "REJECTED" && status === "UNDER_REVIEW") {
+    changes.studentFollowUpPending = false;
   }
 
   if (status === "APPROVED_FOR_PRINT") {
@@ -1525,6 +1909,13 @@ function buildVerificationUrl(token: string): string {
   return `${publicAppUrl}/verify/${encodeURIComponent(token)}`;
 }
 
+function buildStorageDownloadUrl(storagePath: string, token: string): string {
+  const encodedPath = encodeURIComponent(storagePath);
+  const baseUrl = `https://firebasestorage.googleapis.com/v0/b/${storageBucket.name}`;
+
+  return `${baseUrl}/o/${encodedPath}?alt=media&token=${token}`;
+}
+
 function queueStatusNotification(
   transaction: FirebaseFirestore.Transaction,
   requestId: string,
@@ -1533,6 +1924,10 @@ function queueStatusNotification(
   note: string,
   now: Timestamp
 ) {
+  if (status === "DELIVERED" && request.source === "LEGACY_IMPORT") {
+    return;
+  }
+
   const template = notificationTemplate(status);
 
   if (!template) {
@@ -1954,6 +2349,25 @@ function writeAudit(
   });
 }
 
+async function writeAuditLog(
+  actorUid: string,
+  action: string,
+  entity: string,
+  entityId: string,
+  before: unknown,
+  after: unknown
+): Promise<void> {
+  await db.collection("audit_logs").add({
+    actorUid,
+    action,
+    entity,
+    entityId,
+    before,
+    after,
+    timestamp: FieldValue.serverTimestamp(),
+  });
+}
+
 function buildAuditAfter(
   before: StoredCredentialRequest,
   changes: Record<string, unknown>
@@ -2014,8 +2428,53 @@ function assertVerifiedEmail(emailVerified: unknown): void {
   }
 }
 
-function resolveUserRole(email: string): UserRole {
-  return adminEmails.has(email) ? "admin" : "student";
+async function resolveUserRole(email: string): Promise<UserRole> {
+  if (bootstrapAdminEmails.has(email)) {
+    return "admin";
+  }
+
+  const snapshot = await adminUsers.doc(email).get();
+  const data = snapshot.exists ? snapshot.data() as StoredAdminUser : null;
+
+  return data?.active === true ? "admin" : "student";
+}
+
+function serializeAdminUser(email: string, data: StoredAdminUser) {
+  return {
+    email,
+    name: data.name || "",
+    active: data.active !== false,
+    protected: data.protected === true || bootstrapAdminEmails.has(email),
+    createdAt: timestampToIso(data.createdAt),
+    createdBy: data.createdBy || "",
+    updatedAt: timestampToIso(data.updatedAt),
+    updatedBy: data.updatedBy || "",
+  };
+}
+
+function timestampToIso(timestamp: Timestamp | undefined): string {
+  return timestamp ? timestamp.toDate().toISOString() : "";
+}
+
+async function updateAdminClaimsForEmail(email: string, active: boolean): Promise<boolean> {
+  try {
+    const user = await adminAuth.getUserByEmail(email);
+    const customClaims = user.customClaims || {};
+
+    await adminAuth.setCustomUserClaims(user.uid, {
+      ...customClaims,
+      role: active ? "admin" : "student",
+      admin: active,
+    });
+
+    return true;
+  } catch (error) {
+    if ((error as {code?: string}).code === "auth/user-not-found") {
+      return false;
+    }
+
+    throw error;
+  }
 }
 
 function resolveDisplayName(
@@ -2082,6 +2541,20 @@ function normalizeIdentifier(value: string, field = "identificador"): string {
   return clean;
 }
 
+function normalizeStudentId(value: string, field = "matricula"): string {
+  const clean = value.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const normalized = /^\d+$/.test(clean) ? `TUP${clean}` : clean;
+
+  if (!/^TUP\d{3,}$/.test(normalized)) {
+    throw new HttpsError(
+      "invalid-argument",
+      `${field} debe tener formato TUP seguido de numeros. Ejemplo: TUP1545.`
+    );
+  }
+
+  return normalized;
+}
+
 function normalizePhone(value: string): string {
   const clean = value.trim();
 
@@ -2142,7 +2615,7 @@ function buildNonStudentIdentifier(email: string, uid: string): string {
 function resolveApplicantTypeByEmail(email: string): CredentialApplicantType {
   const account = email.split("@")[0] || "";
 
-  if (/^tup-d\d{4,}$/.test(account)) {
+  if (/^tup-d\d+$/.test(account)) {
     return "TEACHER";
   }
 

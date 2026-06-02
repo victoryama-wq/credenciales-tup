@@ -176,6 +176,12 @@ textarea,
   color: var(--tup-primary);
 }
 
+.replacement-chip {
+  border: 1px solid rgb(180 83 9 / 24%);
+  background: #fff7ed;
+  color: #92400e;
+}
+
 .request-type-tabs {
   align-items: stretch;
   background: var(--tup-white);
@@ -291,6 +297,37 @@ textarea,
   background: var(--tup-white);
   border: 1px solid var(--tup-line);
   color: var(--tup-primary);
+}
+
+.selected-file-panel {
+  background: #f8fff9;
+  border: 1px solid rgb(16 185 129 / 22%);
+  border-left: 4px solid #10b981;
+}
+
+.selected-photo-preview {
+  aspect-ratio: 1 / 1;
+  border: 1px solid rgb(16 185 129 / 22%);
+  border-radius: 8px;
+  flex: 0 0 auto;
+  height: 64px;
+  object-fit: cover;
+  width: 64px;
+}
+
+.selected-file-icon {
+  align-items: center;
+  background: var(--tup-white);
+  border: 1px solid rgb(37 42 134 / 22%);
+  border-radius: 8px;
+  color: var(--tup-primary);
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 0.72rem;
+  font-weight: 700;
+  height: 64px;
+  justify-content: center;
+  width: 64px;
 }
 
 .photo-reference {
@@ -423,6 +460,83 @@ textarea,
 .link-button {
   border-color: rgb(37 42 134 / 24%) !important;
   color: var(--tup-primary) !important;
+}
+
+.institutional-dialog-panel .mat-mdc-dialog-container {
+  --mdc-dialog-container-shape: 8px;
+}
+
+.institutional-dialog-panel .mat-mdc-dialog-surface {
+  border: 1px solid var(--tup-line);
+  border-left: var(--tup-card-accent);
+  box-shadow: var(--tup-card-shadow) !important;
+}
+
+.institutional-dialog {
+  background: var(--tup-white);
+  display: grid;
+  gap: 1rem;
+  padding: 1.25rem;
+}
+
+.institutional-dialog-icon {
+  align-items: center;
+  background: rgb(37 42 134 / 8%);
+  border: 1px solid rgb(37 42 134 / 18%);
+  border-radius: 8px;
+  color: var(--tup-primary);
+  display: inline-flex;
+  height: 48px;
+  justify-content: center;
+  width: 48px;
+}
+
+.institutional-dialog-warning .institutional-dialog-icon {
+  background: #fff7ed;
+  border-color: rgb(180 83 9 / 24%);
+  color: #92400e;
+}
+
+.institutional-dialog-error .institutional-dialog-icon {
+  background: #fef2f2;
+  border-color: rgb(185 28 28 / 20%);
+  color: #b91c1c;
+}
+
+.institutional-dialog-icon svg {
+  fill: none;
+  height: 26px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+  width: 26px;
+}
+
+.institutional-dialog [mat-dialog-title] {
+  color: var(--tup-ink);
+  font-family: inherit;
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0;
+  padding: 0;
+}
+
+.institutional-dialog mat-dialog-content {
+  color: var(--tup-muted);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  padding: 0 !important;
+}
+
+.institutional-dialog mat-dialog-content p {
+  margin: 0;
+}
+
+.institutional-dialog mat-dialog-actions {
+  margin: 0;
+  min-height: auto;
+  padding: 0;
 }
 
 .mat-mdc-card {
@@ -1433,11 +1547,23 @@ textarea,
 }
 
 .batch-print-source {
-  height: 0;
-  overflow: hidden;
+  display: grid;
+  gap: 12px;
+  height: auto;
+  left: -10000px;
+  opacity: 0;
+  overflow: visible;
   pointer-events: none;
-  position: absolute;
-  width: 0;
+  position: fixed;
+  top: 0;
+  visibility: hidden;
+  width: 240px;
+  z-index: -1;
+}
+
+.batch-print-source .credential-card {
+  max-width: none;
+  width: 240px;
 }
 
 @media (min-width: 768px) {

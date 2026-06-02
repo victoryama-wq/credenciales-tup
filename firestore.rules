@@ -57,5 +57,10 @@ service cloud.firestore {
       allow read: if isAdmin();
       allow write: if false;
     }
+
+    match /admin_users/{adminEmail} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
   }
 }

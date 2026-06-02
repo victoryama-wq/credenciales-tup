@@ -9,12 +9,14 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { Router } from '@angular/router';
+import { Timestamp } from 'firebase/firestore';
 import { toDataURL } from 'qrcode';
 import {
   AuditLog,
   auditActionLabels,
   auditEntityLabels,
 } from '../../../../core/models/audit-log.model';
+import { AdminUser } from '../../../../core/models/admin-user.model';
 import {
   CredentialApplicantType,
   CredentialRequest,
@@ -51,12 +53,14 @@ import {
   institutionalAcademicStatusLabels,
 } from '../../../../core/models/institutional-profile.model';
 import { AuditLogService } from '../../../../core/services/audit-log.service';
+import { AdminUserService } from '../../../../core/services/admin-user.service';
 import { InstitutionalProfileService } from '../../../../core/services/institutional-profile.service';
 
 type AdminModule =
   | 'dashboard'
   | 'reports'
   | 'audit'
+  | 'admins'
   | 'requests'
   | 'batches'
   | 'delivery'
@@ -113,6 +117,7 @@ export class AdminDashboardComponent implements OnInit {
   private credentialTemplateService = inject(CredentialTemplateService);
   private printBatchService = inject(PrintBatchService);
   private auditLogService = inject(AuditLogService);
+  private adminUserService = inject(AdminUserService);
   private institutionalProfileService = inject(InstitutionalProfileService);
   private destroyRef = inject(DestroyRef);
   private changeDetectorRef = inject(ChangeDetectorRef);
@@ -216,6 +221,12 @@ export class AdminDashboardComponent implements OnInit {
       description: 'Bitacora de cambios administrativos y operativos.',
     },
     {
+      value: 'admins',
+      label: 'Administradores',
+      eyebrow: 'Permisos',
+      description: 'Alta y baja de accesos administrativos.',
+    },
+    {
       value: 'requests',
       label: 'Solicitudes',
       eyebrow: 'Operacion',
@@ -272,10 +283,20 @@ export class AdminDashboardComponent implements OnInit {
   auditEntityFilter = 'ALL';
   auditStartDate = '';
   auditEndDate = '';
+  adminUsers: AdminUser[] = [];
+  adminsLoaded = false;
+  adminsLoading = false;
+  adminEmail = '';
+  adminName = '';
+  adminActionEmail = '';
+  adminMessage = '';
+  adminErrorMessage = '';
   printingRequestId = '';
   printingBatchId = '';
   qrImages: Record<string, string> = {};
+  private qrImagePromises = new Map<string, Promise<void>>();
   requests: CredentialRequest[] = [];
+  requestsById = new Map<string, CredentialRequest>();
   printBatches: PrintBatch[] = [];
   selectedBatchRequestIds = new Set<string>();
   creatingBatch = false;
@@ -308,7 +329,10 @@ export class AdminDashboardComponent implements OnInit {
       .subscribe({
         next: (requests) => {
           this.requests = requests;
-          void this.refreshQrImages(requests);
+          this.requestsById = new Map(requests.map((item) => [item.id, item]));
+          if (this.activeModule === 'requests') {
+            void this.refreshQrImages(this.visibleFilteredRequests);
+          }
           this.loading = false;
         },
         error: (error) => {
@@ -391,6 +415,14 @@ export class AdminDashboardComponent implements OnInit {
 
       return matchesStatus && matchesSearch;
     });
+  }
+
+  get visibleFilteredRequests(): CredentialRequest[] {
+    return this.filteredRequests.slice(0, 50);
+  }
+
+  get hiddenFilteredRequestsCount(): number {
+    return Math.max(this.filteredRequests.length - this.visibleFilteredRequests.length, 0);
   }
 
   get requestTabRequests(): CredentialRequest[] {
@@ -727,6 +759,14 @@ export class AdminDashboardComponent implements OnInit {
     this.importSuccessMessage = '';
     this.legacyImportErrorMessage = '';
     this.legacyImportSuccessMessage = '';
+
+    if (module === 'requests') {
+      void this.refreshQrImages(this.visibleFilteredRequests);
+    }
+
+    if (module === 'admins' && !this.adminsLoaded) {
+      void this.loadAdminUsers();
+    }
   }
 
   setImportTab(tab: ImportTab): void {
@@ -750,6 +790,83 @@ export class AdminDashboardComponent implements OnInit {
     return this.modules.find((module) => module.value === this.activeModule)?.eyebrow || 'Operacion';
   }
 
+  async loadAdminUsers(force = false): Promise<void> {
+    if (this.adminsLoading || (this.adminsLoaded && !force)) {
+      return;
+    }
+
+    this.adminsLoading = true;
+    this.adminErrorMessage = '';
+
+    try {
+      this.adminUsers = await this.adminUserService.listAdmins();
+      this.adminsLoaded = true;
+    } catch (error) {
+      this.adminErrorMessage =
+        error instanceof Error ? error.message : 'No fue posible cargar administradores.';
+    } finally {
+      this.adminsLoading = false;
+    }
+  }
+
+  updateAdminEmail(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.adminEmail = input.value;
+  }
+
+  updateAdminName(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.adminName = input.value;
+  }
+
+  async addAdminUser(): Promise<void> {
+    const email = this.adminEmail.trim().toLowerCase();
+
+    if (!email.endsWith('@tecplayacar.edu.mx')) {
+      this.adminErrorMessage = 'Ingresa un correo institucional @tecplayacar.edu.mx.';
+      return;
+    }
+
+    this.adminActionEmail = email;
+    this.adminErrorMessage = '';
+    this.adminMessage = '';
+
+    try {
+      await this.adminUserService.addAdmin(email, this.adminName.trim());
+      this.adminEmail = '';
+      this.adminName = '';
+      this.adminMessage = `${email} ahora tiene acceso administrativo.`;
+      await this.loadAdminUsers(true);
+    } catch (error) {
+      this.adminErrorMessage =
+        error instanceof Error ? error.message : 'No fue posible agregar administrador.';
+    } finally {
+      this.adminActionEmail = '';
+    }
+  }
+
+  async removeAdminUser(admin: AdminUser): Promise<void> {
+    if (admin.protected) {
+      this.adminErrorMessage = 'Este administrador base esta protegido.';
+      return;
+    }
+
+    this.adminActionEmail = admin.email;
+    this.adminErrorMessage = '';
+    this.adminMessage = '';
+
+    try {
+      await this.adminUserService.removeAdmin(admin.email);
+      this.adminMessage = `${admin.email} ya no tiene acceso administrativo.`;
+      await this.loadAdminUsers(true);
+    } catch (error) {
+      this.adminErrorMessage =
+        error instanceof Error ? error.message : 'No fue posible remover administrador.';
+    } finally {
+      this.adminActionEmail = '';
+    }
+  }
+
   toggleSidebar(event?: Event): void {
     event?.preventDefault();
     event?.stopPropagation();
@@ -771,11 +888,17 @@ export class AdminDashboardComponent implements OnInit {
 
   setRequestApplicantTab(type: CredentialApplicantType): void {
     this.requestApplicantTab = type;
+    void this.refreshQrImages(this.visibleFilteredRequests);
   }
 
   updateRequestSearch(event: Event): void {
     const input = event.target as HTMLInputElement;
     this.requestSearchTerm = input.value;
+    void this.refreshQrImages(this.visibleFilteredRequests);
+  }
+
+  onRequestFiltersChanged(): void {
+    void this.refreshQrImages(this.visibleFilteredRequests);
   }
 
   deliveryCountByStatus(status: CredentialRequestStatus): number {
@@ -971,7 +1094,19 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   canMove(request: CredentialRequest, status: CredentialRequestStatus): boolean {
+    if (
+      request.status === 'REJECTED' &&
+      status === 'UNDER_REVIEW' &&
+      request.studentFollowUpPending !== true
+    ) {
+      return false;
+    }
+
     return canTransitionCredentialRequestStatus(request.status, status);
+  }
+
+  isWaitingForStudentFollowUp(request: CredentialRequest): boolean {
+    return request.status === 'REJECTED' && request.studentFollowUpPending !== true;
   }
 
   timelineDate(event: CredentialTimelineEvent): Date {
@@ -1195,72 +1330,114 @@ export class AdminDashboardComponent implements OnInit {
     try {
       const batchId = await this.printBatchService.createBatch(requestIds);
       this.batchMessage = `Lote ${batchId} creado con ${requestIds.length} credenciales.`;
+      this.applyCreatedBatchLocally(batchId, requestIds);
       this.selectedBatchRequestIds.clear();
     } catch (error) {
       this.batchErrorMessage =
         error instanceof Error ? error.message : 'No fue posible crear el lote.';
     } finally {
       this.creatingBatch = false;
+      this.changeDetectorRef.detectChanges();
     }
   }
 
   batchRequests(batch: PrintBatch): CredentialRequest[] {
-    const requestsById = new Map(this.requests.map((request) => [request.id, request]));
-
     return batch.requestIds
-      .map((requestId) => requestsById.get(requestId))
+      .map((requestId) => this.requestsById.get(requestId))
       .filter((request): request is CredentialRequest => Boolean(request));
   }
 
   async printBatch(batch: PrintBatch): Promise<void> {
-    this.printingBatchId = batch.id;
-    this.changeDetectorRef.detectChanges();
-
-    await this.nextPaint();
-
-    const source = document.querySelector<HTMLElement>('.batch-print-selected');
-
-    if (!source) {
-      this.printingBatchId = '';
-      this.changeDetectorRef.detectChanges();
+    if (this.printingBatchId) {
       return;
     }
 
-    const printRoot = this.createCredentialPrintRoot(source);
-    document.body.appendChild(printRoot);
-    document.body.classList.add('credential-printing');
+    const requests = this.batchRequests(batch);
 
-    await this.waitForCredentialImages(printRoot);
-    await this.nextPaint();
+    if (!requests.length) {
+      this.batchErrorMessage = 'El lote aun no tiene solicitudes cargadas para imprimir.';
+      return;
+    }
 
-    let cleaned = false;
-    let mediaQuery: MediaQueryList | undefined;
-    let mediaHandler: ((event: MediaQueryListEvent) => void) | undefined;
+    const missingIdentity = requests.find((request) => !request.credentialNumber || !request.qrToken);
 
-    const cleanup = () => {
-      if (cleaned) {
+    if (missingIdentity) {
+      this.batchErrorMessage =
+        `La solicitud de ${missingIdentity.name} aun no tiene folio o QR. ` +
+        'Vuelve a aprobarla para impresion antes de imprimir el lote.';
+      return;
+    }
+
+    this.batchErrorMessage = '';
+    this.batchMessage = '';
+    this.printingBatchId = batch.id;
+    this.changeDetectorRef.detectChanges();
+
+    try {
+      await this.refreshQrImages(requests);
+      this.changeDetectorRef.detectChanges();
+      await this.nextPaint();
+
+      const source = document.querySelector<HTMLElement>('.batch-print-selected');
+
+      if (!source) {
+        this.batchErrorMessage = 'No fue posible preparar la vista de impresion del lote.';
+        this.printingBatchId = '';
+        this.changeDetectorRef.detectChanges();
         return;
       }
 
-      cleaned = true;
-      mediaQuery?.removeEventListener('change', mediaHandler as EventListener);
-      window.removeEventListener('afterprint', cleanup);
-      printRoot.remove();
+      const printRoot = this.createCredentialPrintRoot(source);
+
+      if (!printRoot.childElementCount) {
+        this.batchErrorMessage = 'El lote no genero tarjetas para imprimir.';
+        this.printingBatchId = '';
+        this.changeDetectorRef.detectChanges();
+        return;
+      }
+
+      document.body.appendChild(printRoot);
+      document.body.classList.add('credential-printing');
+
+      await this.waitForCredentialImages(printRoot);
+      await this.nextPaint();
+
+      let cleaned = false;
+      let mediaQuery: MediaQueryList | undefined;
+      let mediaHandler: ((event: MediaQueryListEvent) => void) | undefined;
+
+      const cleanup = () => {
+        if (cleaned) {
+          return;
+        }
+
+        cleaned = true;
+        mediaQuery?.removeEventListener('change', mediaHandler as EventListener);
+        window.removeEventListener('afterprint', cleanup);
+        printRoot.remove();
+        document.body.classList.remove('credential-printing');
+        this.printingBatchId = '';
+        this.changeDetectorRef.detectChanges();
+      };
+
+      mediaQuery = window.matchMedia('print');
+      mediaHandler = (event: MediaQueryListEvent) => {
+        if (!event.matches) {
+          cleanup();
+        }
+      };
+
+      mediaQuery.addEventListener('change', mediaHandler);
+      window.addEventListener('afterprint', cleanup);
+      window.print();
+    } catch (error) {
+      this.batchErrorMessage =
+        error instanceof Error ? error.message : 'No fue posible preparar la impresion del lote.';
+      document.querySelector<HTMLElement>('#credential-print-root')?.remove();
       document.body.classList.remove('credential-printing');
       this.printingBatchId = '';
       this.changeDetectorRef.detectChanges();
-    };
-
-    mediaQuery = window.matchMedia('print');
-    mediaHandler = (event: MediaQueryListEvent) => {
-      if (!event.matches) {
-        cleanup();
-      }
-    };
-
-    mediaQuery.addEventListener('change', mediaHandler);
-    window.addEventListener('afterprint', cleanup);
-    window.print();
+    }
   }
 
   async markBatchPrinted(batch: PrintBatch): Promise<void> {
@@ -1319,6 +1496,13 @@ export class AdminDashboardComponent implements OnInit {
 
   reportRequestTypeLabel(request: CredentialRequest): string {
     return this.requestTypeLabels[request.requestType || 'FIRST_TIME'];
+  }
+
+  isReplacementRequest(request: CredentialRequest): boolean {
+    return (
+      request.requestType === 'REPLACEMENT' ||
+      request.documents?.some((document) => document.type === 'evidence') === true
+    );
   }
 
   reportDateLabel(millis: number | null): string {
@@ -1762,6 +1946,7 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   async printCredential(request: CredentialRequest): Promise<void> {
+    await this.refreshQrImages([request]);
     this.printingRequestId = request.id;
     this.changeDetectorRef.detectChanges();
 
@@ -1954,13 +2139,14 @@ export class AdminDashboardComponent implements OnInit {
         email
       );
       const academicStatus = this.normalizeAcademicStatus(value('estatus', 'status', 'situacion'));
+      const rawStudentId = value('matricula', 'matrícula', 'studentid', 'student id');
       const preview: SaekoPreviewRow = {
         rowNumber,
         email,
         applicantType,
         academicStatus,
         name: value('nombre', 'nombre completo', 'alumno'),
-        studentId: value('matricula', 'matrícula', 'studentid', 'student id'),
+        studentId: applicantType === 'STUDENT' ? this.normalizeStudentId(rawStudentId) : rawStudentId,
         career: value('programa', 'programa academico', 'programa académico', 'carrera'),
         currentTerm: value('cuatrimestre', 'ciclo', 'periodo'),
         position: value('puesto', 'cargo'),
@@ -1988,7 +2174,9 @@ export class AdminDashboardComponent implements OnInit {
       const preview: LegacyCredentialPreviewRow = {
         rowNumber,
         email: value('correo', 'email', 'correo institucional').toLowerCase(),
-        studentId: value('matricula', 'matricula escolar', 'studentid', 'student id'),
+        studentId: this.normalizeStudentId(
+          value('matricula', 'matricula escolar', 'studentid', 'student id')
+        ),
         name: value('nombre', 'nombre completo', 'alumno'),
         career: value('programa', 'programa academico', 'carrera'),
         cycle: value('cuatrimestre', 'ciclo', 'periodo'),
@@ -2078,6 +2266,8 @@ export class AdminDashboardComponent implements OnInit {
     if (row.applicantType === 'STUDENT') {
       if (!row.studentId) {
         row.errors.push('Falta matricula.');
+      } else if (!/^TUP\d{3,}$/.test(row.studentId)) {
+        row.errors.push('La matricula debe tener formato TUP1545.');
       }
 
       if (!row.career) {
@@ -2105,6 +2295,8 @@ export class AdminDashboardComponent implements OnInit {
 
     if (!row.studentId) {
       row.errors.push('Falta matricula.');
+    } else if (!/^TUP\d{3,}$/.test(row.studentId)) {
+      row.errors.push('La matricula debe tener formato TUP1545.');
     }
 
     if (!row.name) {
@@ -2126,6 +2318,16 @@ export class AdminDashboardComponent implements OnInit {
     if (row.deliveredAt && Number.isNaN(Date.parse(row.deliveredAt))) {
       row.errors.push('Fecha de entrega invalida.');
     }
+  }
+
+  private normalizeStudentId(value: string): string {
+    const clean = value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+
+    if (/^\d+$/.test(clean)) {
+      return `TUP${clean}`;
+    }
+
+    return clean;
   }
 
   private valueForHeader(row: string[], headers: string[], names: string[]): string {
@@ -2316,6 +2518,37 @@ export class AdminDashboardComponent implements OnInit {
     return printRoot;
   }
 
+  private applyCreatedBatchLocally(batchId: string, requestIds: string[]): void {
+    const now = new Date();
+    const selectedIds = new Set(requestIds);
+
+    this.requests = this.requests.map((request) => {
+      if (!selectedIds.has(request.id)) {
+        return request;
+      }
+
+      return {
+        ...request,
+        printBatchId: batchId,
+      };
+    });
+    this.requestsById = new Map(this.requests.map((item) => [item.id, item]));
+
+    if (!this.printBatches.some((batch) => batch.id === batchId)) {
+      this.printBatches = [
+        {
+          id: batchId,
+          createdBy: '',
+          requestIds,
+          status: 'CREATED',
+          total: requestIds.length,
+          createdAt: Timestamp.fromDate(now),
+        },
+        ...this.printBatches,
+      ];
+    }
+  }
+
   private async waitForCredentialImages(root: HTMLElement): Promise<void> {
     const images = Array.from(root.querySelectorAll('img'));
 
@@ -2452,18 +2685,57 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   private async refreshQrImages(requests: CredentialRequest[]): Promise<void> {
-    for (const request of requests) {
-      const url = this.verificationUrl(request);
+    const pendingRequests = requests.filter(
+      (request) => request.qrToken && this.verificationUrl(request) && !this.qrImages[request.id]
+    );
 
-      if (!request.qrToken || !url || this.qrImages[request.id]) {
-        continue;
-      }
+    for (let index = 0; index < pendingRequests.length; index += 10) {
+      const chunk = pendingRequests.slice(index, index + 10);
 
-      this.qrImages[request.id] = await toDataURL(url, {
-        errorCorrectionLevel: 'M',
-        margin: 1,
-        scale: 5,
-      });
+      await Promise.all(chunk.map((request) => this.ensureQrImage(request)));
     }
+  }
+
+  private ensureQrImage(request: CredentialRequest): Promise<void> {
+    if (this.qrImages[request.id]) {
+      return Promise.resolve();
+    }
+
+    if (request.qrImageUrl) {
+      this.qrImages[request.id] = request.qrImageUrl;
+      return Promise.resolve();
+    }
+
+    const existing = this.qrImagePromises.get(request.id);
+
+    if (existing) {
+      return existing;
+    }
+
+    const promise = this.requestService
+      .ensureQrImage(request.id)
+      .then(({ qrImageUrl }) => {
+        this.qrImages[request.id] = qrImageUrl;
+
+        const storedRequest = this.requestsById.get(request.id);
+
+        if (storedRequest) {
+          storedRequest.qrImageUrl = qrImageUrl;
+        }
+      })
+      .catch(async () => {
+        this.qrImages[request.id] = await toDataURL(this.verificationUrl(request), {
+          errorCorrectionLevel: 'M',
+          margin: 1,
+          scale: 5,
+        });
+      })
+      .finally(() => {
+        this.qrImagePromises.delete(request.id);
+      });
+
+    this.qrImagePromises.set(request.id, promise);
+
+    return promise;
   }
 }

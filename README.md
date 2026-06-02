@@ -1,38 +1,75 @@
-# Credenciales Escolares TUP
+# Credenciales Institucionales TUP
 
-Aplicacion web para solicitudes de credenciales escolares del Tecnologico
-Universitario Playacar. El frontend usa Angular, Reactive Forms, Angular
-Material y Tailwind. El backend usa Firebase Authentication, Firestore,
-Storage y Cloud Functions.
+Web app institucional para tramitar, revisar, imprimir, entregar y verificar
+credenciales del Tecnologico Universitario Playacar.
 
-## MVP actual
+Proyecto Firebase: `credencial-tup`
 
-- Inicio de sesion por correo y contrasena.
-- Rutas protegidas por rol para estudiante y administrador.
-- Portal estudiante para capturar solicitud, foto y evidencia.
-- Portal administrativo para revisar solicitudes y mover estatus.
-- Validacion de transiciones de estatus en Cloud Functions.
-- Control de duplicados activos por usuario/ciclo y matricula/ciclo.
-- Generacion de folio y token QR en backend.
-- Auditoria en `audit_logs`.
-- Cola de notificaciones en `notifications` y documentos compatibles con la
-  extension Trigger Email en `mail`.
+URL publica: `https://credencial-tup.web.app`
+
+## Stack
+
+- Frontend: Angular standalone, Reactive Forms, Angular Material y Tailwind.
+- Autenticacion: Firebase Authentication con Google Workspace Education.
+- Base de datos: Cloud Firestore.
+- Archivos: Firebase Storage.
+- Backend: Cloud Functions for Firebase, TypeScript.
+- Correo: coleccion `mail` compatible con Firebase Trigger Email.
+- Hosting: Firebase Hosting.
+
+## Documentacion
+
+- [SPEC.md](SPEC.md): especificacion funcional del producto.
+- [SDD.md](SDD.md): diseno tecnico y arquitectura.
+- [AUDITORIA_MODULOS_2026-06-01.md](AUDITORIA_MODULOS_2026-06-01.md): auditoria operativa reciente.
+
+## Modulos principales
+
+### Portal solicitante
+
+- Acceso con cuenta institucional `@tecplayacar.edu.mx`.
+- Clasificacion automatica:
+  - Estudiante: `tup` + 4 o mas digitos.
+  - Docente: `tup-d` + uno o mas digitos.
+  - Colaborador/administrativo: nombre.apellido u otro correo institucional.
+- Solicitud por primera vez y reposicion.
+- Bloqueo de tramite por primera vez cuando ya existe credencial historica o
+  solicitud previa.
+- Comprobante obligatorio en reposicion.
+- Guia de fotografia, carga desde camara o archivo, preview de imagen y limite
+  maximo de 10 MB.
+- Seguimiento de solicitudes rechazadas con carga de correcciones.
+
+### Portal administrativo
+
+- Dashboard ejecutivo.
+- Solicitudes separadas por tipo de credencial: estudiantes, docentes y
+  administrativos.
+- Busqueda por matricula, nombre, correo, programa o puesto.
+- Flujo de estatus: enviada, en revision, rechazada, aprobada para impresion,
+  impresa, lista para entrega y entregada.
+- Lotes de impresion.
+- Entrega de credenciales.
+- Importacion de perfiles Saeko e historico de credenciales entregadas.
+- Reportes exportables.
+- Auditoria operativa.
+- Administracion de usuarios administradores.
+- Diseno visual de credenciales con plantillas PNG/SVG.
+
+### Verificacion publica
+
+- Cada credencial usa QR con token seguro.
+- La ruta `/verify/:token` confirma la validez sin exponer datos sensibles.
 
 ## Comandos utiles
 
 ```bash
 npm run build
 npm test -- --watch=false
-npm --prefix functions run build
 npm --prefix functions run lint
+npm --prefix functions run build
 firebase emulators:start
 ```
-
-## Correo transaccional
-
-Las Functions escriben documentos en `mail/{id}` con `to` y `message`. Para que
-los correos salgan realmente, instala y configura la extension oficial de
-Firebase **Trigger Email** apuntando a la coleccion `mail`.
 
 ## Despliegue
 
@@ -40,4 +77,18 @@ Firebase **Trigger Email** apuntando a la coleccion `mail`.
 firebase deploy --only firestore,storage,functions,hosting
 ```
 
-El proyecto Firebase configurado es `credencial-tup`.
+Para cambios solo de interfaz:
+
+```bash
+npm run build
+firebase deploy --only hosting
+```
+
+## Notas operativas
+
+- Los correos transaccionales se escriben en `mail/{id}`.
+- El remitente institucional se gestiona con OAuth2 en la extension Trigger
+  Email.
+- Las reglas criticas tambien se validan en Functions, no solo en la UI.
+- Las credenciales historicas importadas se consideran ya entregadas y obligan
+  a que el siguiente tramite del alumno sea reposicion con comprobante.

@@ -97,7 +97,12 @@ export interface CredentialRequest {
   credentialNumber?: string;
   qrToken?: string;
   verificationUrl?: string;
+  qrImageUrl?: string;
+  qrImageStoragePath?: string;
   printBatchId?: string;
+  studentFollowUpAt?: Timestamp;
+  studentFollowUpNote?: string;
+  studentFollowUpPending?: boolean;
   timeline: CredentialTimelineEvent[];
   submittedAt: Timestamp;
   updatedAt: Timestamp;
@@ -121,6 +126,14 @@ export interface CreateCredentialRequestInput {
   photo: File;
   evidence?: File | null;
   requestType: CredentialRequestType;
+}
+
+export interface SubmitCredentialCorrectionInput {
+  uid: string;
+  requestId: string;
+  note?: string;
+  photo?: File | null;
+  evidence?: File | null;
 }
 
 export interface CredentialVerificationResult {
