@@ -440,13 +440,17 @@ textarea,
 .request-type-toggle {
   border: 0 !important;
   display: grid !important;
+  overflow: visible !important;
+  width: 100%;
 }
 
 .request-type-toggle .mat-button-toggle {
   border: 1px solid var(--tup-line) !important;
   border-radius: 8px !important;
   background: var(--tup-white) !important;
+  box-sizing: border-box;
   overflow: hidden;
+  width: 100%;
 }
 
 .request-type-toggle .mat-button-toggle-checked {
@@ -464,7 +468,8 @@ textarea,
 
 .request-type-toggle .mat-button-toggle-button {
   min-height: 78px;
-  padding: 0.9rem 1rem;
+  padding: 0;
+  width: 100%;
 }
 
 .student-request-card {
@@ -593,6 +598,11 @@ textarea,
   grid-template-columns: 48px minmax(0, 1fr);
 }
 
+.student-profile-card .student-soft-pill {
+  grid-column: 1 / -1;
+  justify-self: start;
+}
+
 .student-section-heading {
   grid-template-columns: 48px minmax(0, 1fr);
   margin-bottom: 1rem;
@@ -667,7 +677,9 @@ textarea,
 .student-soft-pill {
   background: rgb(37 42 134 / 7%);
   border: 1px solid rgb(37 42 134 / 20%);
+  box-sizing: border-box;
   color: var(--tup-primary);
+  max-width: 100%;
 }
 
 .student-success-pill {
@@ -756,12 +768,15 @@ textarea,
 }
 
 .student-request-toggle .mat-button-toggle-label-content {
+  display: block;
+  line-height: normal !important;
   padding: 0 !important;
   width: 100%;
 }
 
 .student-toggle-content {
   align-items: center;
+  box-sizing: border-box;
   display: grid;
   gap: 0.75rem;
   grid-template-columns: 28px minmax(0, 1fr);
@@ -1080,6 +1095,11 @@ textarea,
   .student-profile-card {
     align-items: center;
     grid-template-columns: 48px minmax(0, 1fr) auto;
+  }
+
+  .student-profile-card .student-soft-pill {
+    grid-column: auto;
+    justify-self: end;
   }
 
   .student-request-head {
