@@ -234,6 +234,8 @@ Estructura visual:
   archivos.
 - Vista previa inmediata de la foto de credencial y del comprobante cuando es
   imagen.
+- Las tarjetas de carga usan contenedores flexibles, truncado de nombres largos
+  y ancho maximo para evitar desbordes en botones o previews.
 - Resumen de envio con boton principal.
 - Panel lateral o inferior de solicitudes con timeline y correcciones.
 

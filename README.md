@@ -39,6 +39,8 @@ URL publica: `https://credencial-tup.web.app`
 - Guia de fotografia, carga desde camara o archivo, preview de imagen y limite
   maximo de 10 MB.
 - Optimizacion automatica de foto de credencial antes de subirla a Storage.
+- Las tarjetas de foto y comprobante mantienen botones, previews y nombres de
+  archivo dentro del card en escritorio y movil.
 - Seguimiento de solicitudes rechazadas con carga de correcciones.
 - Interfaz responsive por secciones: perfil detectado, datos, fotografia,
   comprobante cuando aplica, resumen de envio y seguimiento de solicitudes.

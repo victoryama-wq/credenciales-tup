@@ -580,7 +580,6 @@ textarea,
 .student-profile-card,
 .student-status-card,
 .student-alert-card,
-.student-submit-panel,
 .student-request-head {
   align-items: flex-start;
   display: grid;
@@ -590,8 +589,7 @@ textarea,
 
 .student-profile-card,
 .student-status-card,
-.student-alert-card,
-.student-submit-panel {
+.student-alert-card {
   grid-template-columns: 48px minmax(0, 1fr);
 }
 
@@ -972,11 +970,21 @@ textarea,
 
 .student-submit-panel {
   align-items: center;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
   padding: 1rem;
 }
 
+.student-submit-panel > div {
+  min-width: 0;
+}
+
 .student-submit-panel button {
-  justify-self: start;
+  justify-self: stretch;
+  min-width: 0;
+  width: 100%;
 }
 
 .student-requests-panel {
@@ -1045,8 +1053,7 @@ textarea,
 
 @media (min-width: 640px) {
   .student-hero-card,
-  .student-alert-card,
-  .student-submit-panel {
+  .student-alert-card {
     grid-template-columns: auto minmax(0, 1fr) auto;
   }
 
@@ -1060,8 +1067,14 @@ textarea,
     width: auto;
   }
 
+  .student-submit-panel {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
   .student-submit-panel button {
     justify-self: end;
+    min-width: 196px;
+    width: auto;
   }
 
   .student-profile-card {
