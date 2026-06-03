@@ -391,7 +391,7 @@
                   }
                   <div class="min-w-0">
                     <p class="text-xs font-semibold uppercase text-emerald-700">Foto cargada</p>
-                    <p class="mt-1 truncate text-sm font-semibold text-[var(--tup-ink)]">
+                    <p class="selected-file-name mt-1 text-sm font-semibold text-[var(--tup-ink)]">
                       {{ photoFile.name }}
                     </p>
                   </div>
@@ -464,7 +464,9 @@
                       <p class="text-xs font-semibold uppercase text-emerald-700">
                         Comprobante cargado
                       </p>
-                      <p class="mt-1 truncate text-sm font-semibold text-[var(--tup-ink)]">
+                      <p
+                        class="selected-file-name mt-1 text-sm font-semibold text-[var(--tup-ink)]"
+                      >
                         {{ evidenceFile.name }}
                       </p>
                     </div>
@@ -698,7 +700,9 @@
                                 <p class="font-semibold uppercase text-emerald-700">
                                   Foto corregida
                                 </p>
-                                <p class="mt-1 truncate font-semibold text-[var(--tup-ink)]">
+                                <p
+                                  class="selected-file-name mt-1 font-semibold text-[var(--tup-ink)]"
+                                >
                                   {{ correctionPhotoFiles[request.id]?.name }}
                                 </p>
                               </div>
@@ -722,7 +726,9 @@
                                 <p class="font-semibold uppercase text-emerald-700">
                                   Comprobante corregido
                                 </p>
-                                <p class="mt-1 truncate font-semibold text-[var(--tup-ink)]">
+                                <p
+                                  class="selected-file-name mt-1 font-semibold text-[var(--tup-ink)]"
+                                >
                                   {{ correctionEvidenceFiles[request.id]?.name }}
                                 </p>
                               </div>

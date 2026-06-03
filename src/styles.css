@@ -307,6 +307,11 @@ textarea,
   background: #f8fff9;
   border: 1px solid rgb(16 185 129 / 22%);
   border-left: 4px solid #10b981;
+  box-sizing: border-box;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  width: 100%;
 }
 
 .selected-photo-preview {
@@ -332,6 +337,21 @@ textarea,
   height: 64px;
   justify-content: center;
   width: 64px;
+}
+
+.selected-file-panel > *,
+.selected-file-panel .min-w-0 {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.selected-file-name {
+  display: block;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .photo-reference {
@@ -826,22 +846,31 @@ textarea,
   color: var(--tup-muted);
   font-size: 0.84rem;
   line-height: 1.6;
+  max-width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .student-upload-grid {
   display: grid;
   gap: 1rem;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
 }
 
 .student-upload-card {
   align-content: start;
   display: grid;
   gap: 0.9rem;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .student-upload-heading {
   align-items: start;
   display: flex;
+  flex-wrap: wrap;
   gap: 0.75rem;
   justify-content: space-between;
   min-width: 0;
@@ -851,6 +880,10 @@ textarea,
   align-items: center;
   display: grid;
   gap: 1rem;
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .student-photo-preview-shell {
@@ -860,6 +893,7 @@ textarea,
   border-radius: 10px;
   display: flex;
   justify-content: center;
+  max-width: 150px;
   min-height: 128px;
   overflow: hidden;
   width: min(100%, 150px);
@@ -882,7 +916,36 @@ textarea,
 .student-upload-actions {
   display: grid;
   gap: 0.75rem;
+  max-width: 100%;
   min-width: 0;
+  width: 100%;
+}
+
+.student-upload-actions .mat-mdc-button-base,
+.student-upload-card .link-button {
+  box-sizing: border-box;
+  max-width: 100%;
+  min-width: 0 !important;
+  overflow: hidden;
+  width: 100%;
+}
+
+.student-upload-actions .mdc-button__label,
+.student-upload-card .mdc-button__label {
+  align-items: center;
+  display: inline-flex;
+  justify-content: center;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.student-required-pill {
+  flex: 0 1 auto;
+  max-width: 100%;
+  white-space: normal;
 }
 
 .student-message {
@@ -1019,17 +1082,22 @@ textarea,
     padding: 1.25rem;
   }
 
-  .student-upload-grid,
   .student-photo-guidance-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .student-upload-body {
-    grid-template-columns: 150px minmax(0, 1fr);
-  }
-
   .student-guidance-list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 900px) {
+  .student-upload-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  }
+
+  .student-upload-body {
+    grid-template-columns: minmax(112px, 150px) minmax(0, 1fr);
   }
 }
 
