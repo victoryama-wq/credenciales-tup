@@ -264,6 +264,8 @@ llamado a accion. El area de entrega indicada es el area de sistemas.
 - Solicitud docente exige solo nombre y foto.
 - Solicitud colaborador exige nombre, puesto y foto.
 - Reposicion exige comprobante.
+- Portal solicitante muestra interfaz responsive por secciones, con iconos
+  alineados, alerta de accion requerida y seguimiento visible de solicitudes.
 - Historicos bloquean primera vez.
 - QR valido muestra verificacion publica.
 - No se exponen datos sensibles en QR.

@@ -122,6 +122,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
   requests: CredentialRequest[] = [];
   detectedApplicantType: CredentialApplicantType = 'STUDENT';
   institutionalProfile: InstitutionalProfile | null = null;
+  currentUserEmail = '';
   private blockedProfileModalShownFor = '';
 
   form = this.fb.nonNullable.group({
@@ -173,6 +174,30 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
     return !this.institutionalProfile || this.institutionalProfile.academicStatus === 'ACTIVE';
   }
 
+  get actionRequiredRequest(): CredentialRequest | undefined {
+    return this.requests.find(
+      (request) => request.status === 'REJECTED' && !request.studentFollowUpPending,
+    );
+  }
+
+  get profileSummary(): string {
+    if (this.isStudentApplicant) {
+      return this.currentUserEmail
+        ? `Estudiante por correo ${this.currentUserEmail}`
+        : 'Estudiante detectado con correo institucional.';
+    }
+
+    if (this.isTeacherApplicant) {
+      return this.currentUserEmail
+        ? `Docente por correo ${this.currentUserEmail}`
+        : 'Docente detectado con correo institucional.';
+    }
+
+    return this.currentUserEmail
+      ? `Colaborador por correo ${this.currentUserEmail}`
+      : 'Colaborador detectado con correo institucional.';
+  }
+
   async ngOnInit(): Promise<void> {
     const user = await this.authService.waitForCurrentUser();
 
@@ -183,6 +208,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
     }
 
     this.detectedApplicantType = this.detectApplicantType(user.email || '');
+    this.currentUserEmail = user.email || '';
     this.form.patchValue({
       applicantType: this.detectedApplicantType,
       name: user.displayName || '',
@@ -250,10 +276,10 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
     this.revokeEvidencePreview();
 
     Object.keys(this.correctionPhotoPreviewUrls).forEach((requestId) =>
-      this.revokeCorrectionPhotoPreview(requestId)
+      this.revokeCorrectionPhotoPreview(requestId),
     );
     Object.keys(this.correctionEvidencePreviewUrls).forEach((requestId) =>
-      this.revokeCorrectionEvidencePreview(requestId)
+      this.revokeCorrectionEvidencePreview(requestId),
     );
   }
 
@@ -298,7 +324,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
   async setCorrectionFile(
     requestId: string,
     event: Event,
-    type: 'photo' | 'evidence'
+    type: 'photo' | 'evidence',
   ): Promise<void> {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0] ?? null;
@@ -379,7 +405,8 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
       this.revokeCorrectionPhotoPreview(request.id);
       this.revokeCorrectionEvidencePreview(request.id);
       this.correctionNotes[request.id] = '';
-      this.successMessage = 'Seguimiento enviado correctamente. El área administrativa podrá reabrir la revisión.';
+      this.successMessage =
+        'Seguimiento enviado correctamente. El área administrativa podrá reabrir la revisión.';
     } catch (error) {
       this.errorMessage =
         error instanceof Error ? error.message : 'No fue posible enviar el seguimiento.';
@@ -550,7 +577,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
               : profile.career || '',
         cycle: profile.applicantType === 'STUDENT' ? profile.currentTerm || '' : 'No aplica',
       },
-      { emitEvent: false }
+      { emitEvent: false },
     );
 
     this.form.controls.name.disable({ emitEvent: false });
@@ -611,14 +638,14 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
     const isStaff = applicantType === 'STAFF';
 
     this.form.controls.studentId.setValidators(
-      isStudent ? [Validators.required, Validators.pattern(this.studentIdPattern)] : []
+      isStudent ? [Validators.required, Validators.pattern(this.studentIdPattern)] : [],
     );
     this.form.controls.career.setValidators(
-      isStudent || isStaff ? [Validators.required, Validators.minLength(2)] : []
+      isStudent || isStaff ? [Validators.required, Validators.minLength(2)] : [],
     );
     this.form.controls.cycle.setValidators(isStudent ? [Validators.required] : []);
     this.form.controls.phone.setValidators(
-      isStudent ? [Validators.required, Validators.minLength(10)] : []
+      isStudent ? [Validators.required, Validators.minLength(10)] : [],
     );
 
     this.form.patchValue(
@@ -628,7 +655,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
         cycle: isStudent ? 'Primer cuatrimestre' : 'No aplica',
         phone: isStudent ? this.form.controls.phone.value : '',
       },
-      { emitEvent: false }
+      { emitEvent: false },
     );
 
     this.form.controls.studentId.updateValueAndValidity({ emitEvent: false });
@@ -646,9 +673,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
 
     if (!validTypes.includes(contentType)) {
       this.errorMessage =
-        type === 'photo'
-          ? 'La foto debe ser JPG o PNG.'
-          : 'La evidencia debe ser JPG, PNG o PDF.';
+        type === 'photo' ? 'La foto debe ser JPG o PNG.' : 'La evidencia debe ser JPG, PNG o PDF.';
       this.dialogService.open({
         title: 'Formato no permitido',
         message:
@@ -683,7 +708,10 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
   }
 
   private normalizeStudentId(value: string): string {
-    const clean = value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const clean = value
+      .trim()
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, '');
 
     if (/^\d+$/.test(clean)) {
       return `TUP${clean}`;

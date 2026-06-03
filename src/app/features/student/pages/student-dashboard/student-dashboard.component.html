@@ -1,622 +1,774 @@
-<main class="app-shell px-4 py-6 md:px-8">
-  <div class="mx-auto max-w-7xl">
-    <header class="institution-header mb-6 flex flex-col gap-4 rounded-lg px-5 py-4 md:flex-row md:items-center md:justify-between">
-      <div class="flex items-center gap-4">
-        <div class="grid h-14 w-32 place-items-center rounded-md bg-white p-2 shadow-sm">
-          <img src="/logo-tup.png" alt="TUP" class="logo-mark h-full w-full" />
+<main class="app-shell student-portal-shell px-4 py-5 md:px-8">
+  <div class="student-portal-container mx-auto">
+    <header class="institution-header student-hero-card">
+      <div class="student-hero-brand">
+        <div class="student-logo-card">
+          <img src="/logo-tup.png" alt="TUP" class="logo-mark" />
         </div>
-        <div>
+        <div class="min-w-0">
           <p class="eyebrow">Portal institucional</p>
-          <h1 class="text-2xl font-bold text-[var(--tup-ink)] md:text-3xl">Solicitud de credencial</h1>
+          <h1>Solicitud de credencial</h1>
         </div>
       </div>
 
-      <div class="flex flex-wrap items-center gap-3">
-        <span class="status-pill rounded-full px-4 py-2 text-sm font-semibold">Cuenta institucional</span>
-        <button mat-stroked-button color="primary" class="link-button !rounded-md" (click)="logout()">
-          Cerrar sesión
+      <div class="student-hero-actions">
+        <span class="status-pill rounded-full px-4 py-2 text-sm font-semibold">
+          Cuenta institucional
+        </span>
+        <button
+          mat-stroked-button
+          color="primary"
+          class="link-button !rounded-md"
+          (click)="logout()"
+        >
+          Cerrar sesion
         </button>
       </div>
     </header>
 
-    <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_420px]">
-      <section>
-        <mat-card class="institution-card student-form-card !rounded-lg !shadow-none">
-          <mat-card-header>
-            <mat-card-title>Nueva solicitud</mat-card-title>
-            <mat-card-subtitle>Completa tus datos y adjunta solo los archivos requeridos.</mat-card-subtitle>
-          </mat-card-header>
+    @if (actionRequiredRequest; as actionRequest) {
+      <section class="student-alert-card">
+        <span class="student-icon-card student-icon-danger" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 7v6" />
+            <path d="M12 17h.01" />
+          </svg>
+        </span>
+        <div class="min-w-0">
+          <p class="student-alert-title">Accion requerida</p>
+          <p class="student-alert-copy">
+            Tu solicitud fue rechazada. Revisa el motivo y adjunta los archivos corregidos para
+            reabrir la revision.
+          </p>
+        </div>
+        <a class="student-action-button" href="#student-requests"> Enviar correccion </a>
+      </section>
+    }
 
-          <mat-card-content class="pt-6">
-            <form [formGroup]="form" (ngSubmit)="submit()" class="grid gap-5">
-              <section class="student-section-card rounded-lg p-4">
-                <p class="mb-3 text-sm font-semibold text-[var(--tup-ink)]">Tipo de solicitante</p>
-                <div class="applicant-access-summary rounded-lg px-4 py-3">
-                  <p class="font-semibold text-[var(--tup-primary)]">
-                    {{ applicantTypeLabels[detectedApplicantType] }}
-                  </p>
-                  <p class="mt-1 text-sm text-[var(--tup-muted)]">
-                    Detectado automáticamente con tu correo institucional.
-                  </p>
-                </div>
-              </section>
+    <div class="student-portal-grid">
+      <form [formGroup]="form" (ngSubmit)="submit()" class="student-form-flow">
+        <section class="student-card student-profile-card">
+          <span class="student-icon-card" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" />
+              <path d="M4 21a8 8 0 0 1 16 0" />
+            </svg>
+          </span>
+          <div class="min-w-0">
+            <p class="student-card-kicker">Perfil detectado</p>
+            <h2>{{ applicantTypeLabels[detectedApplicantType] }}</h2>
+            <p>{{ profileSummary }}</p>
+          </div>
+          <span class="student-soft-pill">{{ applicantTypeLabels[detectedApplicantType] }}</span>
+        </section>
 
-              @if (institutionalProfile; as profile) {
-                <section
-                  class="rounded-lg border p-4"
-                  [class.border-emerald-200]="canSubmitCredentialRequest"
-                  [class.bg-emerald-50]="canSubmitCredentialRequest"
-                  [class.border-red-200]="!canSubmitCredentialRequest"
-                  [class.bg-red-50]="!canSubmitCredentialRequest"
-                >
-                  <p class="text-sm font-semibold" [class.text-emerald-700]="canSubmitCredentialRequest" [class.text-red-700]="!canSubmitCredentialRequest">
-                    Perfil institucional Saeko: {{ academicStatusLabels[profile.academicStatus] }}
-                  </p>
-                  <p class="mt-2 text-sm leading-6 text-[var(--tup-muted)]">
-                    Tus datos escolares fueron precargados desde Control Escolar.
-                    @if (!canSubmitCredentialRequest) {
-                      No es posible generar una nueva solicitud con este estatus.
-                    }
-                  </p>
-                </section>
-              }
-
-              <section class="student-section-card rounded-lg p-4">
-                <p class="mb-3 text-sm font-semibold text-[var(--tup-ink)]">Tipo de trámite</p>
-                <mat-button-toggle-group
-                  formControlName="requestType"
-                  class="request-type-toggle grid w-full gap-3 md:grid-cols-2"
-                >
-                  @for (type of requestTypes; track type) {
-                    <mat-button-toggle
-                      [value]="type"
-                      [disabled]="type === 'FIRST_TIME' && hasFirstTimeRequest"
-                      class="request-type-option"
-                    >
-                      <span class="block text-left">
-                        <span class="block font-semibold">{{ requestTypeLabels[type] }}</span>
-                        <span class="mt-1 block text-xs text-[var(--tup-muted)]">
-                          @if (type === 'FIRST_TIME') {
-                            Sin comprobante de pago
-                          } @else {
-                            Requiere comprobante de pago
-                          }
-                        </span>
-                      </span>
-                    </mat-button-toggle>
-                  }
-                </mat-button-toggle-group>
-
-                @if (hasFirstTimeRequest) {
-                  <p class="student-inline-notice mt-3 rounded-md px-3 py-2 text-sm">
-                    Ya tienes una solicitud de primera vez registrada.
-                  </p>
-                }
-              </section>
-
-              <section class="student-form-grid grid gap-4 md:grid-cols-2">
-                <mat-form-field appearance="outline" class="w-full">
-                  <mat-label>Nombre completo</mat-label>
-                  <input matInput formControlName="name" autocomplete="name" />
-                  @if (form.controls.name.hasError('required')) {
-                    <mat-error>El nombre es obligatorio.</mat-error>
-                  }
-                </mat-form-field>
-
-                @if (isStudentApplicant) {
-                  <mat-form-field appearance="outline" class="w-full">
-                    <mat-label>Matrícula</mat-label>
-                    <input
-                      matInput
-                      formControlName="studentId"
-                      autocomplete="off"
-                      placeholder="TUP1545"
-                      (input)="formatStudentIdInput()"
-                      (blur)="formatStudentIdInput()"
-                    />
-                    @if (form.controls.studentId.hasError('required')) {
-                      <mat-error>La matrícula es obligatoria.</mat-error>
-                    }
-                    @if (form.controls.studentId.hasError('pattern')) {
-                      <mat-error>Usa el formato TUP seguido de números. Ejemplo: TUP1545.</mat-error>
-                    }
-                  </mat-form-field>
-
-                  <mat-form-field appearance="outline" class="w-full">
-                    <mat-label>Programa académico</mat-label>
-                    <mat-select formControlName="career">
-                      @for (career of careers; track career) {
-                        <mat-option [value]="career">{{ career }}</mat-option>
-                      }
-                    </mat-select>
-                    @if (form.controls.career.hasError('required')) {
-                      <mat-error>Selecciona un programa.</mat-error>
-                    }
-                  </mat-form-field>
-
-                  <mat-form-field appearance="outline" class="w-full">
-                    <mat-label>Cuatrimestre</mat-label>
-                    <mat-select formControlName="cycle">
-                      @for (cycle of cycles; track cycle) {
-                        <mat-option [value]="cycle">{{ cycle }}</mat-option>
-                      }
-                    </mat-select>
-                  </mat-form-field>
-
-                  <mat-form-field appearance="outline" class="w-full">
-                    <mat-label>Teléfono</mat-label>
-                    <input matInput formControlName="phone" autocomplete="tel" />
-                    @if (form.controls.phone.hasError('required')) {
-                      <mat-error>El teléfono es obligatorio.</mat-error>
-                    }
-                  </mat-form-field>
-                }
-
-                @if (isStaffApplicant) {
-                  <mat-form-field appearance="outline" class="w-full">
-                    <mat-label>Puesto</mat-label>
-                    <input matInput formControlName="career" autocomplete="organization-title" />
-                    @if (form.controls.career.hasError('required')) {
-                      <mat-error>El puesto es obligatorio.</mat-error>
-                    }
-                  </mat-form-field>
-                }
-              </section>
-
-              <section class="photo-guidance rounded-lg p-5">
-                <div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_170px] lg:items-center">
-                  <div>
-                    <p class="eyebrow text-[var(--tup-primary)]">Guía para fotografía</p>
-                    <h3 class="mt-2 text-xl font-bold text-[var(--tup-ink)]">
-                      Esta imagen se usará en tu credencial
-                    </h3>
-                    <p class="mt-3 text-sm leading-6 text-[var(--tup-muted)]">
-                      Sube una foto presentable, tomada de frente y sin filtros. La cara debe verse completa,
-                      sin manos en el rostro y sin cabello cubriendo ojos o facciones.
-                    </p>
-
-                    <div class="mt-4 grid gap-3 md:grid-cols-2">
-                      <div class="photo-guidance-card rounded-md p-3">
-                        <p class="text-sm font-semibold text-[var(--tup-primary)]">Encuadre correcto</p>
-                        <p class="mt-1 text-sm leading-6 text-[var(--tup-muted)]">
-                          Desde arriba del pecho hasta el final de la cabeza, dejando un pequeño espacio
-                          entre tu cabeza y el borde superior de la foto.
-                        </p>
-                      </div>
-
-                      @if (isStudentApplicant) {
-                        <div class="photo-guidance-card rounded-md p-3">
-                          <p class="text-sm font-semibold text-[var(--tup-primary)]">Uniforme obligatorio</p>
-                          <p class="mt-1 text-sm leading-6 text-[var(--tup-muted)]">
-                            Alumnas y alumnos de Nutrición o Enfermería deben portar filipina blanca con logo
-                            institucional; de lo contrario la foto será rechazada.
-                          </p>
-                        </div>
-                      }
-                    </div>
-
-                    <ul class="mt-4 grid gap-2 text-sm leading-6 text-[var(--tup-ink)] md:grid-cols-2">
-                      <li>Chicas: aretes discretos.</li>
-                      <li>Ambos: cabello recogido.</li>
-                      <li>Evita fotos de cuerpo entero.</li>
-                      <li>Mira directamente a la cámara.</li>
-                    </ul>
-                  </div>
-
-                  <div class="photo-reference mx-auto">
-                    <div class="photo-reference-frame">
-                      <div class="photo-head"></div>
-                      <div class="photo-shoulders"></div>
-                      <span class="photo-top-space"></span>
-                    </div>
-                    <p class="mt-3 text-center text-xs font-semibold text-[var(--tup-primary)]">
-                      Referencia de encuadre
-                    </p>
-                  </div>
-                </div>
-              </section>
-
-              <section class="grid gap-4 md:grid-cols-2">
-                <div class="file-drop rounded-lg p-4">
-                  <label class="block text-sm font-semibold text-[var(--tup-ink)]">Foto JPG/PNG max. 10 MB</label>
-
-                  <div class="upload-action-group mt-3 grid gap-3 sm:grid-cols-2">
-                    <button
-                      mat-stroked-button
-                      color="primary"
-                      type="button"
-                      class="link-button !h-11 !rounded-md"
-                      [disabled]="optimizingPhoto"
-                      (click)="photoCameraInput.click()"
-                    >
-                      <svg class="upload-action-icon" viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M8.2 5.5 9.6 4h4.8l1.4 1.5H19a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7.5a2 2 0 0 1 2-2h3.2Z" />
-                        <circle cx="12" cy="12.5" r="3.4" />
-                      </svg>
-                      Tomar foto
-                    </button>
-
-                    <button
-                      mat-stroked-button
-                      color="primary"
-                      type="button"
-                      class="link-button !h-11 !rounded-md"
-                      [disabled]="optimizingPhoto"
-                      (click)="photoUploadInput.click()"
-                    >
-                      <svg class="upload-action-icon" viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M12 4v10" />
-                        <path d="m8 8 4-4 4 4" />
-                        <path d="M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" />
-                      </svg>
-                      Cargar foto
-                    </button>
-                  </div>
-
-                  <input
-                    #photoCameraInput
-                    class="sr-only"
-                    type="file"
-                    accept="image/png,image/jpeg,image/jpg"
-                    capture="user"
-                    (change)="setFile($event, 'photo')"
-                  />
-                  <input
-                    #photoUploadInput
-                    class="sr-only"
-                    type="file"
-                    accept="image/png,image/jpeg,image/jpg"
-                    (change)="setFile($event, 'photo')"
-                  />
-
-                  <p class="mt-3 text-xs leading-5 text-[var(--tup-muted)]">
-                    En celular puedes abrir la cámara frontal o elegir una imagen guardada.
-                  </p>
-
-                  @if (optimizingPhoto) {
-                    <div class="selected-file-panel mt-4 rounded-md p-3">
-                      <div class="flex items-center gap-3">
-                        <mat-progress-spinner diameter="28" mode="indeterminate"></mat-progress-spinner>
-                        <div class="min-w-0">
-                          <p class="text-xs font-semibold uppercase text-emerald-700">Optimizando foto</p>
-                          <p class="mt-1 text-sm text-[var(--tup-muted)]">
-                            Estamos reduciendo el peso sin perder calidad para credencial.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  }
-
-                  @if (photoFile) {
-                    <div class="selected-file-panel mt-4 rounded-md p-3">
-                      <div class="flex items-center gap-3">
-                        @if (photoPreviewUrl) {
-                          <img
-                            [src]="photoPreviewUrl"
-                            [alt]="photoFile.name"
-                            class="selected-photo-preview"
-                          />
-                        }
-                        <div class="min-w-0">
-                          <p class="text-xs font-semibold uppercase text-emerald-700">Foto cargada</p>
-                          <p class="mt-1 truncate text-sm font-semibold text-[var(--tup-ink)]">
-                            {{ photoFile.name }}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  }
-                </div>
-
-                @if (isReplacement && recentFirstTimeSubmitted) {
-                  <div class="student-section-card rounded-lg p-4 text-sm text-[var(--tup-muted)]">
-                    <p class="font-semibold text-[var(--tup-ink)]">Solicitud recibida</p>
-                    <p class="mt-2">
-                      Tu trámite de primera vez fue enviado correctamente. El comprobante solo será necesario
-                      si más adelante solicitas una reposición.
-                    </p>
-                  </div>
-                } @else if (isReplacement) {
-                  <div class="file-drop rounded-lg p-4">
-                    <div class="flex flex-wrap items-center justify-between gap-2">
-                      <label class="block text-sm font-semibold text-[var(--tup-ink)]">
-                        Comprobante de pago obligatorio max. 10 MB
-                      </label>
-                      <span class="rounded-full border border-red-200 bg-red-50 px-2 py-1 text-xs font-semibold text-red-700">
-                        Obligatorio
-                      </span>
-                    </div>
-
-                    <button
-                      mat-stroked-button
-                      color="primary"
-                      type="button"
-                      class="link-button mt-3 !h-11 !w-full !rounded-md"
-                      (click)="evidenceInput.click()"
-                    >
-                      <svg class="upload-action-icon" viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z" />
-                        <path d="M14 3v5h5" />
-                        <path d="M12 17V10" />
-                        <path d="m9 13 3-3 3 3" />
-                      </svg>
-                      Subir comprobante
-                    </button>
-
-                    <input
-                      #evidenceInput
-                      class="sr-only"
-                      type="file"
-                      accept="image/png,image/jpeg,application/pdf"
-                      (change)="setFile($event, 'evidence')"
-                    />
-
-                    <p class="mt-3 text-xs leading-5 text-[var(--tup-muted)]">
-                      Puedes adjuntar una imagen o PDF legible del pago.
-                    </p>
-                    <p class="mt-2 rounded-md border border-[var(--tup-line)] bg-white px-3 py-2 text-xs leading-5 text-[var(--tup-muted)]">
-                      Para reposición, el comprobante es obligatorio antes de enviar la solicitud.
-                    </p>
-
-                    @if (evidenceFile) {
-                      <div class="selected-file-panel mt-4 rounded-md p-3">
-                        <div class="flex items-center gap-3">
-                          @if (evidencePreviewUrl) {
-                            <img
-                              [src]="evidencePreviewUrl"
-                              [alt]="evidenceFile.name"
-                              class="selected-photo-preview"
-                            />
-                          } @else {
-                            <div class="selected-file-icon">PDF</div>
-                          }
-                          <div class="min-w-0">
-                            <p class="text-xs font-semibold uppercase text-emerald-700">
-                              Comprobante cargado
-                            </p>
-                            <p class="mt-1 truncate text-sm font-semibold text-[var(--tup-ink)]">
-                              {{ evidenceFile.name }}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    }
-                  </div>
+        @if (institutionalProfile; as profile) {
+          <section
+            class="student-status-card"
+            [class.student-status-card-ok]="canSubmitCredentialRequest"
+            [class.student-status-card-warning]="!canSubmitCredentialRequest"
+          >
+            <span class="student-icon-card" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                @if (canSubmitCredentialRequest) {
+                  <path d="m5 12 4 4L19 6" />
                 } @else {
-                  <div class="student-section-card rounded-lg p-4 text-sm text-[var(--tup-muted)]">
-                    <p class="font-semibold text-[var(--tup-ink)]">Sin costo por primera vez</p>
-                    <p class="mt-2">No se solicita comprobante de pago para este trámite.</p>
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 7v6" />
+                  <path d="M12 17h.01" />
+                }
+              </svg>
+            </span>
+            <div class="min-w-0">
+              <p class="font-semibold">
+                Perfil institucional Saeko: {{ academicStatusLabels[profile.academicStatus] }}
+              </p>
+              <p class="mt-1 text-sm leading-6">
+                Tus datos fueron precargados desde Control Escolar.
+                @if (!canSubmitCredentialRequest) {
+                  No es posible generar una nueva solicitud con este estatus.
+                }
+              </p>
+            </div>
+          </section>
+        }
+
+        <section class="student-card">
+          <div class="student-section-heading">
+            <span class="student-icon-card" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <rect x="4" y="5" width="16" height="14" rx="2" />
+                <path d="M8 9h8" />
+                <path d="M8 13h5" />
+              </svg>
+            </span>
+            <div class="min-w-0">
+              <p class="student-card-kicker">Datos para credencial</p>
+              <h2>Nueva solicitud</h2>
+              <p>Completa solo los datos que corresponden a tu perfil institucional.</p>
+            </div>
+          </div>
+
+          <div class="student-request-type-panel">
+            <p class="student-mini-label">Tipo de tramite</p>
+            <mat-button-toggle-group
+              formControlName="requestType"
+              class="request-type-toggle student-request-toggle grid w-full gap-3 md:grid-cols-2"
+            >
+              @for (type of requestTypes; track type) {
+                <mat-button-toggle
+                  [value]="type"
+                  [disabled]="type === 'FIRST_TIME' && hasFirstTimeRequest"
+                  class="request-type-option"
+                >
+                  <span class="student-toggle-content">
+                    <span class="student-toggle-check" aria-hidden="true">
+                      @if (selectedRequestType === type) {
+                        <svg viewBox="0 0 24 24">
+                          <path d="m5 12 4 4L19 6" />
+                        </svg>
+                      }
+                    </span>
+                    <span class="min-w-0">
+                      <span class="student-toggle-title">{{ requestTypeLabels[type] }}</span>
+                      <span class="student-toggle-caption">
+                        @if (type === 'FIRST_TIME') {
+                          Sin comprobante de pago
+                        } @else {
+                          Requiere comprobante de pago
+                        }
+                      </span>
+                    </span>
+                  </span>
+                </mat-button-toggle>
+              }
+            </mat-button-toggle-group>
+
+            @if (hasFirstTimeRequest) {
+              <p class="student-inline-notice mt-3 rounded-md px-3 py-2 text-sm">
+                Ya tienes una solicitud de primera vez registrada. Para continuar, el tramite sera
+                reposicion.
+              </p>
+            }
+          </div>
+
+          <section class="student-form-grid grid gap-4 md:grid-cols-2">
+            <mat-form-field appearance="outline" class="w-full">
+              <mat-label>Nombre completo</mat-label>
+              <input matInput formControlName="name" autocomplete="name" />
+              @if (form.controls.name.hasError('required')) {
+                <mat-error>El nombre es obligatorio.</mat-error>
+              }
+            </mat-form-field>
+
+            @if (isStudentApplicant) {
+              <mat-form-field appearance="outline" class="w-full">
+                <mat-label>Matricula</mat-label>
+                <input
+                  matInput
+                  formControlName="studentId"
+                  autocomplete="off"
+                  placeholder="TUP1545"
+                  (input)="formatStudentIdInput()"
+                  (blur)="formatStudentIdInput()"
+                />
+                @if (form.controls.studentId.hasError('required')) {
+                  <mat-error>La matricula es obligatoria.</mat-error>
+                }
+                @if (form.controls.studentId.hasError('pattern')) {
+                  <mat-error>Usa el formato TUP seguido de numeros. Ejemplo: TUP1545.</mat-error>
+                }
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="w-full">
+                <mat-label>Programa academico</mat-label>
+                <mat-select formControlName="career">
+                  @for (career of careers; track career) {
+                    <mat-option [value]="career">{{ career }}</mat-option>
+                  }
+                </mat-select>
+                @if (form.controls.career.hasError('required')) {
+                  <mat-error>Selecciona un programa.</mat-error>
+                }
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="w-full">
+                <mat-label>Cuatrimestre</mat-label>
+                <mat-select formControlName="cycle">
+                  @for (cycle of cycles; track cycle) {
+                    <mat-option [value]="cycle">{{ cycle }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="w-full">
+                <mat-label>Telefono</mat-label>
+                <input matInput formControlName="phone" autocomplete="tel" />
+                @if (form.controls.phone.hasError('required')) {
+                  <mat-error>El telefono es obligatorio.</mat-error>
+                }
+              </mat-form-field>
+            }
+
+            @if (isStaffApplicant) {
+              <mat-form-field appearance="outline" class="w-full">
+                <mat-label>Puesto</mat-label>
+                <input matInput formControlName="career" autocomplete="organization-title" />
+                @if (form.controls.career.hasError('required')) {
+                  <mat-error>El puesto es obligatorio.</mat-error>
+                }
+              </mat-form-field>
+            }
+          </section>
+        </section>
+
+        <section class="student-card student-photo-card">
+          <div class="student-section-heading">
+            <span class="student-icon-card" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path
+                  d="M8.2 5.5 9.6 4h4.8l1.4 1.5H19a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7.5a2 2 0 0 1 2-2h3.2Z"
+                />
+                <circle cx="12" cy="12.5" r="3.4" />
+              </svg>
+            </span>
+            <div class="min-w-0">
+              <p class="student-card-kicker">Guia para fotografia</p>
+              <h2>Esta imagen se usara en tu credencial</h2>
+              <p>
+                Sube una foto presentable, tomada de frente y sin filtros. La cara debe verse
+                completa, sin manos en el rostro y sin cabello cubriendo ojos o facciones.
+              </p>
+            </div>
+          </div>
+
+          <div class="student-photo-guidance-grid">
+            <div class="student-guidance-list">
+              <article>
+                <strong>Encuadre correcto</strong>
+                <span
+                  >Desde arriba del pecho hasta el final de la cabeza, dejando espacio
+                  superior.</span
+                >
+              </article>
+              @if (isStudentApplicant) {
+                <article>
+                  <strong>Uniforme obligatorio</strong>
+                  <span
+                    >Nutricion y Enfermeria deben portar filipina blanca con logo
+                    institucional.</span
+                  >
+                </article>
+              }
+              <article>
+                <strong>Presentacion</strong>
+                <span
+                  >Cabello recogido, rostro visible, sin filtros y mirando de frente a la
+                  camara.</span
+                >
+              </article>
+            </div>
+
+            <div class="photo-reference mx-auto">
+              <div class="photo-reference-frame">
+                <div class="photo-head"></div>
+                <div class="photo-shoulders"></div>
+                <span class="photo-top-space"></span>
+              </div>
+              <p class="mt-3 text-center text-xs font-semibold text-[var(--tup-primary)]">
+                Referencia de encuadre
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section class="student-upload-grid">
+          <div class="student-card student-upload-card">
+            <div class="student-upload-heading">
+              <div>
+                <p class="student-mini-label">Foto JPG/PNG max. 10 MB</p>
+                <h3>Foto para credencial</h3>
+              </div>
+              @if (photoFile) {
+                <span class="student-success-pill">Foto lista</span>
+              }
+            </div>
+
+            <div class="student-upload-body">
+              <div class="student-photo-preview-shell">
+                @if (photoPreviewUrl) {
+                  <img [src]="photoPreviewUrl" [alt]="photoFile?.name || 'Foto cargada'" />
+                } @else {
+                  <div class="photo-reference-frame">
+                    <div class="photo-head"></div>
+                    <div class="photo-shoulders"></div>
+                    <span class="photo-top-space"></span>
                   </div>
                 }
-              </section>
+              </div>
 
-              @if (errorMessage) {
-                <p class="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{{ errorMessage }}</p>
-              }
+              <div class="student-upload-actions">
+                <button
+                  mat-stroked-button
+                  color="primary"
+                  type="button"
+                  class="link-button !h-11 !rounded-md"
+                  [disabled]="optimizingPhoto"
+                  (click)="photoCameraInput.click()"
+                >
+                  <svg class="upload-action-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path
+                      d="M8.2 5.5 9.6 4h4.8l1.4 1.5H19a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7.5a2 2 0 0 1 2-2h3.2Z"
+                    />
+                    <circle cx="12" cy="12.5" r="3.4" />
+                  </svg>
+                  Tomar foto
+                </button>
 
-              @if (successMessage) {
-                <p class="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{{ successMessage }}</p>
-              }
-
-              <div>
-                <button mat-flat-button color="primary" type="submit" [disabled]="submitting || optimizingPhoto || !canSubmitCredentialRequest" class="!h-11 !rounded-md">
-                  @if (submitting) {
-                    <mat-progress-spinner diameter="22" mode="indeterminate"></mat-progress-spinner>
-                  } @else {
-                    Enviar solicitud
-                  }
+                <button
+                  mat-stroked-button
+                  color="primary"
+                  type="button"
+                  class="link-button !h-11 !rounded-md"
+                  [disabled]="optimizingPhoto"
+                  (click)="photoUploadInput.click()"
+                >
+                  <svg class="upload-action-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M12 4v10" />
+                    <path d="m8 8 4-4 4 4" />
+                    <path d="M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" />
+                  </svg>
+                  Cargar foto
                 </button>
               </div>
-            </form>
-          </mat-card-content>
-        </mat-card>
-      </section>
+            </div>
 
-      <aside>
-        <mat-card class="institution-card !rounded-lg !shadow-none">
-          <mat-card-header>
-            <mat-card-title>Mis solicitudes</mat-card-title>
-            <mat-card-subtitle>Seguimiento en tiempo real</mat-card-subtitle>
-          </mat-card-header>
+            <input
+              #photoCameraInput
+              class="sr-only"
+              type="file"
+              accept="image/png,image/jpeg,image/jpg"
+              capture="user"
+              (change)="setFile($event, 'photo')"
+            />
+            <input
+              #photoUploadInput
+              class="sr-only"
+              type="file"
+              accept="image/png,image/jpeg,image/jpg"
+              (change)="setFile($event, 'photo')"
+            />
 
-          <mat-card-content class="pt-4">
-            @if (loading) {
-              <div class="grid place-items-center py-10">
-                <mat-progress-spinner diameter="32" mode="indeterminate"></mat-progress-spinner>
+            <p class="student-help-text">
+              En celular puedes abrir la camara frontal o elegir una imagen guardada. La foto se
+              optimiza antes de subirse.
+            </p>
+
+            @if (optimizingPhoto) {
+              <div class="selected-file-panel mt-4 rounded-md p-3">
+                <div class="flex items-center gap-3">
+                  <mat-progress-spinner diameter="28" mode="indeterminate"></mat-progress-spinner>
+                  <div class="min-w-0">
+                    <p class="text-xs font-semibold uppercase text-emerald-700">Optimizando foto</p>
+                    <p class="mt-1 text-sm text-[var(--tup-muted)]">
+                      Reduciendo el peso sin perder calidad para credencial.
+                    </p>
+                  </div>
+                </div>
               </div>
-            } @else if (!requests.length) {
-              <p class="muted-panel rounded-md p-4 text-sm text-[var(--tup-muted)]">Aún no tienes solicitudes registradas.</p>
-            } @else {
-              <div class="space-y-4">
-                @for (request of requests; track request.id) {
-                  <article class="student-request-card rounded-lg border border-[var(--tup-line)] bg-white p-4">
-                    <div class="flex items-start justify-between gap-3">
-                      <div>
-                        <p class="font-semibold text-[var(--tup-ink)]">{{ applicantLabel(request.applicantType) }}</p>
-                        @if (request.applicantType === 'STAFF') {
-                          <p class="text-sm text-[var(--tup-muted)]">Puesto: {{ request.career }}</p>
-                        } @else if (request.applicantType === 'TEACHER') {
-                          <p class="text-sm text-[var(--tup-muted)]">Docente</p>
-                        } @else {
-                          <p class="text-sm text-[var(--tup-muted)]">{{ request.studentId }} - {{ request.career }}</p>
-                        }
-                        <p class="mt-1 text-xs text-[var(--tup-muted)]">
-                          {{ request.requestType === 'REPLACEMENT' ? 'Reposición' : 'Primera vez' }}{{ displayCycle(request) }}
-                        </p>
-                      </div>
-                      <div class="flex flex-wrap justify-end gap-2">
-                        @if (isReplacementRequest(request)) {
-                          <span class="replacement-chip rounded-full px-3 py-1 text-xs font-semibold">
-                            Reposición
-                          </span>
-                        }
-                        <span class="status-pill rounded-full px-3 py-1 text-xs font-semibold">
-                          {{ statusLabels[request.status] }}
-                        </span>
-                      </div>
+            }
+
+            @if (photoFile) {
+              <div class="selected-file-panel mt-4 rounded-md p-3">
+                <div class="flex items-center gap-3">
+                  @if (photoPreviewUrl) {
+                    <img
+                      [src]="photoPreviewUrl"
+                      [alt]="photoFile.name"
+                      class="selected-photo-preview"
+                    />
+                  }
+                  <div class="min-w-0">
+                    <p class="text-xs font-semibold uppercase text-emerald-700">Foto cargada</p>
+                    <p class="mt-1 truncate text-sm font-semibold text-[var(--tup-ink)]">
+                      {{ photoFile.name }}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+
+          @if (isReplacement && recentFirstTimeSubmitted) {
+            <div class="student-card student-upload-card">
+              <p class="student-mini-label">Solicitud recibida</p>
+              <h3>Comprobante no requerido</h3>
+              <p class="student-help-text">
+                Tu tramite de primera vez fue enviado correctamente. El comprobante solo sera
+                necesario si mas adelante solicitas una reposicion.
+              </p>
+            </div>
+          } @else if (isReplacement) {
+            <div class="student-card student-upload-card">
+              <div class="student-upload-heading">
+                <div>
+                  <p class="student-mini-label">Comprobante de pago max. 10 MB</p>
+                  <h3>Pago de reposicion</h3>
+                </div>
+                <span class="student-required-pill">Obligatorio</span>
+              </div>
+
+              <button
+                mat-stroked-button
+                color="primary"
+                type="button"
+                class="link-button mt-3 !h-11 !w-full !rounded-md"
+                (click)="evidenceInput.click()"
+              >
+                <svg class="upload-action-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z" />
+                  <path d="M14 3v5h5" />
+                  <path d="M12 17V10" />
+                  <path d="m9 13 3-3 3 3" />
+                </svg>
+                Subir comprobante
+              </button>
+
+              <input
+                #evidenceInput
+                class="sr-only"
+                type="file"
+                accept="image/png,image/jpeg,application/pdf"
+                (change)="setFile($event, 'evidence')"
+              />
+
+              <p class="student-help-text">
+                Puedes adjuntar una imagen o PDF legible del pago. Para reposicion, este archivo es
+                obligatorio.
+              </p>
+
+              @if (evidenceFile) {
+                <div class="selected-file-panel mt-4 rounded-md p-3">
+                  <div class="flex items-center gap-3">
+                    @if (evidencePreviewUrl) {
+                      <img
+                        [src]="evidencePreviewUrl"
+                        [alt]="evidenceFile.name"
+                        class="selected-photo-preview"
+                      />
+                    } @else {
+                      <div class="selected-file-icon">PDF</div>
+                    }
+                    <div class="min-w-0">
+                      <p class="text-xs font-semibold uppercase text-emerald-700">
+                        Comprobante cargado
+                      </p>
+                      <p class="mt-1 truncate text-sm font-semibold text-[var(--tup-ink)]">
+                        {{ evidenceFile.name }}
+                      </p>
                     </div>
+                  </div>
+                </div>
+              }
+            </div>
+          } @else {
+            <div class="student-card student-upload-card">
+              <p class="student-mini-label">Sin costo por primera vez</p>
+              <h3>No se solicita comprobante</h3>
+              <p class="student-help-text">
+                Este tramite no requiere comprobante de pago. Solo adjunta tu fotografia para
+                credencial.
+              </p>
+            </div>
+          }
+        </section>
 
-                    <mat-divider class="!my-3"></mat-divider>
+        @if (errorMessage) {
+          <p class="student-message student-message-error">{{ errorMessage }}</p>
+        }
 
-                    <ol class="space-y-2">
-                      @for (event of request.timeline; track event.timestamp.seconds) {
-                        <li class="text-sm text-[var(--tup-muted)]">
-                          <span class="font-medium">{{ statusLabels[event.status] }}</span>
+        @if (successMessage) {
+          <p class="student-message student-message-success">{{ successMessage }}</p>
+        }
+
+        <section class="student-submit-panel">
+          <div class="min-w-0">
+            <p class="student-card-kicker">Listo para enviar</p>
+            <h2>Resumen validado</h2>
+            <p>El sistema revisara campos obligatorios, foto y comprobante cuando aplique.</p>
+          </div>
+          <button
+            mat-flat-button
+            color="primary"
+            type="submit"
+            [disabled]="submitting || optimizingPhoto || !canSubmitCredentialRequest"
+            class="!h-11 !rounded-md"
+          >
+            @if (submitting) {
+              <mat-progress-spinner diameter="22" mode="indeterminate"></mat-progress-spinner>
+            } @else {
+              Enviar solicitud
+            }
+          </button>
+        </section>
+      </form>
+
+      <aside id="student-requests" class="student-requests-panel">
+        <section class="student-card">
+          <div class="student-section-heading">
+            <span class="student-icon-card" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path d="M6 4h12v16H6z" />
+                <path d="M9 8h6" />
+                <path d="M9 12h6" />
+                <path d="M9 16h3" />
+              </svg>
+            </span>
+            <div class="min-w-0">
+              <p class="student-card-kicker">Seguimiento</p>
+              <h2>Mis solicitudes</h2>
+              <p>Consulta el avance y atiende correcciones cuando se soliciten.</p>
+            </div>
+          </div>
+
+          @if (loading) {
+            <div class="grid place-items-center py-10">
+              <mat-progress-spinner diameter="32" mode="indeterminate"></mat-progress-spinner>
+            </div>
+          } @else if (!requests.length) {
+            <p class="muted-panel rounded-md p-4 text-sm text-[var(--tup-muted)]">
+              Aun no tienes solicitudes registradas.
+            </p>
+          } @else {
+            <div class="student-request-list">
+              @for (request of requests; track request.id) {
+                <article
+                  class="student-request-card rounded-lg border border-[var(--tup-line)] bg-white p-4"
+                >
+                  <div class="student-request-head">
+                    <div class="min-w-0">
+                      <p class="font-semibold text-[var(--tup-ink)]">
+                        {{ applicantLabel(request.applicantType) }}
+                      </p>
+                      @if (request.applicantType === 'STAFF') {
+                        <p class="text-sm text-[var(--tup-muted)]">Puesto: {{ request.career }}</p>
+                      } @else if (request.applicantType === 'TEACHER') {
+                        <p class="text-sm text-[var(--tup-muted)]">Docente</p>
+                      } @else {
+                        <p class="text-sm text-[var(--tup-muted)]">
+                          {{ request.studentId }} - {{ request.career }}
+                        </p>
+                      }
+                      <p class="mt-1 text-xs text-[var(--tup-muted)]">
+                        {{ request.requestType === 'REPLACEMENT' ? 'Reposicion' : 'Primera vez'
+                        }}{{ displayCycle(request) }}
+                      </p>
+                    </div>
+                    <div class="student-chip-stack">
+                      @if (isReplacementRequest(request)) {
+                        <span class="replacement-chip rounded-full px-3 py-1 text-xs font-semibold">
+                          Reposicion
+                        </span>
+                      }
+                      <span class="status-pill rounded-full px-3 py-1 text-xs font-semibold">
+                        {{ statusLabels[request.status] }}
+                      </span>
+                    </div>
+                  </div>
+
+                  <mat-divider class="!my-3"></mat-divider>
+
+                  <ol class="student-timeline">
+                    @for (event of request.timeline; track event.timestamp.seconds) {
+                      <li>
+                        <span class="student-timeline-dot"></span>
+                        <p>
+                          <strong>{{ statusLabels[event.status] }}</strong>
                           @if (event.note) {
                             <span> - {{ event.note }}</span>
                           }
-                        </li>
-                      }
-                    </ol>
-
-                    @if (request.rejectionReason) {
-                      <p class="mt-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
-                        {{ request.rejectionReason }}
-                      </p>
+                        </p>
+                      </li>
                     }
+                  </ol>
 
-                    @if (request.status === 'REJECTED') {
-                      <section class="mt-4 rounded-lg border border-[var(--tup-line)] bg-white p-4">
-                        <p class="text-sm font-semibold text-[var(--tup-ink)]">
-                          Seguimiento de corrección
+                  @if (request.rejectionReason) {
+                    <p class="mt-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+                      {{ request.rejectionReason }}
+                    </p>
+                  }
+
+                  @if (request.status === 'REJECTED') {
+                    <section class="student-correction-card mt-4">
+                      <p class="text-sm font-semibold text-[var(--tup-ink)]">
+                        Seguimiento de correccion
+                      </p>
+                      <p class="mt-1 text-xs leading-5 text-[var(--tup-muted)]">
+                        Adjunta los archivos corregidos para que administracion pueda reabrir la
+                        revision.
+                      </p>
+
+                      @if (request.studentFollowUpPending) {
+                        <p
+                          class="mt-3 rounded-md border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs text-emerald-700"
+                        >
+                          Seguimiento enviado. El area administrativa ya puede tomar nuevamente la
+                          revision.
                         </p>
-                        <p class="mt-1 text-xs leading-5 text-[var(--tup-muted)]">
-                          Adjunta los archivos corregidos para que administración pueda reabrir la revisión.
-                        </p>
+                      }
 
-                        @if (request.studentFollowUpPending) {
-                          <p class="mt-3 rounded-md border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
-                            Seguimiento enviado. El área administrativa ya puede tomar nuevamente la revisión.
-                          </p>
-                        }
+                      <div class="mt-3 grid gap-3 sm:grid-cols-2">
+                        <button
+                          mat-stroked-button
+                          color="primary"
+                          type="button"
+                          class="link-button !h-10 !rounded-md"
+                          [disabled]="optimizingCorrectionPhotoIds[request.id]"
+                          (click)="correctionPhotoInput.click()"
+                        >
+                          Cargar foto corregida
+                        </button>
 
-                        <div class="mt-3 grid gap-3 sm:grid-cols-2">
+                        @if (request.requestType === 'REPLACEMENT') {
                           <button
                             mat-stroked-button
                             color="primary"
                             type="button"
                             class="link-button !h-10 !rounded-md"
-                            [disabled]="optimizingCorrectionPhotoIds[request.id]"
-                            (click)="correctionPhotoInput.click()"
+                            (click)="correctionEvidenceInput.click()"
                           >
-                            Cargar foto corregida
+                            Cargar comprobante corregido
                           </button>
+                        }
+                      </div>
 
-                          @if (request.requestType === 'REPLACEMENT') {
-                            <button
-                              mat-stroked-button
-                              color="primary"
-                              type="button"
-                              class="link-button !h-10 !rounded-md"
-                              (click)="correctionEvidenceInput.click()"
-                            >
-                              Cargar comprobante corregido
-                            </button>
-                          }
+                      <input
+                        #correctionPhotoInput
+                        class="sr-only"
+                        type="file"
+                        accept="image/png,image/jpeg,image/jpg"
+                        (change)="setCorrectionFile(request.id, $event, 'photo')"
+                      />
+                      <input
+                        #correctionEvidenceInput
+                        class="sr-only"
+                        type="file"
+                        accept="image/png,image/jpeg,application/pdf"
+                        (change)="setCorrectionFile(request.id, $event, 'evidence')"
+                      />
+
+                      @if (optimizingCorrectionPhotoIds[request.id]) {
+                        <div
+                          class="selected-file-panel mt-3 rounded-md p-3 text-xs text-[var(--tup-muted)]"
+                        >
+                          <div class="flex items-center gap-3">
+                            <mat-progress-spinner
+                              diameter="24"
+                              mode="indeterminate"
+                            ></mat-progress-spinner>
+                            <div class="min-w-0">
+                              <p class="font-semibold uppercase text-emerald-700">
+                                Optimizando foto corregida
+                              </p>
+                              <p class="mt-1 text-[var(--tup-muted)]">
+                                Preparando la imagen para subirla mas rapido.
+                              </p>
+                            </div>
+                          </div>
                         </div>
+                      }
 
-                        <input
-                          #correctionPhotoInput
-                          class="sr-only"
-                          type="file"
-                          accept="image/png,image/jpeg,image/jpg"
-                          (change)="setCorrectionFile(request.id, $event, 'photo')"
-                        />
-                        <input
-                          #correctionEvidenceInput
-                          class="sr-only"
-                          type="file"
-                          accept="image/png,image/jpeg,application/pdf"
-                          (change)="setCorrectionFile(request.id, $event, 'evidence')"
-                        />
-
-                        @if (optimizingCorrectionPhotoIds[request.id]) {
-                          <div class="selected-file-panel mt-3 rounded-md p-3 text-xs text-[var(--tup-muted)]">
-                            <div class="flex items-center gap-3">
-                              <mat-progress-spinner diameter="24" mode="indeterminate"></mat-progress-spinner>
+                      @if (
+                        correctionPhotoFiles[request.id] || correctionEvidenceFiles[request.id]
+                      ) {
+                        <div
+                          class="selected-file-panel mt-3 grid gap-3 rounded-md p-3 text-xs text-[var(--tup-muted)]"
+                        >
+                          @if (correctionPhotoFiles[request.id]) {
+                            <div class="flex min-w-0 items-center gap-3">
+                              @if (correctionPhotoPreviewUrls[request.id]) {
+                                <img
+                                  [src]="correctionPhotoPreviewUrls[request.id]"
+                                  [alt]="correctionPhotoFiles[request.id]?.name || 'Foto corregida'"
+                                  class="selected-photo-preview"
+                                />
+                              }
                               <div class="min-w-0">
-                                <p class="font-semibold uppercase text-emerald-700">Optimizando foto corregida</p>
-                                <p class="mt-1 text-[var(--tup-muted)]">
-                                  Preparando la imagen para subirla mas rapido.
+                                <p class="font-semibold uppercase text-emerald-700">
+                                  Foto corregida
+                                </p>
+                                <p class="mt-1 truncate font-semibold text-[var(--tup-ink)]">
+                                  {{ correctionPhotoFiles[request.id]?.name }}
                                 </p>
                               </div>
                             </div>
-                          </div>
-                        }
-
-                        @if (correctionPhotoFiles[request.id] || correctionEvidenceFiles[request.id]) {
-                          <div class="selected-file-panel mt-3 grid gap-3 rounded-md p-3 text-xs text-[var(--tup-muted)]">
-                            @if (correctionPhotoFiles[request.id]) {
-                              <div class="flex min-w-0 items-center gap-3">
-                                @if (correctionPhotoPreviewUrls[request.id]) {
-                                  <img
-                                    [src]="correctionPhotoPreviewUrls[request.id]"
-                                    [alt]="correctionPhotoFiles[request.id]?.name || 'Foto corregida'"
-                                    class="selected-photo-preview"
-                                  />
-                                }
-                                <div class="min-w-0">
-                                  <p class="font-semibold uppercase text-emerald-700">Foto corregida</p>
-                                  <p class="mt-1 truncate font-semibold text-[var(--tup-ink)]">
-                                    {{ correctionPhotoFiles[request.id]?.name }}
-                                  </p>
-                                </div>
-                              </div>
-                            }
-                            @if (correctionEvidenceFiles[request.id]) {
-                              <div class="flex min-w-0 items-center gap-3">
-                                @if (correctionEvidencePreviewUrls[request.id]) {
-                                  <img
-                                    [src]="correctionEvidencePreviewUrls[request.id]"
-                                    [alt]="correctionEvidenceFiles[request.id]?.name || 'Comprobante corregido'"
-                                    class="selected-photo-preview"
-                                  />
-                                } @else {
-                                  <div class="selected-file-icon">PDF</div>
-                                }
-                                <div class="min-w-0">
-                                  <p class="font-semibold uppercase text-emerald-700">Comprobante corregido</p>
-                                  <p class="mt-1 truncate font-semibold text-[var(--tup-ink)]">
-                                    {{ correctionEvidenceFiles[request.id]?.name }}
-                                  </p>
-                                </div>
-                              </div>
-                            }
-                          </div>
-                        }
-
-                        <mat-form-field appearance="outline" class="mt-3 w-full">
-                          <mat-label>Nota para administración</mat-label>
-                          <textarea
-                            matInput
-                            rows="3"
-                            [value]="correctionNotes[request.id] || ''"
-                            (input)="updateCorrectionNote(request.id, $event)"
-                          ></textarea>
-                        </mat-form-field>
-
-                        <button
-                          mat-flat-button
-                          color="primary"
-                          type="button"
-                          class="!h-10 !rounded-md"
-                          [disabled]="correctionSubmittingId === request.id || optimizingCorrectionPhotoIds[request.id] || !hasCorrectionData(request.id)"
-                          (click)="submitCorrection(request)"
-                        >
-                          @if (correctionSubmittingId === request.id) {
-                            <mat-progress-spinner diameter="20" mode="indeterminate"></mat-progress-spinner>
-                          } @else {
-                            Enviar seguimiento
                           }
-                        </button>
-                      </section>
-                    }
-                  </article>
-                }
-              </div>
-            }
-          </mat-card-content>
-        </mat-card>
+                          @if (correctionEvidenceFiles[request.id]) {
+                            <div class="flex min-w-0 items-center gap-3">
+                              @if (correctionEvidencePreviewUrls[request.id]) {
+                                <img
+                                  [src]="correctionEvidencePreviewUrls[request.id]"
+                                  [alt]="
+                                    correctionEvidenceFiles[request.id]?.name ||
+                                    'Comprobante corregido'
+                                  "
+                                  class="selected-photo-preview"
+                                />
+                              } @else {
+                                <div class="selected-file-icon">PDF</div>
+                              }
+                              <div class="min-w-0">
+                                <p class="font-semibold uppercase text-emerald-700">
+                                  Comprobante corregido
+                                </p>
+                                <p class="mt-1 truncate font-semibold text-[var(--tup-ink)]">
+                                  {{ correctionEvidenceFiles[request.id]?.name }}
+                                </p>
+                              </div>
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      <mat-form-field appearance="outline" class="mt-3 w-full">
+                        <mat-label>Nota para administracion</mat-label>
+                        <textarea
+                          matInput
+                          rows="3"
+                          [value]="correctionNotes[request.id] || ''"
+                          (input)="updateCorrectionNote(request.id, $event)"
+                        ></textarea>
+                      </mat-form-field>
+
+                      <button
+                        mat-flat-button
+                        color="primary"
+                        type="button"
+                        class="!h-10 !rounded-md"
+                        [disabled]="
+                          correctionSubmittingId === request.id ||
+                          optimizingCorrectionPhotoIds[request.id] ||
+                          !hasCorrectionData(request.id)
+                        "
+                        (click)="submitCorrection(request)"
+                      >
+                        @if (correctionSubmittingId === request.id) {
+                          <mat-progress-spinner
+                            diameter="20"
+                            mode="indeterminate"
+                          ></mat-progress-spinner>
+                        } @else {
+                          Enviar seguimiento
+                        }
+                      </button>
+                    </section>
+                  }
+                </article>
+              }
+            </div>
+          }
+        </section>
       </aside>
     </div>
   </div>

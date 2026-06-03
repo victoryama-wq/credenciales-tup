@@ -220,7 +220,27 @@ Reglas criticas implementadas tambien en Functions:
   solicitante.
 - Campos de folio, QR y estatus se controlan desde backend/rol autorizado.
 
-## 8. Frontend administrativo
+## 8. Frontend solicitante
+
+El portal del solicitante usa una interfaz responsive y modular para
+estudiantes, docentes y colaboradores.
+
+Estructura visual:
+
+- Encabezado institucional con logo, tipo de cuenta y cierre de sesion.
+- Alerta superior cuando una solicitud rechazada requiere seguimiento.
+- Tarjeta de perfil detectado por correo institucional.
+- Formulario dividido en datos para credencial, guia de fotografia y carga de
+  archivos.
+- Vista previa inmediata de la foto de credencial y del comprobante cuando es
+  imagen.
+- Resumen de envio con boton principal.
+- Panel lateral o inferior de solicitudes con timeline y correcciones.
+
+Los iconos son SVG inline para mantener alineacion, evitar dependencias
+adicionales y conservar nitidez en escritorio y movil.
+
+## 9. Frontend administrativo
 
 El panel administrativo se organiza por menu lateral:
 
@@ -237,7 +257,7 @@ El panel administrativo se organiza por menu lateral:
 El modulo de solicitudes usa pestañas por tipo de credencial y busqueda
 transversal por identificador, nombre, correo, programa o puesto.
 
-## 9. Diseno e impresion de credenciales
+## 10. Diseno e impresion de credenciales
 
 El editor visual guarda configuracion por tipo y lado de credencial.
 
@@ -257,7 +277,7 @@ El render de impresion usa medida PVC:
 Las credenciales se imprimen por pagina y deben conservar posicion y tamano
 del diseñador.
 
-## 10. Correo institucional
+## 11. Correo institucional
 
 Functions generan correos HTML institucionales en `mail`.
 
@@ -276,7 +296,7 @@ Plantillas:
 
 No se envian correos masivos por importacion historica.
 
-## 11. Seguridad
+## 12. Seguridad
 
 Capas:
 
@@ -288,7 +308,7 @@ Capas:
 
 La UI no se considera fuente de verdad para permisos ni transiciones.
 
-## 12. Pruebas y validacion
+## 13. Pruebas y validacion
 
 Comandos requeridos antes de versionar:
 
@@ -310,7 +330,7 @@ Validaciones manuales recomendadas:
 - Reposicion exige comprobante.
 - Lote de impresion genera vista imprimible.
 
-## 13. Despliegue
+## 14. Despliegue
 
 Despliegue completo:
 
@@ -325,7 +345,7 @@ npm run build
 firebase deploy --only hosting
 ```
 
-## 14. Riesgos y seguimiento
+## 15. Riesgos y seguimiento
 
 - Saeko no tiene API; la sincronizacion depende de importacion CSV.
 - App Check esta recomendado para endurecer produccion cuando el flujo este

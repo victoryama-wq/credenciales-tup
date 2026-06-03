@@ -40,6 +40,8 @@ URL publica: `https://credencial-tup.web.app`
   maximo de 10 MB.
 - Optimizacion automatica de foto de credencial antes de subirla a Storage.
 - Seguimiento de solicitudes rechazadas con carga de correcciones.
+- Interfaz responsive por secciones: perfil detectado, datos, fotografia,
+  comprobante cuando aplica, resumen de envio y seguimiento de solicitudes.
 
 ### Portal administrativo
 
