@@ -274,6 +274,10 @@ La interfaz administrativa mantiene una capa visual transversal:
 Esta capa no modifica rutas, servicios, modelos, validaciones ni contratos de
 datos; solo afecta plantillas y estilos.
 
+El modulo de administradores precarga accesos en segundo plano y actualiza la
+lista local al agregar o quitar usuarios para evitar botones bloqueados por
+recargas completas de la lista.
+
 ## 10. Diseno e impresion de credenciales
 
 El editor visual guarda configuracion por tipo y lado de credencial.

@@ -16,12 +16,14 @@ interface AdminUserPayload {
   providedIn: 'root',
 })
 export class AdminUserService {
+  private readonly callableTimeoutMs = 20000;
+
   async listAdmins(): Promise<AdminUser[]> {
-    const listAdminUsers = httpsCallable<void, AdminUsersResponse>(
-      functions,
-      'listAdminUsers'
+    const listAdminUsers = httpsCallable<void, AdminUsersResponse>(functions, 'listAdminUsers');
+    const result = await this.withTimeout(
+      listAdminUsers(),
+      'La carga de administradores esta tardando mas de lo esperado. Intenta de nuevo.',
     );
-    const result = await listAdminUsers();
 
     return result.data.admins;
   }
@@ -29,9 +31,12 @@ export class AdminUserService {
   async addAdmin(email: string, name: string): Promise<AdminUser> {
     const addAdminUser = httpsCallable<AdminUserPayload, { admin: AdminUser }>(
       functions,
-      'addAdminUser'
+      'addAdminUser',
     );
-    const result = await addAdminUser({ email, name });
+    const result = await this.withTimeout(
+      addAdminUser({ email, name }),
+      'Agregar administrador esta tardando mas de lo esperado. Revisa si el cambio aparece e intenta de nuevo.',
+    );
 
     return result.data.admin;
   }
@@ -39,10 +44,25 @@ export class AdminUserService {
   async removeAdmin(email: string): Promise<void> {
     const removeAdminUser = httpsCallable<AdminUserPayload, { ok: boolean }>(
       functions,
-      'removeAdminUser'
+      'removeAdminUser',
     );
 
-    await removeAdminUser({ email });
+    await this.withTimeout(
+      removeAdminUser({ email }),
+      'Quitar administrador esta tardando mas de lo esperado. Revisa si el cambio aparece e intenta de nuevo.',
+    );
+  }
+
+  private withTimeout<T>(promise: Promise<T>, message: string): Promise<T> {
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    const timeout = new Promise<never>((_, reject) => {
+      timeoutId = setTimeout(() => reject(new Error(message)), this.callableTimeoutMs);
+    });
+
+    return Promise.race([promise, timeout]).finally(() => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    });
   }
 }
-

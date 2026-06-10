@@ -30,10 +30,7 @@ import {
   credentialRequestStatuses,
   statusLabels,
 } from '../../../../core/models/credential-request.model';
-import {
-  PrintBatch,
-  printBatchStatusLabels,
-} from '../../../../core/models/print-batch.model';
+import { PrintBatch, printBatchStatusLabels } from '../../../../core/models/print-batch.model';
 import {
   CredentialTemplateAsset,
   CredentialTemplateFieldKey,
@@ -201,62 +198,63 @@ export class AdminDashboardComponent implements OnInit {
     },
   };
   readonly statuses = credentialRequestStatuses;
-  readonly modules: { value: AdminModule; label: string; eyebrow: string; description: string }[] = [
-    {
-      value: 'dashboard',
-      label: 'Dashboard',
-      eyebrow: 'Resumen ejecutivo',
-      description: 'Indicadores, avance y tiempos del flujo.',
-    },
-    {
-      value: 'reports',
-      label: 'Reportes',
-      eyebrow: 'Analitica operativa',
-      description: 'Filtra, consulta y exporta informacion clave.',
-    },
-    {
-      value: 'audit',
-      label: 'Auditoria',
-      eyebrow: 'Trazabilidad',
-      description: 'Bitacora de cambios administrativos y operativos.',
-    },
-    {
-      value: 'admins',
-      label: 'Administradores',
-      eyebrow: 'Permisos',
-      description: 'Alta y baja de accesos administrativos.',
-    },
-    {
-      value: 'requests',
-      label: 'Solicitudes',
-      eyebrow: 'Operacion',
-      description: 'Revision, estatus e impresion de credenciales.',
-    },
-    {
-      value: 'batches',
-      label: 'Lotes de impresion',
-      eyebrow: 'Produccion',
-      description: 'Agrupa, imprime y cierra credenciales listas.',
-    },
-    {
-      value: 'delivery',
-      label: 'Entrega de credenciales',
-      eyebrow: 'Ventanilla',
-      description: 'Control de credenciales listas y entregadas.',
-    },
-    {
-      value: 'saeko',
-      label: 'Importacion',
-      eyebrow: 'Control Escolar',
-      description: 'Perfiles Saeko y credenciales historicas.',
-    },
-    {
-      value: 'templates',
-      label: 'Diseño credencial',
-      eyebrow: 'Motor de credencial',
-      description: 'Ajuste visual de foto, datos y QR.',
-    },
-  ];
+  readonly modules: { value: AdminModule; label: string; eyebrow: string; description: string }[] =
+    [
+      {
+        value: 'dashboard',
+        label: 'Dashboard',
+        eyebrow: 'Resumen ejecutivo',
+        description: 'Indicadores, avance y tiempos del flujo.',
+      },
+      {
+        value: 'reports',
+        label: 'Reportes',
+        eyebrow: 'Analitica operativa',
+        description: 'Filtra, consulta y exporta informacion clave.',
+      },
+      {
+        value: 'audit',
+        label: 'Auditoria',
+        eyebrow: 'Trazabilidad',
+        description: 'Bitacora de cambios administrativos y operativos.',
+      },
+      {
+        value: 'admins',
+        label: 'Administradores',
+        eyebrow: 'Permisos',
+        description: 'Alta y baja de accesos administrativos.',
+      },
+      {
+        value: 'requests',
+        label: 'Solicitudes',
+        eyebrow: 'Operacion',
+        description: 'Revision, estatus e impresion de credenciales.',
+      },
+      {
+        value: 'batches',
+        label: 'Lotes de impresion',
+        eyebrow: 'Produccion',
+        description: 'Agrupa, imprime y cierra credenciales listas.',
+      },
+      {
+        value: 'delivery',
+        label: 'Entrega de credenciales',
+        eyebrow: 'Ventanilla',
+        description: 'Control de credenciales listas y entregadas.',
+      },
+      {
+        value: 'saeko',
+        label: 'Importacion',
+        eyebrow: 'Control Escolar',
+        description: 'Perfiles Saeko y credenciales historicas.',
+      },
+      {
+        value: 'templates',
+        label: 'Diseño credencial',
+        eyebrow: 'Motor de credencial',
+        description: 'Ajuste visual de foto, datos y QR.',
+      },
+    ];
 
   activeModule: AdminModule = 'dashboard';
   sidebarVisible = false;
@@ -387,12 +385,14 @@ export class AdminDashboardComponent implements OnInit {
         next: (layouts) => {
           if (!this.hasStoredTemplateLayouts(layouts)) {
             if (this.hasLocalTemplateLayoutStorage()) {
-              void this.credentialTemplateService.saveLayouts(this.templateLayouts).catch((error) => {
-                this.templateUploadErrorMessage =
-                  error instanceof Error
-                    ? error.message
-                    : 'No fue posible publicar la calibracion visual guardada.';
-              });
+              void this.credentialTemplateService
+                .saveLayouts(this.templateLayouts)
+                .catch((error) => {
+                  this.templateUploadErrorMessage =
+                    error instanceof Error
+                      ? error.message
+                      : 'No fue posible publicar la calibracion visual guardada.';
+                });
             }
 
             return;
@@ -406,6 +406,11 @@ export class AdminDashboardComponent implements OnInit {
             error.message || 'No fue posible cargar la calibracion visual guardada.';
         },
       });
+
+    const adminPrefetchTimer = window.setTimeout(() => {
+      void this.loadAdminUsers();
+    }, 1200);
+    this.destroyRef.onDestroy(() => window.clearTimeout(adminPrefetchTimer));
   }
 
   get filteredRequests(): CredentialRequest[] {
@@ -427,19 +432,19 @@ export class AdminDashboardComponent implements OnInit {
 
   get requestTabRequests(): CredentialRequest[] {
     return this.requests.filter(
-      (request) => (request.applicantType || 'STUDENT') === this.requestApplicantTab
+      (request) => (request.applicantType || 'STUDENT') === this.requestApplicantTab,
     );
   }
 
   get batchCandidateRequests(): CredentialRequest[] {
     return this.requests.filter(
-      (request) => request.status === 'APPROVED_FOR_PRINT' && !request.printBatchId
+      (request) => request.status === 'APPROVED_FOR_PRINT' && !request.printBatchId,
     );
   }
 
   get selectedBatchRequests(): CredentialRequest[] {
     return this.batchCandidateRequests.filter((request) =>
-      this.selectedBatchRequestIds.has(request.id)
+      this.selectedBatchRequestIds.has(request.id),
     );
   }
 
@@ -487,7 +492,7 @@ export class AdminDashboardComponent implements OnInit {
 
   get reportPrintedRequests(): number {
     return this.reportRequests.filter((request) =>
-      this.dashboardPrintedStatuses.includes(request.status)
+      this.dashboardPrintedStatuses.includes(request.status),
     ).length;
   }
 
@@ -518,7 +523,7 @@ export class AdminDashboardComponent implements OnInit {
   get reportApplicantBreakdown(): DashboardBreakdownRow[] {
     return this.applicantTypes.map((type) => {
       const count = this.reportRequests.filter(
-        (request) => (request.applicantType || 'STUDENT') === type
+        (request) => (request.applicantType || 'STUDENT') === type,
       ).length;
 
       return {
@@ -532,9 +537,9 @@ export class AdminDashboardComponent implements OnInit {
   get reportCareerBreakdown(): DashboardBreakdownRow[] {
     return this.dashboardBuildBreakdown(
       this.reportRequests.filter(
-        (request) => !request.applicantType || request.applicantType === 'STUDENT'
+        (request) => !request.applicantType || request.applicantType === 'STUDENT',
       ),
-      (request) => request.career || 'Sin programa'
+      (request) => request.career || 'Sin programa',
     ).slice(0, 8);
   }
 
@@ -552,8 +557,10 @@ export class AdminDashboardComponent implements OnInit {
 
     return this.auditLogs.filter((log) => {
       const timestamp = this.timestampMillis(log.timestamp) || 0;
-      const matchesAction = this.auditActionFilter === 'ALL' || log.action === this.auditActionFilter;
-      const matchesEntity = this.auditEntityFilter === 'ALL' || log.entity === this.auditEntityFilter;
+      const matchesAction =
+        this.auditActionFilter === 'ALL' || log.action === this.auditActionFilter;
+      const matchesEntity =
+        this.auditEntityFilter === 'ALL' || log.entity === this.auditEntityFilter;
       const matchesStart = !start || timestamp >= start;
       const matchesEnd = !end || timestamp <= end;
 
@@ -574,7 +581,8 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   get auditImportLogs(): number {
-    return this.filteredAuditLogs.filter((log) => log.action === 'institutional_profiles.import').length;
+    return this.filteredAuditLogs.filter((log) => log.action === 'institutional_profiles.import')
+      .length;
   }
 
   get dashboardTotalRequests(): number {
@@ -582,9 +590,8 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   get dashboardActiveRequests(): number {
-    return this.requests.filter((request) =>
-      this.dashboardActiveStatuses.includes(request.status)
-    ).length;
+    return this.requests.filter((request) => this.dashboardActiveStatuses.includes(request.status))
+      .length;
   }
 
   get dashboardDeliveredRequests(): number {
@@ -605,7 +612,7 @@ export class AdminDashboardComponent implements OnInit {
 
   get dashboardPrintedRequests(): CredentialRequest[] {
     return this.requests.filter((request) =>
-      this.dashboardPrintedStatuses.includes(request.status)
+      this.dashboardPrintedStatuses.includes(request.status),
     );
   }
 
@@ -615,7 +622,7 @@ export class AdminDashboardComponent implements OnInit {
 
   get dashboardPrintedStudentRequests(): CredentialRequest[] {
     return this.dashboardPrintedRequests.filter(
-      (request) => !request.applicantType || request.applicantType === 'STUDENT'
+      (request) => !request.applicantType || request.applicantType === 'STUDENT',
     );
   }
 
@@ -638,7 +645,7 @@ export class AdminDashboardComponent implements OnInit {
   get dashboardApplicantBreakdown(): DashboardBreakdownRow[] {
     return this.applicantTypes.map((type) => {
       const count = this.requests.filter(
-        (request) => (request.applicantType || 'STUDENT') === type
+        (request) => (request.applicantType || 'STUDENT') === type,
       ).length;
 
       return {
@@ -652,7 +659,7 @@ export class AdminDashboardComponent implements OnInit {
   get dashboardPrintedByCredentialType(): DashboardBreakdownRow[] {
     return this.applicantTypes.map((type) => {
       const count = this.dashboardPrintedRequests.filter(
-        (request) => (request.applicantType || 'STUDENT') === type
+        (request) => (request.applicantType || 'STUDENT') === type,
       ).length;
 
       return {
@@ -666,14 +673,14 @@ export class AdminDashboardComponent implements OnInit {
   get dashboardPrintedByLevel(): DashboardBreakdownRow[] {
     return this.dashboardBuildBreakdown(
       this.dashboardPrintedStudentRequests,
-      (request) => request.cycle || 'Sin cuatrimestre'
+      (request) => request.cycle || 'Sin cuatrimestre',
     );
   }
 
   get dashboardPrintedByCareer(): DashboardBreakdownRow[] {
     return this.dashboardBuildBreakdown(
       this.dashboardPrintedStudentRequests,
-      (request) => request.career || 'Sin programa'
+      (request) => request.career || 'Sin programa',
     );
   }
 
@@ -683,8 +690,7 @@ export class AdminDashboardComponent implements OnInit {
       .slice()
       .sort(
         (left, right) =>
-          (this.dashboardDeliveredMillis(right) || 0) -
-          (this.dashboardDeliveredMillis(left) || 0)
+          (this.dashboardDeliveredMillis(right) || 0) - (this.dashboardDeliveredMillis(left) || 0),
       )
       .slice(0, 5);
   }
@@ -694,7 +700,7 @@ export class AdminDashboardComponent implements OnInit {
       this.requests.map((request) => ({
         start: this.timestampMillis(request.submittedAt),
         end: this.statusTimestampMillis(request, 'APPROVED_FOR_PRINT'),
-      }))
+      })),
     );
   }
 
@@ -702,17 +708,20 @@ export class AdminDashboardComponent implements OnInit {
     return this.averageDurationLabel(
       this.requests.map((request) => ({
         start: this.statusTimestampMillis(request, 'APPROVED_FOR_PRINT'),
-        end: this.timestampMillis(request.printedAt) || this.statusTimestampMillis(request, 'PRINTED'),
-      }))
+        end:
+          this.timestampMillis(request.printedAt) || this.statusTimestampMillis(request, 'PRINTED'),
+      })),
     );
   }
 
   get dashboardReadyToDeliveredAverage(): string {
     return this.averageDurationLabel(
       this.requests.map((request) => ({
-        start: this.timestampMillis(request.readyForPickupAt) || this.statusTimestampMillis(request, 'READY_FOR_PICKUP'),
+        start:
+          this.timestampMillis(request.readyForPickupAt) ||
+          this.statusTimestampMillis(request, 'READY_FOR_PICKUP'),
         end: this.dashboardDeliveredMillis(request),
-      }))
+      })),
     );
   }
 
@@ -787,7 +796,9 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   activeModuleEyebrow(): string {
-    return this.modules.find((module) => module.value === this.activeModule)?.eyebrow || 'Operacion';
+    return (
+      this.modules.find((module) => module.value === this.activeModule)?.eyebrow || 'Operacion'
+    );
   }
 
   async loadAdminUsers(force = false): Promise<void> {
@@ -832,11 +843,12 @@ export class AdminDashboardComponent implements OnInit {
     this.adminMessage = '';
 
     try {
-      await this.adminUserService.addAdmin(email, this.adminName.trim());
+      const admin = await this.adminUserService.addAdmin(email, this.adminName.trim());
+      this.upsertLocalAdminUser(admin);
+      this.adminsLoaded = true;
       this.adminEmail = '';
       this.adminName = '';
       this.adminMessage = `${email} ahora tiene acceso administrativo.`;
-      await this.loadAdminUsers(true);
     } catch (error) {
       this.adminErrorMessage =
         error instanceof Error ? error.message : 'No fue posible agregar administrador.';
@@ -857,14 +869,22 @@ export class AdminDashboardComponent implements OnInit {
 
     try {
       await this.adminUserService.removeAdmin(admin.email);
+      this.adminUsers = this.adminUsers.filter((item) => item.email !== admin.email);
       this.adminMessage = `${admin.email} ya no tiene acceso administrativo.`;
-      await this.loadAdminUsers(true);
     } catch (error) {
       this.adminErrorMessage =
         error instanceof Error ? error.message : 'No fue posible remover administrador.';
     } finally {
       this.adminActionEmail = '';
     }
+  }
+
+  private upsertLocalAdminUser(admin: AdminUser): void {
+    const rows = new Map(this.adminUsers.map((item) => [item.email, item]));
+    rows.set(admin.email, admin);
+    this.adminUsers = Array.from(rows.values()).sort((left, right) =>
+      left.email.localeCompare(right.email),
+    );
   }
 
   toggleSidebar(event?: Event): void {
@@ -983,7 +1003,7 @@ export class AdminDashboardComponent implements OnInit {
       request.credentialNumber || '',
       request.printBatchId || '',
       this.reportDateLabel(
-        this.timestampMillis(request.printedAt) || this.statusTimestampMillis(request, 'PRINTED')
+        this.timestampMillis(request.printedAt) || this.statusTimestampMillis(request, 'PRINTED'),
       ),
       this.reportDateLabel(this.dashboardDeliveredMillis(request)),
     ]);
@@ -1028,14 +1048,7 @@ export class AdminDashboardComponent implements OnInit {
       return;
     }
 
-    const headers = [
-      'Fecha',
-      'Accion',
-      'Entidad',
-      'ID entidad',
-      'Actor',
-      'Resumen',
-    ];
+    const headers = ['Fecha', 'Accion', 'Entidad', 'ID entidad', 'Actor', 'Resumen'];
     const rows = this.filteredAuditLogs.map((log) => [
       this.reportDateLabel(this.timestampMillis(log.timestamp)),
       this.auditActionLabel(log.action),
@@ -1147,17 +1160,14 @@ export class AdminDashboardComponent implements OnInit {
 
   private statusTimestampMillis(
     request: CredentialRequest,
-    status: CredentialRequestStatus
+    status: CredentialRequestStatus,
   ): number | null {
-    return (
-      request.timeline.find((event) => event.status === status)?.timestamp.toMillis() || null
-    );
+    return request.timeline.find((event) => event.status === status)?.timestamp.toMillis() || null;
   }
 
   private dashboardDeliveredMillis(request: CredentialRequest): number | null {
     return (
-      this.timestampMillis(request.deliveredAt) ||
-      this.statusTimestampMillis(request, 'DELIVERED')
+      this.timestampMillis(request.deliveredAt) || this.statusTimestampMillis(request, 'DELIVERED')
     );
   }
 
@@ -1245,7 +1255,7 @@ export class AdminDashboardComponent implements OnInit {
   private averageDurationLabel(ranges: { start: number | null; end: number | null }[]): string {
     const durations = ranges
       .filter((range): range is { start: number; end: number } =>
-        Boolean(range.start && range.end && range.end >= range.start)
+        Boolean(range.start && range.end && range.end >= range.start),
       )
       .map((range) => range.end - range.start);
 
@@ -1273,7 +1283,7 @@ export class AdminDashboardComponent implements OnInit {
 
   private dashboardBuildBreakdown(
     requests: CredentialRequest[],
-    labelForRequest: (request: CredentialRequest) => string
+    labelForRequest: (request: CredentialRequest) => string,
   ): DashboardBreakdownRow[] {
     const counts = new Map<string, number>();
 
@@ -1307,7 +1317,7 @@ export class AdminDashboardComponent implements OnInit {
 
   selectAllBatchCandidates(): void {
     this.selectedBatchRequestIds = new Set(
-      this.batchCandidateRequests.map((request) => request.id)
+      this.batchCandidateRequests.map((request) => request.id),
     );
   }
 
@@ -1359,7 +1369,9 @@ export class AdminDashboardComponent implements OnInit {
       return;
     }
 
-    const missingIdentity = requests.find((request) => !request.credentialNumber || !request.qrToken);
+    const missingIdentity = requests.find(
+      (request) => !request.credentialNumber || !request.qrToken,
+    );
 
     if (missingIdentity) {
       this.batchErrorMessage =
@@ -1525,7 +1537,7 @@ export class AdminDashboardComponent implements OnInit {
 
   reportPrintedDateLabel(request: CredentialRequest): string {
     return this.reportDateLabel(
-      this.timestampMillis(request.printedAt) || this.statusTimestampMillis(request, 'PRINTED')
+      this.timestampMillis(request.printedAt) || this.statusTimestampMillis(request, 'PRINTED'),
     );
   }
 
@@ -1655,7 +1667,7 @@ export class AdminDashboardComponent implements OnInit {
 
   credentialTemplateElementStyle(
     request: CredentialRequest,
-    field: CredentialTemplateFieldKey
+    field: CredentialTemplateFieldKey,
   ): Record<string, string> {
     return this.templateFieldStyle(this.credentialTemplateKey(request), field);
   }
@@ -1686,7 +1698,7 @@ export class AdminDashboardComponent implements OnInit {
 
   showCredentialTemplateField(
     request: CredentialRequest,
-    field: CredentialTemplateFieldKey
+    field: CredentialTemplateFieldKey,
   ): boolean {
     if (this.templateLayouts[this.credentialTemplateKey(request)][field].hidden) {
       return false;
@@ -1794,7 +1806,7 @@ export class AdminDashboardComponent implements OnInit {
 
   visibleTemplateEditorFields(): CredentialTemplateEditorField[] {
     return this.availableTemplateEditorFields().filter(
-      (field) => !this.templateFieldHidden(field.key)
+      (field) => !this.templateFieldHidden(field.key),
     );
   }
 
@@ -1871,7 +1883,7 @@ export class AdminDashboardComponent implements OnInit {
   updateTemplateFieldMetric(
     field: CredentialTemplateFieldKey,
     metric: CredentialTemplateNumericMetric,
-    event: Event
+    event: Event,
   ): void {
     const input = event.target as HTMLInputElement;
     const value = Number(input.value);
@@ -1942,7 +1954,10 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   verificationUrl(request: CredentialRequest): string {
-    return request.verificationUrl || (request.qrToken ? `https://credencial-tup.web.app/verify/${request.qrToken}` : '');
+    return (
+      request.verificationUrl ||
+      (request.qrToken ? `https://credencial-tup.web.app/verify/${request.qrToken}` : '')
+    );
   }
 
   async printCredential(request: CredentialRequest): Promise<void> {
@@ -2136,7 +2151,7 @@ export class AdminDashboardComponent implements OnInit {
       const email = value('correo', 'email', 'correo institucional').toLowerCase();
       const applicantType = this.normalizeApplicantType(
         value('tipo', 'tipo solicitante', 'solicitante'),
-        email
+        email,
       );
       const academicStatus = this.normalizeAcademicStatus(value('estatus', 'status', 'situacion'));
       const rawStudentId = value('matricula', 'matrícula', 'studentid', 'student id');
@@ -2146,7 +2161,8 @@ export class AdminDashboardComponent implements OnInit {
         applicantType,
         academicStatus,
         name: value('nombre', 'nombre completo', 'alumno'),
-        studentId: applicantType === 'STUDENT' ? this.normalizeStudentId(rawStudentId) : rawStudentId,
+        studentId:
+          applicantType === 'STUDENT' ? this.normalizeStudentId(rawStudentId) : rawStudentId,
         career: value('programa', 'programa academico', 'programa académico', 'carrera'),
         currentTerm: value('cuatrimestre', 'ciclo', 'periodo'),
         position: value('puesto', 'cargo'),
@@ -2175,7 +2191,7 @@ export class AdminDashboardComponent implements OnInit {
         rowNumber,
         email: value('correo', 'email', 'correo institucional').toLowerCase(),
         studentId: this.normalizeStudentId(
-          value('matricula', 'matricula escolar', 'studentid', 'student id')
+          value('matricula', 'matricula escolar', 'studentid', 'student id'),
         ),
         name: value('nombre', 'nombre completo', 'alumno'),
         career: value('programa', 'programa academico', 'carrera'),
@@ -2321,7 +2337,10 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   private normalizeStudentId(value: string): string {
-    const clean = value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const clean = value
+      .trim()
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, '');
 
     if (/^\d+$/.test(clean)) {
       return `TUP${clean}`;
@@ -2399,7 +2418,7 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   private credentialTemplateKeyFromApplicant(
-    applicantType: CredentialApplicantType
+    applicantType: CredentialApplicantType,
   ): CredentialTemplateKey {
     if (applicantType === 'TEACHER') {
       return 'docente';
@@ -2414,7 +2433,7 @@ export class AdminDashboardComponent implements OnInit {
 
   private templateAssetUrl(
     templateKey: CredentialTemplateKey,
-    side: CredentialTemplateSide
+    side: CredentialTemplateSide,
   ): string {
     return (
       this.templateSettings[templateKey]?.[side]?.url ||
@@ -2442,7 +2461,7 @@ export class AdminDashboardComponent implements OnInit {
 
   private templateFieldStyle(
     templateKey: CredentialTemplateKey,
-    field: CredentialTemplateFieldKey
+    field: CredentialTemplateFieldKey,
   ): Record<string, string> {
     const layout = this.templateLayouts[templateKey][field];
 
@@ -2458,7 +2477,7 @@ export class AdminDashboardComponent implements OnInit {
 
   private templateSampleRequest(): CredentialRequest | undefined {
     return this.requests.find(
-      (request) => (request.applicantType || 'STUDENT') === this.selectedTemplateApplicant
+      (request) => (request.applicantType || 'STUDENT') === this.selectedTemplateApplicant,
     );
   }
 
@@ -2564,7 +2583,7 @@ export class AdminDashboardComponent implements OnInit {
           image.addEventListener('load', done, { once: true });
           image.addEventListener('error', done, { once: true });
         });
-      })
+      }),
     );
   }
 
@@ -2587,9 +2606,7 @@ export class AdminDashboardComponent implements OnInit {
     this.persistTemplateLayoutsLocally();
     void this.credentialTemplateService.saveLayouts(this.templateLayouts).catch((error) => {
       this.templateUploadErrorMessage =
-        error instanceof Error
-          ? error.message
-          : 'No fue posible guardar la calibracion visual.';
+        error instanceof Error ? error.message : 'No fue posible guardar la calibracion visual.';
     });
   }
 
@@ -2601,14 +2618,15 @@ export class AdminDashboardComponent implements OnInit {
     }
   }
 
-  private mergeTemplateLayouts(stored: Partial<CredentialTemplateLayouts>): CredentialTemplateLayouts {
+  private mergeTemplateLayouts(
+    stored: Partial<CredentialTemplateLayouts>,
+  ): CredentialTemplateLayouts {
     const defaults = this.cloneTemplateLayouts(this.defaultTemplateLayouts);
 
     for (const key of Object.keys(defaults) as CredentialTemplateKey[]) {
-      const storedGroup =
-        (stored[key] || {}) as Partial<
-          Record<CredentialTemplateFieldKey, Partial<CredentialTemplateFieldLayout>>
-        >;
+      const storedGroup = (stored[key] || {}) as Partial<
+        Record<CredentialTemplateFieldKey, Partial<CredentialTemplateFieldLayout>>
+      >;
 
       for (const field of Object.keys(defaults[key]) as CredentialTemplateFieldKey[]) {
         defaults[key][field] = {
@@ -2646,7 +2664,7 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   private cloneLayoutGroup(
-    group: Record<CredentialTemplateFieldKey, CredentialTemplateFieldLayout>
+    group: Record<CredentialTemplateFieldKey, CredentialTemplateFieldLayout>,
   ): Record<CredentialTemplateFieldKey, CredentialTemplateFieldLayout> {
     return {
       photo: { ...group.photo },
@@ -2686,7 +2704,7 @@ export class AdminDashboardComponent implements OnInit {
 
   private async refreshQrImages(requests: CredentialRequest[]): Promise<void> {
     const pendingRequests = requests.filter(
-      (request) => request.qrToken && this.verificationUrl(request) && !this.qrImages[request.id]
+      (request) => request.qrToken && this.verificationUrl(request) && !this.qrImages[request.id],
     );
 
     for (let index = 0; index < pendingRequests.length; index += 10) {
