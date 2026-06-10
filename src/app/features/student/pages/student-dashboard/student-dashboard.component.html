@@ -1,13 +1,16 @@
-<main class="app-shell student-portal-shell px-4 py-5 md:px-8">
+<main
+  class="app-shell student-portal-shell px-4 py-5 md:px-8"
+  aria-labelledby="student-portal-title"
+>
   <div class="student-portal-container mx-auto">
     <header class="institution-header student-hero-card">
       <div class="student-hero-brand">
         <div class="student-logo-card">
-          <img src="/logo-tup.png" alt="TUP" class="logo-mark" />
+          <img src="/logo-tup.png" alt="Tecnologico Universitario Playacar" class="logo-mark" />
         </div>
         <div class="min-w-0">
           <p class="eyebrow">Portal institucional</p>
-          <h1>Solicitud de credencial</h1>
+          <h1 id="student-portal-title">Solicitud de credencial</h1>
         </div>
       </div>
 
@@ -18,6 +21,7 @@
         <button
           mat-stroked-button
           color="primary"
+          type="button"
           class="link-button !rounded-md"
           (click)="logout()"
         >
@@ -27,7 +31,11 @@
     </header>
 
     @if (actionRequiredRequest; as actionRequest) {
-      <section class="student-alert-card">
+      <section
+        class="student-alert-card"
+        role="alert"
+        aria-labelledby="student-action-required-title"
+      >
         <span class="student-icon-card student-icon-danger" aria-hidden="true">
           <svg viewBox="0 0 24 24">
             <circle cx="12" cy="12" r="9" />
@@ -36,7 +44,7 @@
           </svg>
         </span>
         <div class="min-w-0">
-          <p class="student-alert-title">Accion requerida</p>
+          <p id="student-action-required-title" class="student-alert-title">Accion requerida</p>
           <p class="student-alert-copy">
             Tu solicitud fue rechazada. Revisa el motivo y adjunta los archivos corregidos para
             reabrir la revision.
@@ -47,7 +55,12 @@
     }
 
     <div class="student-portal-grid">
-      <form [formGroup]="form" (ngSubmit)="submit()" class="student-form-flow">
+      <form
+        [formGroup]="form"
+        (ngSubmit)="submit()"
+        class="student-form-flow"
+        [attr.aria-busy]="submitting || optimizingPhoto"
+      >
         <section class="student-card student-profile-card">
           <span class="student-icon-card" aria-hidden="true">
             <svg viewBox="0 0 24 24">
@@ -114,6 +127,7 @@
             <p class="student-mini-label">Tipo de tramite</p>
             <mat-button-toggle-group
               formControlName="requestType"
+              aria-label="Tipo de tramite"
               class="request-type-toggle student-request-toggle grid w-full gap-3 md:grid-cols-2"
             >
               @for (type of requestTypes; track type) {
@@ -348,6 +362,8 @@
               #photoCameraInput
               class="sr-only"
               type="file"
+              tabindex="-1"
+              aria-hidden="true"
               accept="image/png,image/jpeg,image/jpg"
               capture="user"
               (change)="setFile($event, 'photo')"
@@ -356,6 +372,8 @@
               #photoUploadInput
               class="sr-only"
               type="file"
+              tabindex="-1"
+              aria-hidden="true"
               accept="image/png,image/jpeg,image/jpg"
               (change)="setFile($event, 'photo')"
             />
@@ -366,7 +384,7 @@
             </p>
 
             @if (optimizingPhoto) {
-              <div class="selected-file-panel mt-4 rounded-md p-3">
+              <div class="selected-file-panel mt-4 rounded-md p-3" role="status" aria-live="polite">
                 <div class="flex items-center gap-3">
                   <mat-progress-spinner diameter="28" mode="indeterminate"></mat-progress-spinner>
                   <div class="min-w-0">
@@ -380,7 +398,7 @@
             }
 
             @if (photoFile) {
-              <div class="selected-file-panel mt-4 rounded-md p-3">
+              <div class="selected-file-panel mt-4 rounded-md p-3" aria-live="polite">
                 <div class="flex items-center gap-3">
                   @if (photoPreviewUrl) {
                     <img
@@ -439,6 +457,8 @@
                 #evidenceInput
                 class="sr-only"
                 type="file"
+                tabindex="-1"
+                aria-hidden="true"
                 accept="image/png,image/jpeg,application/pdf"
                 (change)="setFile($event, 'evidence')"
               />
@@ -449,7 +469,7 @@
               </p>
 
               @if (evidenceFile) {
-                <div class="selected-file-panel mt-4 rounded-md p-3">
+                <div class="selected-file-panel mt-4 rounded-md p-3" aria-live="polite">
                   <div class="flex items-center gap-3">
                     @if (evidencePreviewUrl) {
                       <img
@@ -487,11 +507,13 @@
         </section>
 
         @if (errorMessage) {
-          <p class="student-message student-message-error">{{ errorMessage }}</p>
+          <p class="student-message student-message-error" role="alert">{{ errorMessage }}</p>
         }
 
         @if (successMessage) {
-          <p class="student-message student-message-success">{{ successMessage }}</p>
+          <p class="student-message student-message-success" role="status" aria-live="polite">
+            {{ successMessage }}
+          </p>
         }
 
         <section class="student-submit-panel">
@@ -516,7 +538,11 @@
         </section>
       </form>
 
-      <aside id="student-requests" class="student-requests-panel">
+      <aside
+        id="student-requests"
+        class="student-requests-panel"
+        aria-labelledby="student-requests-title"
+      >
         <section class="student-card">
           <div class="student-section-heading">
             <span class="student-icon-card" aria-hidden="true">
@@ -529,13 +555,13 @@
             </span>
             <div class="min-w-0">
               <p class="student-card-kicker">Seguimiento</p>
-              <h2>Mis solicitudes</h2>
+              <h2 id="student-requests-title">Mis solicitudes</h2>
               <p>Consulta el avance y atiende correcciones cuando se soliciten.</p>
             </div>
           </div>
 
           @if (loading) {
-            <div class="grid place-items-center py-10">
+            <div class="grid place-items-center py-10" role="status" aria-live="polite">
               <mat-progress-spinner diameter="32" mode="indeterminate"></mat-progress-spinner>
             </div>
           } @else if (!requests.length) {
@@ -649,6 +675,8 @@
                         #correctionPhotoInput
                         class="sr-only"
                         type="file"
+                        tabindex="-1"
+                        aria-hidden="true"
                         accept="image/png,image/jpeg,image/jpg"
                         (change)="setCorrectionFile(request.id, $event, 'photo')"
                       />
@@ -656,6 +684,8 @@
                         #correctionEvidenceInput
                         class="sr-only"
                         type="file"
+                        tabindex="-1"
+                        aria-hidden="true"
                         accept="image/png,image/jpeg,application/pdf"
                         (change)="setCorrectionFile(request.id, $event, 'evidence')"
                       />

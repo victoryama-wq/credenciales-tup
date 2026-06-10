@@ -268,6 +268,11 @@ llamado a accion. El area de entrega indicada es el area de sistemas.
   alineados, alerta de accion requerida y seguimiento visible de solicitudes.
 - Carga de foto y comprobante conserva botones, previews y nombres de archivo
   dentro de sus tarjetas en escritorio y movil.
+- Portal solicitante conserva jerarquia visual, foco visible, mensajes
+  accesibles y controles tactiles legibles en movil.
+- Portal administrativo conserva menu lateral accesible, foco visible, cards
+  ejecutivas, formularios claros y tablas responsivas sin cambiar logica de
+  negocio.
 - Historicos bloquean primera vez.
 - QR valido muestra verificacion publica.
 - No se exponen datos sensibles en QR.

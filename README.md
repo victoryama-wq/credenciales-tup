@@ -44,6 +44,9 @@ URL publica: `https://credencial-tup.web.app`
 - Seguimiento de solicitudes rechazadas con carga de correcciones.
 - Interfaz responsive por secciones: perfil detectado, datos, fotografia,
   comprobante cuando aplica, resumen de envio y seguimiento de solicitudes.
+- Refinamiento visual accesible: foco visible, mensajes `alert/status`, iconos
+  SVG decorativos ocultos a lectores de pantalla y selector de tramite con
+  etiqueta accesible.
 
 ### Portal administrativo
 
@@ -60,6 +63,8 @@ URL publica: `https://credencial-tup.web.app`
 - Auditoria operativa.
 - Administracion de usuarios administradores.
 - Diseno visual de credenciales con plantillas PNG/SVG.
+- Interfaz administrativa responsive con menu lateral accesible, cards
+  ejecutivas, tablas con desplazamiento horizontal y foco visible en controles.
 
 ### Verificacion publica
 

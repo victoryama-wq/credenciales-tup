@@ -1,4 +1,8 @@
-<main class="admin-dashboard-shell" [class.admin-sidebar-visible]="sidebarVisible">
+<main
+  class="admin-dashboard-shell"
+  [class.admin-sidebar-visible]="sidebarVisible"
+  aria-labelledby="admin-dashboard-title"
+>
   <header class="admin-dashboard-header">
     <div class="admin-header-brand">
       <button
@@ -6,7 +10,10 @@
         class="admin-menu-button"
         [class.admin-menu-button-active]="sidebarVisible"
         [attr.aria-expanded]="sidebarVisible"
-        aria-label="Abrir menu administrativo"
+        [attr.aria-label]="
+          sidebarVisible ? 'Cerrar menu administrativo' : 'Abrir menu administrativo'
+        "
+        aria-controls="admin-sidebar"
         title="Menu"
         (click)="toggleSidebar($event)"
       >
@@ -16,70 +23,124 @@
       </button>
 
       <div class="grid h-14 w-32 place-items-center rounded-md bg-white p-2 shadow-sm">
-        <img src="/logo-tup.png" alt="TUP" class="logo-mark h-full w-full" />
+        <img
+          src="/logo-tup.png"
+          alt="Tecnologico Universitario Playacar"
+          class="logo-mark h-full w-full"
+        />
       </div>
       <div>
         <p class="eyebrow">Portal administrativo</p>
-        <h1 class="text-2xl font-bold text-[var(--tup-ink)] md:text-3xl">Panel administrativo</h1>
+        <h1 id="admin-dashboard-title" class="text-2xl font-bold text-[var(--tup-ink)] md:text-3xl">
+          Panel administrativo
+        </h1>
       </div>
     </div>
   </header>
 
   <aside
+    id="admin-sidebar"
     class="admin-sidebar"
     [class.admin-sidebar-open]="sidebarVisible"
     [attr.aria-hidden]="!sidebarVisible"
   >
-    <nav class="admin-sidebar-nav">
+    <nav class="admin-sidebar-nav" aria-label="Modulos administrativos">
       <p class="admin-sidebar-label">Modulos</p>
       @for (module of modules; track module.value) {
         <button
           type="button"
           class="admin-sidebar-link rounded-md"
           [class.admin-sidebar-link-active]="activeModule === module.value"
+          [attr.aria-current]="activeModule === module.value ? 'page' : null"
           (click)="selectModule(module.value)"
         >
           <span class="admin-sidebar-icon" aria-hidden="true">
             @if (module.value === 'dashboard') {
-              <svg viewBox="0 0 24 24"><path d="M4 13h6V5H4z" /><path d="M14 19h6V5h-6z" /><path d="M4 19h6v-3H4z" /></svg>
+              <svg viewBox="0 0 24 24">
+                <path d="M4 13h6V5H4z" />
+                <path d="M14 19h6V5h-6z" />
+                <path d="M4 19h6v-3H4z" />
+              </svg>
             } @else if (module.value === 'reports') {
-              <svg viewBox="0 0 24 24"><path d="M5 5h14v14H5z" /><path d="M8 16V9M12 16v-4M16 16v-7" /></svg>
+              <svg viewBox="0 0 24 24">
+                <path d="M5 5h14v14H5z" />
+                <path d="M8 16V9M12 16v-4M16 16v-7" />
+              </svg>
             } @else if (module.value === 'audit') {
-              <svg viewBox="0 0 24 24"><path d="M5 4h14v16H5z" /><path d="M9 8h6M9 12h6M9 16h3" /><path d="m16 16 1.4 1.4L20 14" /></svg>
+              <svg viewBox="0 0 24 24">
+                <path d="M5 4h14v16H5z" />
+                <path d="M9 8h6M9 12h6M9 16h3" />
+                <path d="m16 16 1.4 1.4L20 14" />
+              </svg>
             } @else if (module.value === 'admins') {
-              <svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z" /><path d="M4 20a8 8 0 0 1 16 0" /><path d="m17 10 1.5 1.5L21 8" /></svg>
+              <svg viewBox="0 0 24 24">
+                <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z" />
+                <path d="M4 20a8 8 0 0 1 16 0" />
+                <path d="m17 10 1.5 1.5L21 8" />
+              </svg>
             } @else if (module.value === 'requests') {
-              <svg viewBox="0 0 24 24"><path d="M7 4h10a2 2 0 0 1 2 2v14H5V6a2 2 0 0 1 2-2Z" /><path d="M9 8h6M9 12h6M9 16h4" /></svg>
+              <svg viewBox="0 0 24 24">
+                <path d="M7 4h10a2 2 0 0 1 2 2v14H5V6a2 2 0 0 1 2-2Z" />
+                <path d="M9 8h6M9 12h6M9 16h4" />
+              </svg>
             } @else if (module.value === 'batches') {
-              <svg viewBox="0 0 24 24"><path d="M7 8V4h10v4" /><path d="M6 17H4v-7h16v7h-2" /><path d="M7 14h10v6H7z" /><path d="M8 11h.01" /></svg>
+              <svg viewBox="0 0 24 24">
+                <path d="M7 8V4h10v4" />
+                <path d="M6 17H4v-7h16v7h-2" />
+                <path d="M7 14h10v6H7z" />
+                <path d="M8 11h.01" />
+              </svg>
             } @else if (module.value === 'delivery') {
-              <svg viewBox="0 0 24 24"><path d="M4 7h16v10H4z" /><path d="m7 12 2 2 4-5" /><path d="M16 12h2" /></svg>
+              <svg viewBox="0 0 24 24">
+                <path d="M4 7h16v10H4z" />
+                <path d="m7 12 2 2 4-5" />
+                <path d="M16 12h2" />
+              </svg>
             } @else if (module.value === 'templates') {
-              <svg viewBox="0 0 24 24"><path d="M5 4h14v16H5z" /><path d="M8 8h8M8 12h5M8 16h8" /></svg>
+              <svg viewBox="0 0 24 24">
+                <path d="M5 4h14v16H5z" />
+                <path d="M8 8h8M8 12h5M8 16h8" />
+              </svg>
             } @else {
-              <svg viewBox="0 0 24 24"><path d="M4 5h16v14H4z" /><path d="M8 5v14M4 10h16M4 15h16" /></svg>
+              <svg viewBox="0 0 24 24">
+                <path d="M4 5h16v14H4z" />
+                <path d="M8 5v14M4 10h16M4 15h16" />
+              </svg>
             }
           </span>
           <span>
             <span class="block font-bold">{{ module.label }}</span>
-            <span class="mt-1 block text-xs leading-5 text-[var(--tup-muted)]">{{ module.description }}</span>
+            <span class="mt-1 block text-xs leading-5 text-[var(--tup-muted)]">{{
+              module.description
+            }}</span>
           </span>
         </button>
       }
     </nav>
 
     <div class="admin-sidebar-footer">
-      <button mat-stroked-button color="primary" class="link-button !h-11 !w-full !rounded-md" (click)="logout()">
+      <button
+        mat-stroked-button
+        color="primary"
+        type="button"
+        class="link-button !h-11 !w-full !rounded-md"
+        (click)="logout()"
+      >
         Cerrar sesion
       </button>
     </div>
   </aside>
 
-  <section class="admin-dashboard-main">
+  <section class="admin-dashboard-main" aria-labelledby="admin-active-module-title">
     <header class="admin-dashboard-topbar">
       <div>
         <p class="eyebrow">{{ activeModuleEyebrow() }}</p>
-        <h2 class="text-2xl font-bold text-[var(--tup-ink)] md:text-3xl">{{ activeModuleLabel() }}</h2>
+        <h2
+          id="admin-active-module-title"
+          class="text-2xl font-bold text-[var(--tup-ink)] md:text-3xl"
+        >
+          {{ activeModuleLabel() }}
+        </h2>
       </div>
 
       @if (activeModule === 'requests') {
@@ -132,7 +193,12 @@
 
     @if (activeModule === 'dashboard') {
       @if (loading) {
-        <div class="grid place-items-center py-16">
+        <div
+          class="grid place-items-center py-16"
+          role="status"
+          aria-live="polite"
+          aria-label="Cargando panel administrativo"
+        >
           <mat-progress-spinner diameter="42" mode="indeterminate"></mat-progress-spinner>
         </div>
       } @else {
@@ -145,7 +211,9 @@
             </article>
 
             <article class="executive-kpi-card rounded-lg">
-              <p class="text-xs font-semibold uppercase text-[var(--tup-gray)]">Credenciales impresas</p>
+              <p class="text-xs font-semibold uppercase text-[var(--tup-gray)]">
+                Credenciales impresas
+              </p>
               <strong>{{ dashboardPrintedTotal }}</strong>
               <span>Impresas, listas o entregadas</span>
             </article>
@@ -163,7 +231,9 @@
             </article>
 
             <article class="executive-kpi-card rounded-lg">
-              <p class="text-xs font-semibold uppercase text-[var(--tup-gray)]">Listas para entrega</p>
+              <p class="text-xs font-semibold uppercase text-[var(--tup-gray)]">
+                Listas para entrega
+              </p>
               <strong>{{ dashboardReadyForPickupRequests }}</strong>
               <span>Esperando ventanilla</span>
             </article>
@@ -331,7 +401,7 @@
                           </p>
                           <p class="mt-1 text-xs font-semibold uppercase text-[var(--tup-primary)]">
                             @if (dashboardDeliveredDate(request); as deliveredDate) {
-                              {{ deliveredDate | date:'dd/MM/yy, h:mm a' }}
+                              {{ deliveredDate | date: 'dd/MM/yy, h:mm a' }}
                             } @else {
                               Sin fecha
                             }
@@ -351,13 +421,18 @@
         <mat-card class="institution-card !rounded-lg !shadow-none">
           <mat-card-header>
             <mat-card-title>Reportes operativos</mat-card-title>
-            <mat-card-subtitle>Filtra solicitudes y exporta la informacion para control interno.</mat-card-subtitle>
+            <mat-card-subtitle
+              >Filtra solicitudes y exporta la informacion para control interno.</mat-card-subtitle
+            >
           </mat-card-header>
 
           <mat-card-content class="report-filter-grid pt-6">
             <mat-form-field appearance="outline" class="w-full">
               <mat-label>Tipo de solicitante</mat-label>
-              <mat-select [(value)]="reportApplicantFilter" (selectionChange)="reportExportMessage = ''">
+              <mat-select
+                [(value)]="reportApplicantFilter"
+                (selectionChange)="reportExportMessage = ''"
+              >
                 <mat-option value="ALL">Todos</mat-option>
                 @for (type of applicantTypes; track type) {
                   <mat-option [value]="type">{{ applicantTypeLabels[type] }}</mat-option>
@@ -367,7 +442,10 @@
 
             <mat-form-field appearance="outline" class="w-full">
               <mat-label>Estatus</mat-label>
-              <mat-select [(value)]="reportStatusFilter" (selectionChange)="reportExportMessage = ''">
+              <mat-select
+                [(value)]="reportStatusFilter"
+                (selectionChange)="reportExportMessage = ''"
+              >
                 <mat-option value="ALL">Todas</mat-option>
                 @for (status of statuses; track status) {
                   <mat-option [value]="status">{{ statusLabels[status] }}</mat-option>
@@ -377,7 +455,11 @@
 
             <label class="report-date-field rounded-md">
               <span>Desde</span>
-              <input type="date" [value]="reportStartDate" (input)="updateReportStartDate($event)" />
+              <input
+                type="date"
+                [value]="reportStartDate"
+                (input)="updateReportStartDate($event)"
+              />
             </label>
 
             <label class="report-date-field rounded-md">
@@ -386,10 +468,23 @@
             </label>
 
             <div class="report-actions">
-              <button mat-stroked-button color="primary" type="button" class="link-button !h-11 !rounded-md" (click)="clearReportFilters()">
+              <button
+                mat-stroked-button
+                color="primary"
+                type="button"
+                class="link-button !h-11 !rounded-md"
+                (click)="clearReportFilters()"
+              >
                 Limpiar filtros
               </button>
-              <button mat-flat-button color="primary" type="button" class="!h-11 !rounded-md" [disabled]="!reportRequests.length" (click)="exportReportCsv()">
+              <button
+                mat-flat-button
+                color="primary"
+                type="button"
+                class="!h-11 !rounded-md"
+                [disabled]="!reportRequests.length"
+                (click)="exportReportCsv()"
+              >
                 Exportar CSV
               </button>
             </div>
@@ -404,7 +499,9 @@
 
         <section class="report-metric-grid">
           <article class="metric-card rounded-lg p-4">
-            <p class="text-xs font-semibold uppercase text-[var(--tup-gray)]">Registros filtrados</p>
+            <p class="text-xs font-semibold uppercase text-[var(--tup-gray)]">
+              Registros filtrados
+            </p>
             <p class="mt-2 text-2xl font-bold text-[var(--tup-ink)]">{{ reportTotalRequests }}</p>
           </article>
           <article class="metric-card rounded-lg p-4">
@@ -413,15 +510,21 @@
           </article>
           <article class="metric-card rounded-lg p-4">
             <p class="text-xs font-semibold uppercase text-[var(--tup-gray)]">Entregadas</p>
-            <p class="mt-2 text-2xl font-bold text-[var(--tup-ink)]">{{ reportDeliveredRequests }}</p>
+            <p class="mt-2 text-2xl font-bold text-[var(--tup-ink)]">
+              {{ reportDeliveredRequests }}
+            </p>
           </article>
           <article class="metric-card rounded-lg p-4">
             <p class="text-xs font-semibold uppercase text-[var(--tup-gray)]">Reposiciones</p>
-            <p class="mt-2 text-2xl font-bold text-[var(--tup-ink)]">{{ reportReplacementRequests }}</p>
+            <p class="mt-2 text-2xl font-bold text-[var(--tup-ink)]">
+              {{ reportReplacementRequests }}
+            </p>
           </article>
           <article class="metric-card rounded-lg p-4">
             <p class="text-xs font-semibold uppercase text-[var(--tup-gray)]">Rechazadas</p>
-            <p class="mt-2 text-2xl font-bold text-[var(--tup-ink)]">{{ reportRejectedRequests }}</p>
+            <p class="mt-2 text-2xl font-bold text-[var(--tup-ink)]">
+              {{ reportRejectedRequests }}
+            </p>
           </article>
         </section>
 
@@ -493,7 +596,10 @@
         <mat-card class="institution-card !rounded-lg !shadow-none">
           <mat-card-header>
             <mat-card-title>Vista previa</mat-card-title>
-            <mat-card-subtitle>Primeros registros del reporte. El CSV exporta todos los resultados filtrados.</mat-card-subtitle>
+            <mat-card-subtitle
+              >Primeros registros del reporte. El CSV exporta todos los resultados
+              filtrados.</mat-card-subtitle
+            >
           </mat-card-header>
           <mat-card-content class="pt-6">
             @if (!reportRequests.length) {
@@ -520,7 +626,9 @@
                         <td>{{ reportSubmittedDateLabel(request) }}</td>
                         <td>
                           <strong>{{ request.name }}</strong>
-                          <span>{{ applicantLabel(request.applicantType) }} - {{ request.email }}</span>
+                          <span
+                            >{{ applicantLabel(request.applicantType) }} - {{ request.email }}</span
+                          >
                         </td>
                         <td>{{ reportRequestTypeLabel(request) }}</td>
                         <td>{{ statusLabels[request.status] }}</td>
@@ -535,7 +643,8 @@
 
               @if (reportRequests.length > 25) {
                 <p class="mt-3 text-xs text-[var(--tup-muted)]">
-                  Mostrando 25 de {{ reportRequests.length }} registros. Exporta CSV para obtener el reporte completo.
+                  Mostrando 25 de {{ reportRequests.length }} registros. Exporta CSV para obtener el
+                  reporte completo.
                 </p>
               }
             }
@@ -547,7 +656,10 @@
         <mat-card class="institution-card !rounded-lg !shadow-none">
           <mat-card-header>
             <mat-card-title>Bitacora de auditoria</mat-card-title>
-            <mat-card-subtitle>Consulta cambios administrativos, lotes, impresiones e importaciones.</mat-card-subtitle>
+            <mat-card-subtitle
+              >Consulta cambios administrativos, lotes, impresiones e
+              importaciones.</mat-card-subtitle
+            >
           </mat-card-header>
 
           <mat-card-content class="audit-filter-grid pt-6">
@@ -582,10 +694,23 @@
             </label>
 
             <div class="report-actions">
-              <button mat-stroked-button color="primary" type="button" class="link-button !h-11 !rounded-md" (click)="clearAuditFilters()">
+              <button
+                mat-stroked-button
+                color="primary"
+                type="button"
+                class="link-button !h-11 !rounded-md"
+                (click)="clearAuditFilters()"
+              >
                 Limpiar filtros
               </button>
-              <button mat-flat-button color="primary" type="button" class="!h-11 !rounded-md" [disabled]="!filteredAuditLogs.length" (click)="exportAuditCsv()">
+              <button
+                mat-flat-button
+                color="primary"
+                type="button"
+                class="!h-11 !rounded-md"
+                [disabled]="!filteredAuditLogs.length"
+                (click)="exportAuditCsv()"
+              >
                 Exportar CSV
               </button>
             </div>
@@ -628,7 +753,9 @@
         } @else if (!filteredAuditLogs.length) {
           <mat-card class="institution-card !rounded-lg !shadow-none">
             <mat-card-content class="py-8">
-              <p class="text-center text-[var(--tup-muted)]">No hay eventos de auditoria con estos filtros.</p>
+              <p class="text-center text-[var(--tup-muted)]">
+                No hay eventos de auditoria con estos filtros.
+              </p>
             </mat-card-content>
           </mat-card>
         } @else {
@@ -640,8 +767,12 @@
                   <div class="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
                     <div class="min-w-0">
                       <p class="eyebrow">{{ auditEntityLabel(log.entity) }}</p>
-                      <h3 class="text-lg font-bold text-[var(--tup-ink)]">{{ auditActionLabel(log.action) }}</h3>
-                      <p class="mt-1 text-sm leading-6 text-[var(--tup-muted)]">{{ auditSummary(log) }}</p>
+                      <h3 class="text-lg font-bold text-[var(--tup-ink)]">
+                        {{ auditActionLabel(log.action) }}
+                      </h3>
+                      <p class="mt-1 text-sm leading-6 text-[var(--tup-muted)]">
+                        {{ auditSummary(log) }}
+                      </p>
                     </div>
                     <span class="status-pill rounded-full px-3 py-1 text-xs font-semibold">
                       {{ auditDateLabel(log) }}
@@ -680,8 +811,12 @@
       <section class="mb-6 grid gap-3 md:grid-cols-4">
         @for (status of statuses; track status) {
           <article class="metric-card rounded-lg p-4">
-            <p class="text-xs font-semibold uppercase text-[var(--tup-gray)]">{{ statusLabels[status] }}</p>
-            <p class="mt-2 text-2xl font-bold text-[var(--tup-ink)]">{{ requestStatusCount(status) }}</p>
+            <p class="text-xs font-semibold uppercase text-[var(--tup-gray)]">
+              {{ statusLabels[status] }}
+            </p>
+            <p class="mt-2 text-2xl font-bold text-[var(--tup-ink)]">
+              {{ requestStatusCount(status) }}
+            </p>
           </article>
         }
       </section>
@@ -722,8 +857,11 @@
       } @else {
         <section class="grid gap-4">
           @if (hiddenFilteredRequestsCount) {
-            <p class="rounded-md border border-[var(--tup-line)] bg-white px-4 py-3 text-sm text-[var(--tup-muted)]">
-              Mostrando las primeras 50 solicitudes filtradas. Usa busqueda o filtros para localizar registros especificos.
+            <p
+              class="rounded-md border border-[var(--tup-line)] bg-white px-4 py-3 text-sm text-[var(--tup-muted)]"
+            >
+              Mostrando las primeras 50 solicitudes filtradas. Usa busqueda o filtros para localizar
+              registros especificos.
             </p>
           }
 
@@ -748,14 +886,17 @@
                       </p>
                       @if (showIdentifier(request)) {
                         <p class="text-sm text-[var(--tup-ink)]">
-                          {{ identifierLabel(request.applicantType) }}: <strong>{{ request.studentId }}</strong>
+                          {{ identifierLabel(request.applicantType) }}:
+                          <strong>{{ request.studentId }}</strong>
                         </p>
                       }
                       <p class="mt-2 text-sm text-[var(--tup-ink)]">
                         {{ detailLabel(request) }}: <strong>{{ detailValue(request) }}</strong>
                       </p>
                       @if (!request.applicantType || request.applicantType === 'STUDENT') {
-                        <p class="text-sm text-[var(--tup-muted)]">Cuatrimestre: {{ request.cycle }}</p>
+                        <p class="text-sm text-[var(--tup-muted)]">
+                          Cuatrimestre: {{ request.cycle }}
+                        </p>
                         <p class="text-sm text-[var(--tup-muted)]">Telefono: {{ request.phone }}</p>
                       }
                     </div>
@@ -800,9 +941,7 @@
                       class="credential-print-area mt-4"
                       [class.credential-print-selected]="printingRequestId === request.id"
                     >
-                      <article
-                        class="credential-card credential-card-front"
-                      >
+                      <article class="credential-card credential-card-front">
                         <img
                           [src]="credentialTemplateImageUrl(request, 'front')"
                           alt=""
@@ -817,7 +956,10 @@
                           />
                         }
                         @if (showCredentialTemplateField(request, 'name')) {
-                          <p class="credential-template-name" [ngStyle]="credentialTemplateElementStyle(request, 'name')">
+                          <p
+                            class="credential-template-name"
+                            [ngStyle]="credentialTemplateElementStyle(request, 'name')"
+                          >
                             {{ request.name }}
                           </p>
                         }
@@ -847,9 +989,7 @@
                         }
                       </article>
 
-                      <article
-                        class="credential-card credential-card-back"
-                      >
+                      <article class="credential-card credential-card-back">
                         <img
                           [src]="credentialTemplateImageUrl(request, 'back')"
                           alt=""
@@ -915,37 +1055,73 @@
                     }
 
                     @if (canMove(request, 'UNDER_REVIEW')) {
-                      <button mat-stroked-button color="primary" class="!rounded-md" [disabled]="savingId === request.id" (click)="move(request, 'UNDER_REVIEW')">
+                      <button
+                        mat-stroked-button
+                        color="primary"
+                        class="!rounded-md"
+                        [disabled]="savingId === request.id"
+                        (click)="move(request, 'UNDER_REVIEW')"
+                      >
                         Tomar revision
                       </button>
                     }
 
                     @if (canMove(request, 'APPROVED_FOR_PRINT')) {
-                      <button mat-flat-button color="primary" class="!rounded-md" [disabled]="savingId === request.id" (click)="move(request, 'APPROVED_FOR_PRINT')">
+                      <button
+                        mat-flat-button
+                        color="primary"
+                        class="!rounded-md"
+                        [disabled]="savingId === request.id"
+                        (click)="move(request, 'APPROVED_FOR_PRINT')"
+                      >
                         Aprobar impresion
                       </button>
                     }
 
                     @if (canMove(request, 'REJECTED')) {
-                      <button mat-stroked-button color="warn" class="!rounded-md" [disabled]="savingId === request.id" (click)="move(request, 'REJECTED')">
+                      <button
+                        mat-stroked-button
+                        color="warn"
+                        class="!rounded-md"
+                        [disabled]="savingId === request.id"
+                        (click)="move(request, 'REJECTED')"
+                      >
                         Rechazar
                       </button>
                     }
 
                     @if (canMove(request, 'PRINTED')) {
-                      <button mat-flat-button color="primary" class="!rounded-md" [disabled]="savingId === request.id" (click)="move(request, 'PRINTED')">
+                      <button
+                        mat-flat-button
+                        color="primary"
+                        class="!rounded-md"
+                        [disabled]="savingId === request.id"
+                        (click)="move(request, 'PRINTED')"
+                      >
                         Marcar impresa
                       </button>
                     }
 
                     @if (canMove(request, 'READY_FOR_PICKUP')) {
-                      <button mat-flat-button color="primary" class="!rounded-md" [disabled]="savingId === request.id" (click)="move(request, 'READY_FOR_PICKUP')">
+                      <button
+                        mat-flat-button
+                        color="primary"
+                        class="!rounded-md"
+                        [disabled]="savingId === request.id"
+                        (click)="move(request, 'READY_FOR_PICKUP')"
+                      >
                         Lista para entrega
                       </button>
                     }
 
                     @if (canMove(request, 'DELIVERED')) {
-                      <button mat-flat-button color="primary" class="!rounded-md" [disabled]="savingId === request.id" (click)="move(request, 'DELIVERED')">
+                      <button
+                        mat-flat-button
+                        color="primary"
+                        class="!rounded-md"
+                        [disabled]="savingId === request.id"
+                        (click)="move(request, 'DELIVERED')"
+                      >
                         Confirmar entrega
                       </button>
                     }
@@ -961,16 +1137,22 @@
         <mat-card class="institution-card !rounded-lg !shadow-none">
           <mat-card-header>
             <mat-card-title>Nuevo lote de impresión</mat-card-title>
-            <mat-card-subtitle>Selecciona solicitudes aprobadas para imprimirlas en grupo.</mat-card-subtitle>
+            <mat-card-subtitle
+              >Selecciona solicitudes aprobadas para imprimirlas en grupo.</mat-card-subtitle
+            >
           </mat-card-header>
 
           <mat-card-content class="grid gap-4 pt-6">
             @if (batchErrorMessage) {
-              <p class="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{{ batchErrorMessage }}</p>
+              <p class="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+                {{ batchErrorMessage }}
+              </p>
             }
 
             @if (batchMessage) {
-              <p class="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{{ batchMessage }}</p>
+              <p class="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+                {{ batchMessage }}
+              </p>
             }
 
             <div class="print-batch-toolbar rounded-lg">
@@ -1037,7 +1219,8 @@
                     <span class="min-w-0">
                       <span class="block font-bold text-[var(--tup-ink)]">{{ request.name }}</span>
                       <span class="mt-1 block text-xs text-[var(--tup-muted)]">
-                        {{ applicantLabel(request.applicantType) }} · {{ request.studentId || request.email }}
+                        {{ applicantLabel(request.applicantType) }} ·
+                        {{ request.studentId || request.email }}
                       </span>
                       <span class="mt-1 block text-xs text-[var(--tup-primary)]">
                         {{ request.credentialNumber }}
@@ -1102,7 +1285,10 @@
                       (click)="printBatch(batch)"
                     >
                       @if (printingBatchId === batch.id) {
-                        <mat-progress-spinner diameter="20" mode="indeterminate"></mat-progress-spinner>
+                        <mat-progress-spinner
+                          diameter="20"
+                          mode="indeterminate"
+                        ></mat-progress-spinner>
                       } @else {
                         Imprimir lote
                       }
@@ -1116,7 +1302,10 @@
                       (click)="markBatchPrinted(batch)"
                     >
                       @if (batchActionId === batch.id) {
-                        <mat-progress-spinner diameter="20" mode="indeterminate"></mat-progress-spinner>
+                        <mat-progress-spinner
+                          diameter="20"
+                          mode="indeterminate"
+                        ></mat-progress-spinner>
                       } @else {
                         Marcar impreso
                       }
@@ -1144,7 +1333,10 @@
                           />
                         }
                         @if (showCredentialTemplateField(request, 'name')) {
-                          <p class="credential-template-name" [ngStyle]="credentialTemplateElementStyle(request, 'name')">
+                          <p
+                            class="credential-template-name"
+                            [ngStyle]="credentialTemplateElementStyle(request, 'name')"
+                          >
                             {{ request.name }}
                           </p>
                         }
@@ -1222,8 +1414,12 @@
         <section class="delivery-metrics">
           @for (status of deliveryStatuses; track status) {
             <article class="metric-card rounded-lg p-4">
-              <p class="text-xs font-semibold uppercase text-[var(--tup-gray)]">{{ statusLabels[status] }}</p>
-              <p class="mt-2 text-2xl font-bold text-[var(--tup-ink)]">{{ deliveryCountByStatus(status) }}</p>
+              <p class="text-xs font-semibold uppercase text-[var(--tup-gray)]">
+                {{ statusLabels[status] }}
+              </p>
+              <p class="mt-2 text-2xl font-bold text-[var(--tup-ink)]">
+                {{ deliveryCountByStatus(status) }}
+              </p>
             </article>
           }
         </section>
@@ -1235,7 +1431,9 @@
         @if (!deliveryRequests.length) {
           <mat-card class="institution-card !rounded-lg !shadow-none">
             <mat-card-content class="py-8">
-              <p class="text-center text-[var(--tup-muted)]">No hay credenciales con este filtro.</p>
+              <p class="text-center text-[var(--tup-muted)]">
+                No hay credenciales con este filtro.
+              </p>
             </mat-card-content>
           </mat-card>
         } @else {
@@ -1303,10 +1501,12 @@
                                 {{ statusLabels[event.status] }}
                               </p>
                               <p class="text-xs text-[var(--tup-muted)]">
-                                {{ timelineDate(event) | date:'dd/MM/yy, h:mm a' }}
+                                {{ timelineDate(event) | date: 'dd/MM/yy, h:mm a' }}
                               </p>
                               @if (event.note) {
-                                <p class="mt-1 text-sm leading-5 text-[var(--tup-muted)]">{{ event.note }}</p>
+                                <p class="mt-1 text-sm leading-5 text-[var(--tup-muted)]">
+                                  {{ event.note }}
+                                </p>
                               }
                             </div>
                           </article>
@@ -1394,139 +1594,183 @@
 
         @if (importTab === 'saeko') {
           <section class="saeko-layout">
-        <mat-card class="saeko-card institution-card !rounded-lg !shadow-none">
-          <mat-card-header>
-            <mat-card-title>Importacion Saeko</mat-card-title>
-            <mat-card-subtitle>Actualiza perfiles institucionales desde un archivo CSV exportado de Saeko.</mat-card-subtitle>
-          </mat-card-header>
+            <mat-card class="saeko-card institution-card !rounded-lg !shadow-none">
+              <mat-card-header>
+                <mat-card-title>Importacion Saeko</mat-card-title>
+                <mat-card-subtitle
+                  >Actualiza perfiles institucionales desde un archivo CSV exportado de
+                  Saeko.</mat-card-subtitle
+                >
+              </mat-card-header>
 
-          <mat-card-content class="saeko-card-content grid gap-5 pt-6">
-            <div class="file-drop rounded-lg p-5">
-              <label class="block text-sm font-semibold text-[var(--tup-ink)]">Archivo CSV</label>
-              <input
-                id="saekoCsvFile"
-                class="saeko-file-control"
-                type="file"
-                accept=".csv,text/csv"
-                (change)="loadSaekoFile($event)"
-              />
-              <label class="saeko-file-button mt-3 rounded-md" for="saekoCsvFile">
-                Seleccionar archivo CSV
-              </label>
-              <p class="mt-3 text-xs leading-5 text-[var(--tup-muted)]">
-                Columnas sugeridas: matricula, correo, nombre, programa, cuatrimestre, estatus, puesto.
-              </p>
-              @if (selectedSaekoFileName) {
-                <p class="saeko-file-name mt-2 text-sm text-emerald-700">{{ selectedSaekoFileName }}</p>
-              }
-            </div>
+              <mat-card-content class="saeko-card-content grid gap-5 pt-6">
+                <div class="file-drop rounded-lg p-5">
+                  <label class="block text-sm font-semibold text-[var(--tup-ink)]"
+                    >Archivo CSV</label
+                  >
+                  <input
+                    id="saekoCsvFile"
+                    class="saeko-file-control"
+                    type="file"
+                    accept=".csv,text/csv"
+                    (change)="loadSaekoFile($event)"
+                  />
+                  <label class="saeko-file-button mt-3 rounded-md" for="saekoCsvFile">
+                    Seleccionar archivo CSV
+                  </label>
+                  <p class="mt-3 text-xs leading-5 text-[var(--tup-muted)]">
+                    Columnas sugeridas: matricula, correo, nombre, programa, cuatrimestre, estatus,
+                    puesto.
+                  </p>
+                  @if (selectedSaekoFileName) {
+                    <p class="saeko-file-name mt-2 text-sm text-emerald-700">
+                      {{ selectedSaekoFileName }}
+                    </p>
+                  }
+                </div>
 
-            <div class="saeko-metrics">
-              <article class="metric-card rounded-lg p-4">
-                <p class="text-xs font-semibold uppercase text-[var(--tup-gray)]">Registros</p>
-                <p class="mt-2 text-2xl font-bold text-[var(--tup-ink)]">{{ saekoRows.length }}</p>
-              </article>
-              <article class="metric-card rounded-lg p-4">
-                <p class="text-xs font-semibold uppercase text-[var(--tup-gray)]">Validos</p>
-                <p class="mt-2 text-2xl font-bold text-emerald-700">{{ validSaekoRows.length }}</p>
-              </article>
-              <article class="metric-card rounded-lg p-4">
-                <p class="text-xs font-semibold uppercase text-[var(--tup-gray)]">Observaciones</p>
-                <p class="mt-2 text-2xl font-bold text-red-700">{{ invalidSaekoRows.length }}</p>
-              </article>
-            </div>
+                <div class="saeko-metrics">
+                  <article class="metric-card rounded-lg p-4">
+                    <p class="text-xs font-semibold uppercase text-[var(--tup-gray)]">Registros</p>
+                    <p class="mt-2 text-2xl font-bold text-[var(--tup-ink)]">
+                      {{ saekoRows.length }}
+                    </p>
+                  </article>
+                  <article class="metric-card rounded-lg p-4">
+                    <p class="text-xs font-semibold uppercase text-[var(--tup-gray)]">Validos</p>
+                    <p class="mt-2 text-2xl font-bold text-emerald-700">
+                      {{ validSaekoRows.length }}
+                    </p>
+                  </article>
+                  <article class="metric-card rounded-lg p-4">
+                    <p class="text-xs font-semibold uppercase text-[var(--tup-gray)]">
+                      Observaciones
+                    </p>
+                    <p class="mt-2 text-2xl font-bold text-red-700">
+                      {{ invalidSaekoRows.length }}
+                    </p>
+                  </article>
+                </div>
 
-            <p class="saeko-summary rounded-md bg-[var(--tup-soft-blue)] px-3 py-2 text-sm text-[var(--tup-primary)]">
-              {{ saekoSummary }}
-            </p>
+                <p
+                  class="saeko-summary rounded-md bg-[var(--tup-soft-blue)] px-3 py-2 text-sm text-[var(--tup-primary)]"
+                >
+                  {{ saekoSummary }}
+                </p>
 
-            @if (importErrorMessage) {
-              <p class="saeko-message rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{{ importErrorMessage }}</p>
-            }
-
-            @if (importSuccessMessage) {
-              <p class="saeko-message rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{{ importSuccessMessage }}</p>
-            }
-
-            @if (saekoRows.length) {
-              <div class="saeko-preview-table saeko-table-shell rounded-lg border border-[var(--tup-line)] bg-white">
-                <table class="saeko-table w-full text-left text-sm">
-                  <thead>
-                    <tr>
-                      <th>Fila</th>
-                      <th>Tipo</th>
-                      <th>Estatus</th>
-                      <th>Correo</th>
-                      <th>Nombre</th>
-                      <th>Matricula</th>
-                      <th>Programa / puesto</th>
-                      <th>Cuatrimestre</th>
-                      <th>Observaciones</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    @for (row of saekoRows; track row.rowNumber) {
-                      <tr [class.saeko-row-error]="row.errors.length">
-                        <td>{{ row.rowNumber }}</td>
-                        <td>{{ applicantTypeLabels[row.applicantType] }}</td>
-                        <td>{{ academicStatusLabels[row.academicStatus] || 'No reconocido' }}</td>
-                        <td>{{ row.email }}</td>
-                        <td>{{ row.name || '-' }}</td>
-                        <td>{{ row.studentId || '-' }}</td>
-                        <td>{{ row.position || row.career || '-' }}</td>
-                        <td>{{ row.currentTerm || '-' }}</td>
-                        <td>{{ row.errors.length ? row.errors.join(' ') : 'Listo' }}</td>
-                      </tr>
-                    }
-                  </tbody>
-                </table>
-              </div>
-            }
-
-            <div>
-              <button
-                mat-flat-button
-                color="primary"
-                type="button"
-                class="!h-11 !rounded-md"
-                [disabled]="importingProfiles || !validSaekoRows.length"
-                (click)="importSaekoProfiles()"
-              >
-                @if (importingProfiles) {
-                  <mat-progress-spinner diameter="22" mode="indeterminate"></mat-progress-spinner>
-                } @else {
-                  Aplicar importacion
+                @if (importErrorMessage) {
+                  <p class="saeko-message rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+                    {{ importErrorMessage }}
+                  </p>
                 }
-              </button>
-            </div>
-          </mat-card-content>
-        </mat-card>
 
-        <aside class="saeko-side-panel grid gap-4 content-start">
-          <mat-card class="saeko-card institution-card !rounded-lg !shadow-none">
-            <mat-card-header>
-              <mat-card-title>Formato esperado</mat-card-title>
-            </mat-card-header>
-            <mat-card-content class="saeko-copy grid gap-3 pt-4 text-sm leading-6 text-[var(--tup-muted)]">
-              <p>Para alumnos usa correo tipo tup1234&#64;tecplayacar.edu.mx y agrega matricula, programa y cuatrimestre.</p>
-              <p>Para docentes usa correo tipo tup-d1234&#64;tecplayacar.edu.mx. No requiere programa ni cuatrimestre.</p>
-              <p>Para colaboradores usa correo nombre.apellido&#64;tecplayacar.edu.mx y agrega puesto.</p>
-              <p>Estatus aceptados: activo, baja, egresado o suspendido.</p>
-            </mat-card-content>
-          </mat-card>
+                @if (importSuccessMessage) {
+                  <p
+                    class="saeko-message rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-700"
+                  >
+                    {{ importSuccessMessage }}
+                  </p>
+                }
 
-          <mat-card class="saeko-card institution-card !rounded-lg !shadow-none">
-            <mat-card-header>
-              <mat-card-title>Ejemplo CSV</mat-card-title>
-            </mat-card-header>
-            <mat-card-content class="saeko-card-content pt-4">
-              <pre class="csv-example rounded-md p-3 text-xs">matricula,correo,nombre,programa,cuatrimestre,estatus,puesto
+                @if (saekoRows.length) {
+                  <div
+                    class="saeko-preview-table saeko-table-shell rounded-lg border border-[var(--tup-line)] bg-white"
+                  >
+                    <table class="saeko-table w-full text-left text-sm">
+                      <thead>
+                        <tr>
+                          <th>Fila</th>
+                          <th>Tipo</th>
+                          <th>Estatus</th>
+                          <th>Correo</th>
+                          <th>Nombre</th>
+                          <th>Matricula</th>
+                          <th>Programa / puesto</th>
+                          <th>Cuatrimestre</th>
+                          <th>Observaciones</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (row of saekoRows; track row.rowNumber) {
+                          <tr [class.saeko-row-error]="row.errors.length">
+                            <td>{{ row.rowNumber }}</td>
+                            <td>{{ applicantTypeLabels[row.applicantType] }}</td>
+                            <td>
+                              {{ academicStatusLabels[row.academicStatus] || 'No reconocido' }}
+                            </td>
+                            <td>{{ row.email }}</td>
+                            <td>{{ row.name || '-' }}</td>
+                            <td>{{ row.studentId || '-' }}</td>
+                            <td>{{ row.position || row.career || '-' }}</td>
+                            <td>{{ row.currentTerm || '-' }}</td>
+                            <td>{{ row.errors.length ? row.errors.join(' ') : 'Listo' }}</td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                }
+
+                <div>
+                  <button
+                    mat-flat-button
+                    color="primary"
+                    type="button"
+                    class="!h-11 !rounded-md"
+                    [disabled]="importingProfiles || !validSaekoRows.length"
+                    (click)="importSaekoProfiles()"
+                  >
+                    @if (importingProfiles) {
+                      <mat-progress-spinner
+                        diameter="22"
+                        mode="indeterminate"
+                      ></mat-progress-spinner>
+                    } @else {
+                      Aplicar importacion
+                    }
+                  </button>
+                </div>
+              </mat-card-content>
+            </mat-card>
+
+            <aside class="saeko-side-panel grid gap-4 content-start">
+              <mat-card class="saeko-card institution-card !rounded-lg !shadow-none">
+                <mat-card-header>
+                  <mat-card-title>Formato esperado</mat-card-title>
+                </mat-card-header>
+                <mat-card-content
+                  class="saeko-copy grid gap-3 pt-4 text-sm leading-6 text-[var(--tup-muted)]"
+                >
+                  <p>
+                    Para alumnos usa correo tipo tup1234&#64;tecplayacar.edu.mx y agrega matricula,
+                    programa y cuatrimestre.
+                  </p>
+                  <p>
+                    Para docentes usa correo tipo tup-d1234&#64;tecplayacar.edu.mx. No requiere
+                    programa ni cuatrimestre.
+                  </p>
+                  <p>
+                    Para colaboradores usa correo nombre.apellido&#64;tecplayacar.edu.mx y agrega
+                    puesto.
+                  </p>
+                  <p>Estatus aceptados: activo, baja, egresado o suspendido.</p>
+                </mat-card-content>
+              </mat-card>
+
+              <mat-card class="saeko-card institution-card !rounded-lg !shadow-none">
+                <mat-card-header>
+                  <mat-card-title>Ejemplo CSV</mat-card-title>
+                </mat-card-header>
+                <mat-card-content class="saeko-card-content pt-4">
+                  <pre class="csv-example rounded-md p-3 text-xs">
+matricula,correo,nombre,programa,cuatrimestre,estatus,puesto
 TUP2104,tup2104&#64;tecplayacar.edu.mx,Nombre Alumno,Lic. Administracion de Empresas,Primer cuatrimestre,activo,
 ,tup-d1234&#64;tecplayacar.edu.mx,Nombre Docente,,,activo,
-,zulma.martinez&#64;tecplayacar.edu.mx,Zulma Martinez,,,activo,Administracion</pre>
-            </mat-card-content>
-          </mat-card>
-        </aside>
+,zulma.martinez&#64;tecplayacar.edu.mx,Zulma Martinez,,,activo,Administracion</pre
+                  >
+                </mat-card-content>
+              </mat-card>
+            </aside>
           </section>
         } @else {
           <section class="saeko-layout">
@@ -1554,8 +1798,8 @@ TUP2104,tup2104&#64;tecplayacar.edu.mx,Nombre Alumno,Lic. Administracion de Empr
                     Seleccionar archivo CSV
                   </label>
                   <p class="mt-3 text-xs leading-5 text-[var(--tup-muted)]">
-                    Columnas: matricula, correo, nombre, programa, cuatrimestre, folio,
-                    estatus, fecha_entrega, telefono.
+                    Columnas: matricula, correo, nombre, programa, cuatrimestre, folio, estatus,
+                    fecha_entrega, telefono.
                   </p>
                   @if (selectedLegacyFileName) {
                     <p class="saeko-file-name mt-2 text-sm text-emerald-700">
@@ -1567,19 +1811,29 @@ TUP2104,tup2104&#64;tecplayacar.edu.mx,Nombre Alumno,Lic. Administracion de Empr
                 <div class="saeko-metrics">
                   <article class="metric-card rounded-lg p-4">
                     <p class="text-xs font-semibold uppercase text-[var(--tup-gray)]">Registros</p>
-                    <p class="mt-2 text-2xl font-bold text-[var(--tup-ink)]">{{ legacyRows.length }}</p>
+                    <p class="mt-2 text-2xl font-bold text-[var(--tup-ink)]">
+                      {{ legacyRows.length }}
+                    </p>
                   </article>
                   <article class="metric-card rounded-lg p-4">
                     <p class="text-xs font-semibold uppercase text-[var(--tup-gray)]">Validos</p>
-                    <p class="mt-2 text-2xl font-bold text-emerald-700">{{ validLegacyRows.length }}</p>
+                    <p class="mt-2 text-2xl font-bold text-emerald-700">
+                      {{ validLegacyRows.length }}
+                    </p>
                   </article>
                   <article class="metric-card rounded-lg p-4">
-                    <p class="text-xs font-semibold uppercase text-[var(--tup-gray)]">Observaciones</p>
-                    <p class="mt-2 text-2xl font-bold text-red-700">{{ invalidLegacyRows.length }}</p>
+                    <p class="text-xs font-semibold uppercase text-[var(--tup-gray)]">
+                      Observaciones
+                    </p>
+                    <p class="mt-2 text-2xl font-bold text-red-700">
+                      {{ invalidLegacyRows.length }}
+                    </p>
                   </article>
                 </div>
 
-                <p class="saeko-summary rounded-md bg-[var(--tup-soft-blue)] px-3 py-2 text-sm text-[var(--tup-primary)]">
+                <p
+                  class="saeko-summary rounded-md bg-[var(--tup-soft-blue)] px-3 py-2 text-sm text-[var(--tup-primary)]"
+                >
                   {{ legacySummary }}
                 </p>
 
@@ -1590,13 +1844,17 @@ TUP2104,tup2104&#64;tecplayacar.edu.mx,Nombre Alumno,Lic. Administracion de Empr
                 }
 
                 @if (legacyImportSuccessMessage) {
-                  <p class="saeko-message rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+                  <p
+                    class="saeko-message rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-700"
+                  >
                     {{ legacyImportSuccessMessage }}
                   </p>
                 }
 
                 @if (legacyRows.length) {
-                  <div class="saeko-preview-table saeko-table-shell rounded-lg border border-[var(--tup-line)] bg-white">
+                  <div
+                    class="saeko-preview-table saeko-table-shell rounded-lg border border-[var(--tup-line)] bg-white"
+                  >
                     <table class="saeko-table w-full text-left text-sm">
                       <thead>
                         <tr>
@@ -1640,7 +1898,10 @@ TUP2104,tup2104&#64;tecplayacar.edu.mx,Nombre Alumno,Lic. Administracion de Empr
                     (click)="importLegacyCredentials()"
                   >
                     @if (importingLegacyCredentials) {
-                      <mat-progress-spinner diameter="22" mode="indeterminate"></mat-progress-spinner>
+                      <mat-progress-spinner
+                        diameter="22"
+                        mode="indeterminate"
+                      ></mat-progress-spinner>
                     } @else {
                       Aplicar importacion historica
                     }
@@ -1654,10 +1915,18 @@ TUP2104,tup2104&#64;tecplayacar.edu.mx,Nombre Alumno,Lic. Administracion de Empr
                 <mat-card-header>
                   <mat-card-title>Que genera</mat-card-title>
                 </mat-card-header>
-                <mat-card-content class="saeko-copy grid gap-3 pt-4 text-sm leading-6 text-[var(--tup-muted)]">
+                <mat-card-content
+                  class="saeko-copy grid gap-3 pt-4 text-sm leading-6 text-[var(--tup-muted)]"
+                >
                   <p>Crea una solicitud de primera vez marcada como impresa o entregada.</p>
-                  <p>Marca el perfil del alumno con credencial historica para bloquear nuevo tramite de primera vez.</p>
-                  <p>Si el alumno pide otra credencial despues, solo vera reposicion y debera adjuntar comprobante.</p>
+                  <p>
+                    Marca el perfil del alumno con credencial historica para bloquear nuevo tramite
+                    de primera vez.
+                  </p>
+                  <p>
+                    Si el alumno pide otra credencial despues, solo vera reposicion y debera
+                    adjuntar comprobante.
+                  </p>
                 </mat-card-content>
               </mat-card>
 
@@ -1666,9 +1935,11 @@ TUP2104,tup2104&#64;tecplayacar.edu.mx,Nombre Alumno,Lic. Administracion de Empr
                   <mat-card-title>Ejemplo CSV</mat-card-title>
                 </mat-card-header>
                 <mat-card-content class="saeko-card-content pt-4">
-                  <pre class="csv-example rounded-md p-3 text-xs">matricula,correo,nombre,programa,cuatrimestre,folio,estatus,fecha_entrega,telefono
+                  <pre class="csv-example rounded-md p-3 text-xs">
+matricula,correo,nombre,programa,cuatrimestre,folio,estatus,fecha_entrega,telefono
 TUP2104,tup2104&#64;tecplayacar.edu.mx,Nombre Alumno,Lic. Administracion de Empresas,Segundo cuatrimestre,LEG-2025-001,entregada,2025-08-15,9841234567
-TUP3042,tup3042&#64;tecplayacar.edu.mx,Matias Rodriguez,Maestria en Administracion de Hospitales,Segundo cuatrimestre,,impresa,,</pre>
+TUP3042,tup3042&#64;tecplayacar.edu.mx,Matias Rodriguez,Maestria en Administracion de Hospitales,Segundo cuatrimestre,,impresa,,</pre
+                  >
                 </mat-card-content>
               </mat-card>
             </aside>
@@ -1680,7 +1951,9 @@ TUP3042,tup3042&#64;tecplayacar.edu.mx,Matias Rodriguez,Maestria en Administraci
         <mat-card class="institution-card !rounded-lg !shadow-none">
           <mat-card-header>
             <mat-card-title>Administradores activos</mat-card-title>
-            <mat-card-subtitle>Gestiona los correos con acceso al panel administrativo.</mat-card-subtitle>
+            <mat-card-subtitle
+              >Gestiona los correos con acceso al panel administrativo.</mat-card-subtitle
+            >
           </mat-card-header>
 
           <mat-card-content class="grid gap-4 pt-6">
@@ -1689,7 +1962,9 @@ TUP3042,tup3042&#64;tecplayacar.edu.mx,Matias Rodriguez,Maestria en Administraci
                 <mat-progress-spinner diameter="36" mode="indeterminate"></mat-progress-spinner>
               </div>
             } @else if (!adminUsers.length) {
-              <p class="rounded-md border border-[var(--tup-line)] bg-white px-4 py-3 text-sm text-[var(--tup-muted)]">
+              <p
+                class="rounded-md border border-[var(--tup-line)] bg-white px-4 py-3 text-sm text-[var(--tup-muted)]"
+              >
                 No hay administradores registrados.
               </p>
             } @else {
@@ -1722,7 +1997,10 @@ TUP3042,tup3042&#64;tecplayacar.edu.mx,Matias Rodriguez,Maestria en Administraci
                       (click)="removeAdminUser(admin)"
                     >
                       @if (adminActionEmail === admin.email) {
-                        <mat-progress-spinner diameter="20" mode="indeterminate"></mat-progress-spinner>
+                        <mat-progress-spinner
+                          diameter="20"
+                          mode="indeterminate"
+                        ></mat-progress-spinner>
                       } @else {
                         Quitar acceso
                       }
@@ -1770,7 +2048,9 @@ TUP3042,tup3042&#64;tecplayacar.edu.mx,Matias Rodriguez,Maestria en Administraci
                 color="primary"
                 type="button"
                 class="!h-11 !rounded-md"
-                [disabled]="!adminEmail.trim() || adminActionEmail === adminEmail.trim().toLowerCase()"
+                [disabled]="
+                  !adminEmail.trim() || adminActionEmail === adminEmail.trim().toLowerCase()
+                "
                 (click)="addAdminUser()"
               >
                 @if (adminActionEmail === adminEmail.trim().toLowerCase()) {
@@ -1800,8 +2080,13 @@ TUP3042,tup3042&#64;tecplayacar.edu.mx,Matias Rodriguez,Maestria en Administraci
             </mat-card-header>
             <mat-card-content class="grid gap-3 pt-4 text-sm leading-6 text-[var(--tup-muted)]">
               <p>Al agregar un correo, la app lo reconoce como administrador al iniciar sesion.</p>
-              <p>Si el usuario ya existe en Firebase Auth, sus permisos se actualizan de inmediato.</p>
-              <p>Los administradores protegidos son accesos base y no se pueden remover desde el panel.</p>
+              <p>
+                Si el usuario ya existe en Firebase Auth, sus permisos se actualizan de inmediato.
+              </p>
+              <p>
+                Los administradores protegidos son accesos base y no se pueden remover desde el
+                panel.
+              </p>
             </mat-card-content>
           </mat-card>
         </aside>
@@ -1811,7 +2096,10 @@ TUP3042,tup3042&#64;tecplayacar.edu.mx,Matias Rodriguez,Maestria en Administraci
         <mat-card class="institution-card !rounded-lg !shadow-none">
           <mat-card-header>
             <mat-card-title>Editor visual de credencial</mat-card-title>
-            <mat-card-subtitle>Arrastra cada elemento hasta colocarlo sobre el diseño institucional.</mat-card-subtitle>
+            <mat-card-subtitle
+              >Arrastra cada elemento hasta colocarlo sobre el diseño
+              institucional.</mat-card-subtitle
+            >
           </mat-card-header>
 
           <mat-card-content class="template-designer-content pt-6">
@@ -1833,7 +2121,13 @@ TUP3042,tup3042&#64;tecplayacar.edu.mx,Matias Rodriguez,Maestria en Administraci
                 </mat-select>
               </mat-form-field>
 
-              <button mat-stroked-button color="primary" class="link-button !h-11 !rounded-md" type="button" (click)="resetSelectedTemplateLayout()">
+              <button
+                mat-stroked-button
+                color="primary"
+                class="link-button !h-11 !rounded-md"
+                type="button"
+                (click)="resetSelectedTemplateLayout()"
+              >
                 Restablecer plantilla
               </button>
             </div>
@@ -1842,10 +2136,12 @@ TUP3042,tup3042&#64;tecplayacar.edu.mx,Matias Rodriguez,Maestria en Administraci
               <div class="template-upload-copy">
                 <p class="font-bold text-[var(--tup-ink)]">Diseno de fondo</p>
                 <p class="mt-1 text-sm leading-6 text-[var(--tup-muted)]">
-                  Sube un archivo SVG o PNG para la plantilla y cara seleccionada. Se recomienda trabajar en proporcion
-                  5.4 x 8.6 cm para PVC vertical.
+                  Sube un archivo SVG o PNG para la plantilla y cara seleccionada. Se recomienda
+                  trabajar en proporcion 5.4 x 8.6 cm para PVC vertical.
                 </p>
-                <p class="template-upload-note mt-2 text-xs font-semibold text-[var(--tup-primary)]">
+                <p
+                  class="template-upload-note mt-2 text-xs font-semibold text-[var(--tup-primary)]"
+                >
                   Actual: {{ templateAssetName(selectedTemplateAsset()) }}
                 </p>
               </div>
@@ -1853,7 +2149,9 @@ TUP3042,tup3042&#64;tecplayacar.edu.mx,Matias Rodriguez,Maestria en Administraci
               <div class="template-upload-actions">
                 <label
                   class="template-upload-button rounded-md"
-                  [class.template-upload-button-disabled]="uploadingTemplateKey === selectedTemplateUploadKey()"
+                  [class.template-upload-button-disabled]="
+                    uploadingTemplateKey === selectedTemplateUploadKey()
+                  "
                 >
                   <input
                     type="file"
@@ -1872,13 +2170,17 @@ TUP3042,tup3042&#64;tecplayacar.edu.mx,Matias Rodriguez,Maestria en Administraci
               </div>
 
               @if (templateUploadMessage) {
-                <p class="template-upload-status rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+                <p
+                  class="template-upload-status rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-700"
+                >
                   {{ templateUploadMessage }}
                 </p>
               }
 
               @if (templateUploadErrorMessage) {
-                <p class="template-upload-status rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+                <p
+                  class="template-upload-status rounded-md bg-red-50 px-3 py-2 text-sm text-red-700"
+                >
                   {{ templateUploadErrorMessage }}
                 </p>
               }
@@ -1886,10 +2188,12 @@ TUP3042,tup3042&#64;tecplayacar.edu.mx,Matias Rodriguez,Maestria en Administraci
 
             <div class="template-designer-workbench">
               <div class="template-designer-preview">
-                <article
-                  class="credential-card template-designer-card"
-                >
-                  <img [src]="selectedTemplateImageUrl()" alt="" class="credential-template-background" />
+                <article class="credential-card template-designer-card">
+                  <img
+                    [src]="selectedTemplateImageUrl()"
+                    alt=""
+                    class="credential-template-background"
+                  />
                   @for (field of visibleTemplateEditorFields(); track field.key) {
                     <button
                       type="button"
@@ -1916,7 +2220,8 @@ TUP3042,tup3042&#64;tecplayacar.edu.mx,Matias Rodriguez,Maestria en Administraci
 
               <aside class="template-designer-controls">
                 <p class="text-sm leading-6 text-[var(--tup-muted)]">
-                  Selecciona y arrastra un elemento. Si necesitas precisión fina, ajusta porcentajes.
+                  Selecciona y arrastra un elemento. Si necesitas precisión fina, ajusta
+                  porcentajes.
                 </p>
 
                 @for (field of availableTemplateEditorFields(); track field.key) {
@@ -1927,9 +2232,13 @@ TUP3042,tup3042&#64;tecplayacar.edu.mx,Matias Rodriguez,Maestria en Administraci
                   >
                     <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                       <div>
-                        <p class="font-bold text-[var(--tup-ink)]">{{ templateEditorFieldLabel(field) }}</p>
+                        <p class="font-bold text-[var(--tup-ink)]">
+                          {{ templateEditorFieldLabel(field) }}
+                        </p>
                         @if (templateFieldHidden(field.key)) {
-                          <p class="mt-1 text-xs text-[var(--tup-muted)]">Oculto en la previsualizacion e impresion.</p>
+                          <p class="mt-1 text-xs text-[var(--tup-muted)]">
+                            Oculto en la previsualizacion e impresion.
+                          </p>
                         }
                       </div>
                       <div class="flex flex-wrap items-center gap-3">
@@ -1941,7 +2250,13 @@ TUP3042,tup3042&#64;tecplayacar.edu.mx,Matias Rodriguez,Maestria en Administraci
                           />
                           <span>Mostrar en credencial</span>
                         </label>
-                        <button mat-stroked-button color="primary" type="button" class="link-button !h-9 !rounded-md" (click)="selectedTemplateField = field.key">
+                        <button
+                          mat-stroked-button
+                          color="primary"
+                          type="button"
+                          class="link-button !h-9 !rounded-md"
+                          (click)="selectedTemplateField = field.key"
+                        >
                           Editar
                         </button>
                       </div>
@@ -1950,28 +2265,67 @@ TUP3042,tup3042&#64;tecplayacar.edu.mx,Matias Rodriguez,Maestria en Administraci
                     <div class="template-field-grid">
                       <label>
                         <span>X</span>
-                        <input type="number" min="0" max="100" step="0.1" [value]="templateEditorLayout(field.key).x" (input)="updateTemplateFieldMetric(field.key, 'x', $event)" />
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="0.1"
+                          [value]="templateEditorLayout(field.key).x"
+                          (input)="updateTemplateFieldMetric(field.key, 'x', $event)"
+                        />
                       </label>
                       <label>
                         <span>Y</span>
-                        <input type="number" min="0" max="100" step="0.1" [value]="templateEditorLayout(field.key).y" (input)="updateTemplateFieldMetric(field.key, 'y', $event)" />
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="0.1"
+                          [value]="templateEditorLayout(field.key).y"
+                          (input)="updateTemplateFieldMetric(field.key, 'y', $event)"
+                        />
                       </label>
                       <label>
                         <span>Ancho</span>
-                        <input type="number" min="1" max="100" step="0.1" [value]="templateEditorLayout(field.key).w" (input)="updateTemplateFieldMetric(field.key, 'w', $event)" />
+                        <input
+                          type="number"
+                          min="1"
+                          max="100"
+                          step="0.1"
+                          [value]="templateEditorLayout(field.key).w"
+                          (input)="updateTemplateFieldMetric(field.key, 'w', $event)"
+                        />
                       </label>
                       <label>
                         <span>Alto</span>
-                        <input type="number" min="1" max="100" step="0.1" [value]="templateEditorLayout(field.key).h" (input)="updateTemplateFieldMetric(field.key, 'h', $event)" />
+                        <input
+                          type="number"
+                          min="1"
+                          max="100"
+                          step="0.1"
+                          [value]="templateEditorLayout(field.key).h"
+                          (input)="updateTemplateFieldMetric(field.key, 'h', $event)"
+                        />
                       </label>
                       @if (isTemplateTextField(field.key)) {
                         <label>
                           <span>Tam. texto</span>
-                          <input type="number" min="1" max="12" step="0.1" [value]="templateEditorLayout(field.key).fontSize" (input)="updateTemplateFieldMetric(field.key, 'fontSize', $event)" />
+                          <input
+                            type="number"
+                            min="1"
+                            max="12"
+                            step="0.1"
+                            [value]="templateEditorLayout(field.key).fontSize"
+                            (input)="updateTemplateFieldMetric(field.key, 'fontSize', $event)"
+                          />
                         </label>
                         <label class="template-color-control">
                           <span>Color</span>
-                          <input type="color" [value]="templateEditorColor(field.key)" (input)="updateTemplateFieldColor(field.key, $event)" />
+                          <input
+                            type="color"
+                            [value]="templateEditorColor(field.key)"
+                            (input)="updateTemplateFieldColor(field.key, $event)"
+                          />
                         </label>
                       }
                     </div>

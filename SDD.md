@@ -238,6 +238,9 @@ Estructura visual:
   y ancho maximo para evitar desbordes en botones o previews.
 - Resumen de envio con boton principal.
 - Panel lateral o inferior de solicitudes con timeline y correcciones.
+- Accesibilidad basica con `aria-labelledby`, regiones `alert/status`, foco
+  visible, botones tipados y controles de archivo fuera del orden de tabulacion
+  cuando se activan mediante botones visibles.
 
 Los iconos son SVG inline para mantener alineacion, evitar dependencias
 adicionales y conservar nitidez en escritorio y movil.
@@ -258,6 +261,18 @@ El panel administrativo se organiza por menu lateral:
 
 El modulo de solicitudes usa pestañas por tipo de credencial y busqueda
 transversal por identificador, nombre, correo, programa o puesto.
+
+La interfaz administrativa mantiene una capa visual transversal:
+
+- Menu lateral colapsable con `aria-current`, foco visible y botones tipados.
+- Encabezado y topbar con jerarquia clara y textos que ajustan linea en movil.
+- Cards con borde institucional, sombra ligera y espaciado consistente.
+- Formularios y acciones con ancho flexible para evitar desbordes.
+- Tablas de reportes e importacion con desplazamiento horizontal controlado.
+- Iconografia SVG inline, decorativa cuando no aporta informacion adicional.
+
+Esta capa no modifica rutas, servicios, modelos, validaciones ni contratos de
+datos; solo afecta plantillas y estilos.
 
 ## 10. Diseno e impresion de credenciales
 
