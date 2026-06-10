@@ -1428,8 +1428,9 @@ textarea,
 
 .admin-sidebar-nav {
   align-content: start;
-  display: grid;
-  gap: 0.55rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
 }
 
 .admin-sidebar-label {
@@ -1441,18 +1442,41 @@ textarea,
 }
 
 .admin-sidebar-link {
-  align-items: center;
+  align-items: flex-start;
   background: transparent;
   border: 1px solid transparent;
   color: var(--tup-ink);
   cursor: pointer;
   display: grid;
-  gap: 0.65rem;
+  gap: 0.75rem;
   grid-template-columns: 32px minmax(0, 1fr);
-  min-height: 68px;
-  padding: 0.65rem;
+  height: auto;
+  min-height: auto;
+  overflow: visible;
+  padding: 0.8rem 0.7rem;
   text-align: left;
   width: 100%;
+}
+
+.admin-sidebar-copy {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.admin-sidebar-link-title {
+  color: inherit;
+  display: block;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.admin-sidebar-link-description {
+  color: var(--tup-muted);
+  display: block;
+  font-size: 0.76rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 .admin-sidebar-link:hover,
@@ -1467,8 +1491,10 @@ textarea,
   background: rgb(37 42 134 / 9%);
   border-radius: 7px;
   display: grid;
+  flex: 0 0 auto;
   height: 32px;
   justify-content: center;
+  margin-top: 0.05rem;
   width: 32px;
 }
 
@@ -2837,14 +2863,16 @@ textarea,
 }
 
 .admin-header-brand > div:last-child,
-.admin-sidebar-link > span:last-child,
+.admin-sidebar-copy,
 .admin-dashboard-topbar > div:first-child {
   min-width: 0;
 }
 
 .admin-dashboard-header h1,
 .admin-dashboard-topbar h2,
-.admin-dashboard-main :where(h2, h3, h4, .mat-mdc-card-title, .admin-sidebar-link span) {
+.admin-dashboard-main :where(h2, h3, h4, .mat-mdc-card-title),
+.admin-sidebar-link-title,
+.admin-sidebar-link-description {
   overflow-wrap: anywhere;
   text-wrap: balance;
 }
@@ -2873,7 +2901,7 @@ textarea,
 
 .admin-sidebar-link {
   border-radius: 8px;
-  min-height: 56px;
+  min-height: auto;
   transition:
     background-color 160ms ease,
     border-color 160ms ease,
