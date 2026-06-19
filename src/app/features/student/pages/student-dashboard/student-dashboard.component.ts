@@ -297,15 +297,21 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
     }
 
     if (type === 'photo') {
+      this.photoFile = file;
+      this.recentFirstTimeSubmitted = false;
+      this.revokePhotoPreview();
+      this.photoPreviewUrl = this.createPreviewUrl(file);
       this.optimizingPhoto = true;
+      await this.waitForPreviewPaint();
 
       try {
         const optimizedPhoto = await this.prepareCredentialPhoto(file);
         this.photoFile = optimizedPhoto;
-        this.recentFirstTimeSubmitted = false;
         this.revokePhotoPreview();
         this.photoPreviewUrl = this.createPreviewUrl(optimizedPhoto);
       } catch (error) {
+        this.photoFile = null;
+        this.revokePhotoPreview();
         this.showPhotoCompressionError(error);
       } finally {
         this.optimizingPhoto = false;
@@ -339,7 +345,11 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
     }
 
     if (type === 'photo') {
+      this.correctionPhotoFiles[requestId] = file;
+      this.revokeCorrectionPhotoPreview(requestId);
+      this.correctionPhotoPreviewUrls[requestId] = this.createPreviewUrl(file);
       this.optimizingCorrectionPhotoIds[requestId] = true;
+      await this.waitForPreviewPaint();
 
       try {
         const optimizedPhoto = await this.prepareCredentialPhoto(file);
@@ -347,6 +357,8 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
         this.revokeCorrectionPhotoPreview(requestId);
         this.correctionPhotoPreviewUrls[requestId] = this.createPreviewUrl(optimizedPhoto);
       } catch (error) {
+        this.correctionPhotoFiles[requestId] = null;
+        this.revokeCorrectionPhotoPreview(requestId);
         this.showPhotoCompressionError(error);
       } finally {
         delete this.optimizingCorrectionPhotoIds[requestId];
@@ -732,6 +744,12 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
     const result = await this.imageCompressionService.compressCredentialPhoto(file);
 
     return result.file;
+  }
+
+  private waitForPreviewPaint(): Promise<void> {
+    return new Promise((resolve) => {
+      requestAnimationFrame(() => resolve());
+    });
   }
 
   private showPhotoCompressionError(error: unknown): void {
