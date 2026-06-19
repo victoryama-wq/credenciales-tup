@@ -314,6 +314,20 @@ textarea,
   width: 100%;
 }
 
+.student-optimization-panel {
+  background: linear-gradient(180deg, #f7f7ff, #ffffff);
+  border-color: rgb(37 42 134 / 18%);
+  border-left-color: var(--tup-primary);
+}
+
+.student-optimization-panel .mat-mdc-progress-bar {
+  --mdc-linear-progress-active-indicator-color: var(--tup-primary);
+  --mdc-linear-progress-track-color: rgb(37 42 134 / 14%);
+  border-radius: 999px;
+  height: 8px;
+  overflow: hidden;
+}
+
 .selected-photo-preview {
   aspect-ratio: 1 / 1;
   border: 1px solid rgb(16 185 129 / 22%);

@@ -304,7 +304,9 @@
                 <p class="student-mini-label">Foto JPG/PNG max. 10 MB</p>
                 <h3>Foto para credencial</h3>
               </div>
-              @if (photoFile) {
+              @if (optimizingPhoto) {
+                <span class="student-success-pill">Optimizando</span>
+              } @else if (photoFile) {
                 <span class="student-success-pill">Foto lista</span>
               }
             </div>
@@ -384,15 +386,22 @@
             </p>
 
             @if (optimizingPhoto) {
-              <div class="selected-file-panel mt-4 rounded-md p-3" role="status" aria-live="polite">
-                <div class="flex items-center gap-3">
-                  <mat-progress-spinner diameter="28" mode="indeterminate"></mat-progress-spinner>
+              <div
+                class="selected-file-panel student-optimization-panel mt-4 rounded-md p-3"
+                role="status"
+                aria-live="polite"
+              >
+                <div class="grid gap-3">
                   <div class="min-w-0">
                     <p class="text-xs font-semibold uppercase text-emerald-700">Optimizando foto</p>
                     <p class="mt-1 text-sm text-[var(--tup-muted)]">
-                      Reduciendo el peso sin perder calidad para credencial.
+                      Cargando y reduciendo el peso sin perder calidad para credencial.
                     </p>
                   </div>
+                  <mat-progress-bar
+                    mode="indeterminate"
+                    aria-label="Optimizando foto para credencial"
+                  ></mat-progress-bar>
                 </div>
               </div>
             }
@@ -692,21 +701,23 @@
 
                       @if (optimizingCorrectionPhotoIds[request.id]) {
                         <div
-                          class="selected-file-panel mt-3 rounded-md p-3 text-xs text-[var(--tup-muted)]"
+                          class="selected-file-panel student-optimization-panel mt-3 rounded-md p-3 text-xs text-[var(--tup-muted)]"
+                          role="status"
+                          aria-live="polite"
                         >
-                          <div class="flex items-center gap-3">
-                            <mat-progress-spinner
-                              diameter="24"
-                              mode="indeterminate"
-                            ></mat-progress-spinner>
+                          <div class="grid gap-3">
                             <div class="min-w-0">
                               <p class="font-semibold uppercase text-emerald-700">
                                 Optimizando foto corregida
                               </p>
                               <p class="mt-1 text-[var(--tup-muted)]">
-                                Preparando la imagen para subirla mas rapido.
+                                Cargando y preparando la imagen para subirla mas rapido.
                               </p>
                             </div>
+                            <mat-progress-bar
+                              mode="indeterminate"
+                              aria-label="Optimizando foto corregida"
+                            ></mat-progress-bar>
                           </div>
                         </div>
                       }

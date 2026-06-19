@@ -8,6 +8,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { Router } from '@angular/router';
@@ -42,6 +43,7 @@ import { ImageCompressionService } from '../../../../core/services/image-compres
     MatDividerModule,
     MatFormFieldModule,
     MatInputModule,
+    MatProgressBarModule,
     MatProgressSpinnerModule,
     MatSelectModule,
   ],
