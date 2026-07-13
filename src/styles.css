@@ -634,6 +634,14 @@ textarea,
   justify-self: start;
 }
 
+.student-profile-card .student-profile-pill {
+  display: inline-flex;
+  margin-top: 0.6rem;
+  max-width: 100%;
+  width: max-content;
+  writing-mode: horizontal-tb;
+}
+
 .student-section-heading {
   align-items: center;
   grid-template-columns: 48px minmax(0, 1fr);

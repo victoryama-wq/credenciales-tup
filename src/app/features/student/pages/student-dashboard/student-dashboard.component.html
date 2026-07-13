@@ -82,9 +82,11 @@
           <div class="min-w-0">
             <p class="student-card-kicker">Perfil detectado</p>
             <h2>{{ applicantTypeLabels[detectedApplicantType] }}</h2>
+            <span class="student-soft-pill student-profile-pill">
+              {{ applicantTypeLabels[detectedApplicantType] }}
+            </span>
             <p>{{ profileSummary }}</p>
           </div>
-          <span class="student-soft-pill">{{ applicantTypeLabels[detectedApplicantType] }}</span>
         </section>
 
         @if (institutionalProfile; as profile) {
