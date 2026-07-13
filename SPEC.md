@@ -110,6 +110,8 @@ Usuario autorizado para operar el panel administrativo.
 
 Capacidades:
 
+- Tramitar, revisar y aprobar su propia credencial institucional desde el
+  acceso `Mi credencial`.
 - Consultar dashboard.
 - Revisar solicitudes.
 - Cambiar estatus segun flujo permitido.
@@ -137,6 +139,12 @@ Capacidades:
 6. Si el tramite es reposicion, adjunta comprobante JPG/PNG/PDF de hasta 10 MB.
 7. La solicitud se crea con estatus `SUBMITTED`.
 8. El sistema registra timeline, auditoria y notificacion.
+
+Un usuario con rol administrativo puede abrir `/my-credential` desde su panel
+y utilizar este mismo flujo. Su rol de acceso permanece como `admin`, mientras
+que el tipo de credencial se resuelve de manera independiente desde su perfil
+institucional o correo. El administrador puede revisar y aprobar su propia
+solicitud; cada acción queda registrada en auditoria.
 
 ## 5. Flujo de revision
 
@@ -285,3 +293,5 @@ llamado a accion. El area de entrega indicada es el area de sistemas.
 - QR valido muestra verificacion publica.
 - No se exponen datos sensibles en QR.
 - Cambios administrativos quedan auditados.
+- Un administrador puede abrir `Mi credencial`, crear su solicitud, regresar al
+  panel y procesar su propio flujo sin perder permisos administrativos.

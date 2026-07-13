@@ -2876,6 +2876,16 @@ textarea,
   min-width: 0;
 }
 
+.admin-header-actions {
+  display: grid;
+  width: 100%;
+}
+
+.admin-header-actions .mat-mdc-button-base {
+  min-height: 44px;
+  width: 100%;
+}
+
 .admin-header-brand > div:last-child,
 .admin-sidebar-copy,
 .admin-dashboard-topbar > div:first-child {
@@ -3100,6 +3110,14 @@ textarea,
 }
 
 @media (min-width: 768px) {
+  .admin-header-actions {
+    width: auto;
+  }
+
+  .admin-header-actions .mat-mdc-button-base {
+    width: auto;
+  }
+
   .template-designer-toolbar {
     grid-template-columns: 220px 180px auto;
   }

@@ -11,7 +11,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../../../core/services/auth.service';
 import { resolveApplicantTypeByEmail } from '../../../../core/auth/institutional-email.util';
 import {
@@ -57,6 +57,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
   private dialogService = inject(InstitutionalDialogService);
   private imageCompressionService = inject(ImageCompressionService);
   private destroyRef = inject(DestroyRef);
+  private route = inject(ActivatedRoute);
   private router = inject(Router);
 
   readonly statusLabels = statusLabels;
@@ -64,6 +65,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
   readonly academicStatusLabels = institutionalAcademicStatusLabels;
   readonly requestTypeLabels = credentialRequestTypeLabels;
   readonly requestTypes: CredentialRequestType[] = ['FIRST_TIME', 'REPLACEMENT'];
+  readonly isAdminCredentialView = this.route.snapshot.data['adminCredentialView'] === true;
   readonly studentIdPattern = /^TUP\d{3,}$/;
   readonly careers = [
     'Lic. Administración de Empresas',
@@ -531,6 +533,10 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
   async logout(): Promise<void> {
     await this.authService.logout();
     await this.router.navigate(['/login']);
+  }
+
+  async returnToAdmin(): Promise<void> {
+    await this.router.navigate(['/admin']);
   }
 
   applicantLabel(type: CredentialApplicantType | undefined): string {

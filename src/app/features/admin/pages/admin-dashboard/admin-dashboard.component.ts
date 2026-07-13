@@ -2136,6 +2136,10 @@ export class AdminDashboardComponent implements OnInit {
     await this.router.navigate(['/login']);
   }
 
+  async openMyCredential(): Promise<void> {
+    await this.router.navigate(['/my-credential']);
+  }
+
   private parseSaekoCsv(text: string): SaekoPreviewRow[] {
     const rows = this.parseCsv(text).filter((row) => row.some((cell) => cell.trim()));
 

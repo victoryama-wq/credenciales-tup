@@ -23,6 +23,7 @@ Rutas principales:
 
 - `/login`: acceso con Google institucional.
 - `/student`: portal del solicitante.
+- `/my-credential`: portal de solicitud reutilizado por administradores.
 - `/admin`: portal administrativo.
 - `/verify/:token`: verificacion publica por QR.
 
@@ -57,6 +58,9 @@ Administradores:
 - Se gestionan desde el modulo administrativo.
 - El backend valida permisos con claims/coleccion de administradores antes de
   operaciones sensibles.
+- Conservan el rol `admin` al entrar a `/my-credential`; el tipo de solicitante
+  `STUDENT | TEACHER | STAFF` se resuelve por separado desde el perfil
+  institucional o el correo.
 
 ## 4. Modelo de datos
 
@@ -276,6 +280,17 @@ El panel administrativo se organiza por menu lateral:
 - Auditoria.
 - Administradores.
 - Diseno credencial.
+
+El encabezado ofrece la acción `Mi credencial`, que navega a
+`/my-credential`. Esta ruta está protegida para el rol `admin` y carga el mismo
+`StudentDashboardComponent` del portal solicitante con una marca de ruta para
+mostrar `Volver al panel`. No se duplican formularios, servicios, validaciones,
+subidas ni reglas de solicitud.
+
+Los administradores pueden procesar su propia solicitud con las transiciones
+existentes. `createCredentialRequest` registra al administrador como propietario
+por UID y `updateCredentialRequestStatus` registra al mismo UID como actor de la
+acción administrativa, manteniendo trazabilidad en timeline y `audit_logs`.
 
 El modulo de solicitudes usa pestañas por tipo de credencial y busqueda
 transversal por identificador, nombre, correo, programa o puesto.

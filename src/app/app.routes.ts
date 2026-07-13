@@ -7,7 +7,7 @@ export const routes: Routes = [
     path: 'login',
     loadComponent: () =>
       import('./features/auth/pages/login-page/login-page.component').then(
-        (m) => m.LoginPageComponent
+        (m) => m.LoginPageComponent,
       ),
   },
   {
@@ -15,9 +15,18 @@ export const routes: Routes = [
     canActivate: [roleGuard],
     data: { role: 'student' },
     loadComponent: () =>
-      import(
-        './features/student/pages/student-dashboard/student-dashboard.component'
-      ).then((m) => m.StudentDashboardComponent),
+      import('./features/student/pages/student-dashboard/student-dashboard.component').then(
+        (m) => m.StudentDashboardComponent,
+      ),
+  },
+  {
+    path: 'my-credential',
+    canActivate: [roleGuard],
+    data: { role: 'admin', adminCredentialView: true },
+    loadComponent: () =>
+      import('./features/student/pages/student-dashboard/student-dashboard.component').then(
+        (m) => m.StudentDashboardComponent,
+      ),
   },
   {
     path: 'admin',
@@ -25,15 +34,15 @@ export const routes: Routes = [
     data: { role: 'admin' },
     loadComponent: () =>
       import('./features/admin/pages/admin-dashboard/admin-dashboard.component').then(
-        (m) => m.AdminDashboardComponent
+        (m) => m.AdminDashboardComponent,
       ),
   },
   {
     path: 'verify/:token',
     loadComponent: () =>
-      import(
-        './features/verification/pages/credential-verification/credential-verification.component'
-      ).then((m) => m.CredentialVerificationComponent),
+      import('./features/verification/pages/credential-verification/credential-verification.component').then(
+        (m) => m.CredentialVerificationComponent,
+      ),
   },
   { path: '**', redirectTo: 'login' },
 ];

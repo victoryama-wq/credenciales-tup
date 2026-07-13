@@ -16,8 +16,19 @@
 
       <div class="student-hero-actions">
         <span class="status-pill rounded-full px-4 py-2 text-sm font-semibold">
-          Cuenta institucional
+          {{ isAdminCredentialView ? 'Cuenta administrativa' : 'Cuenta institucional' }}
         </span>
+        @if (isAdminCredentialView) {
+          <button
+            mat-flat-button
+            color="primary"
+            type="button"
+            class="!rounded-md"
+            (click)="returnToAdmin()"
+          >
+            Volver al panel
+          </button>
+        }
         <button
           mat-stroked-button
           color="primary"
