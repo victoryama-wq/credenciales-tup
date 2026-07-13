@@ -1047,7 +1047,13 @@
 
                   <div class="grid gap-2">
                     @if (isWaitingForStudentFollowUp(request)) {
-                      <button mat-stroked-button color="primary" class="!rounded-md" disabled>
+                      <button
+                        mat-stroked-button
+                        color="primary"
+                        type="button"
+                        class="!rounded-md"
+                        disabled
+                      >
                         Esperando seguimiento del alumno
                       </button>
                     }
@@ -1056,6 +1062,7 @@
                       <button
                         mat-stroked-button
                         color="primary"
+                        type="button"
                         class="!rounded-md"
                         [disabled]="savingId === request.id"
                         (click)="move(request, 'UNDER_REVIEW')"
@@ -1068,6 +1075,7 @@
                       <button
                         mat-flat-button
                         color="primary"
+                        type="button"
                         class="!rounded-md"
                         [disabled]="savingId === request.id"
                         (click)="move(request, 'APPROVED_FOR_PRINT')"
@@ -1080,6 +1088,7 @@
                       <button
                         mat-stroked-button
                         color="warn"
+                        type="button"
                         class="!rounded-md"
                         [disabled]="savingId === request.id"
                         (click)="move(request, 'REJECTED')"
@@ -1092,6 +1101,7 @@
                       <button
                         mat-flat-button
                         color="primary"
+                        type="button"
                         class="!rounded-md"
                         [disabled]="savingId === request.id"
                         (click)="move(request, 'PRINTED')"
@@ -1104,6 +1114,7 @@
                       <button
                         mat-flat-button
                         color="primary"
+                        type="button"
                         class="!rounded-md"
                         [disabled]="savingId === request.id"
                         (click)="move(request, 'READY_FOR_PICKUP')"
@@ -1116,6 +1127,7 @@
                       <button
                         mat-flat-button
                         color="primary"
+                        type="button"
                         class="!rounded-md"
                         [disabled]="savingId === request.id"
                         (click)="move(request, 'DELIVERED')"

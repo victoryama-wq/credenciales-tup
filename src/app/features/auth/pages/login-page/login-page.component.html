@@ -1,8 +1,14 @@
 <main class="login-shell">
   <section class="login-layout grid lg:grid-cols-[minmax(360px,48%)_minmax(0,52%)]">
-    <div class="login-form-panel relative flex min-h-screen items-center justify-center px-6 py-12">
-      <mat-card class="login-form-card !rounded-lg !bg-white">
-        <img src="/logo-tup.png" alt="TUP" class="logo-mark mb-12 h-14 w-auto" />
+    <div
+      class="login-form-panel relative flex min-h-screen items-center justify-center px-4 py-6 sm:px-6 sm:py-12"
+    >
+      <mat-card class="login-form-card !rounded-2xl !bg-white">
+        <img
+          src="/logo-tup.png"
+          alt="Tecnologico Universitario Playacar"
+          class="logo-mark mb-8 h-14 w-auto sm:mb-12"
+        />
 
         <mat-card-header class="!px-0 !pt-0">
           <mat-card-subtitle class="!mb-2 !text-sm !text-[var(--tup-muted)]">
@@ -20,6 +26,7 @@
               type="button"
               class="!h-12 w-full !rounded-md !border-[var(--tup-line)] !text-[var(--tup-ink)]"
               [disabled]="isBusy"
+              [attr.aria-busy]="loadingMode === 'google'"
               (click)="loginWithGoogle()"
             >
               <span class="inline-flex items-center gap-3">
@@ -55,7 +62,11 @@
           </div>
 
           @if (errorMessage) {
-            <p class="mt-5 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+            <p
+              class="mt-5 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700"
+              role="alert"
+              aria-live="assertive"
+            >
               {{ errorMessage }}
             </p>
           }

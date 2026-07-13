@@ -3159,6 +3159,213 @@ textarea,
   font-weight: 700;
 }
 
+/* Mobile-first UI hardening: visual, responsive and accessibility only. */
+:where(button, [role='button'], a, input, select, textarea) {
+  -webkit-tap-highlight-color: rgb(37 42 134 / 12%);
+}
+
+:where(.login-shell, .student-portal-shell, .admin-dashboard-shell, .verification-shell)
+  :where(button, a) {
+  touch-action: manipulation;
+}
+
+.login-form-card {
+  box-sizing: border-box;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  padding: 1.25rem !important;
+  width: 100%;
+}
+
+.login-form-card .logo-mark,
+.verification-card .logo-mark {
+  max-width: 100%;
+}
+
+.login-form-card .mat-mdc-card-title {
+  font-size: clamp(1.45rem, 8vw, 1.75rem) !important;
+  line-height: 1.2 !important;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+
+.login-form-card .mat-mdc-button-base,
+.verification-card .mat-mdc-button-base {
+  min-height: 48px;
+}
+
+.login-form-card :where(button, a):focus-visible,
+.verification-card :where(button, a):focus-visible,
+.institutional-dialog :where(button, a):focus-visible {
+  outline: 3px solid rgb(37 42 134 / 30%);
+  outline-offset: 3px;
+}
+
+.student-portal-shell {
+  padding: 0.75rem !important;
+}
+
+.student-hero-card,
+.student-card,
+.student-alert-card,
+.student-status-card,
+.student-submit-panel,
+.student-correction-card {
+  border-radius: 14px;
+}
+
+.student-hero-brand {
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.student-hero-actions > *,
+.student-upload-actions .mat-mdc-button-base,
+.student-submit-panel .mat-mdc-button-base,
+.student-correction-card .mat-mdc-button-base {
+  min-height: 44px;
+}
+
+.student-hero-actions .status-pill,
+.student-hero-actions .mat-mdc-button-base {
+  width: 100%;
+}
+
+.student-profile-card,
+.student-status-card,
+.student-alert-card,
+.student-section-heading {
+  grid-template-columns: 40px minmax(0, 1fr);
+}
+
+.student-icon-card {
+  height: 40px;
+  width: 40px;
+}
+
+.student-upload-heading > *,
+.student-request-head > *,
+.student-chip-stack,
+.selected-file-panel > * {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.student-chip-stack :where(.status-pill, .replacement-chip),
+.student-upload-heading :where(.student-success-pill, .student-required-pill) {
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.student-request-toggle .mat-button-toggle-button,
+.student-request-toggle .mat-button-toggle-label-content {
+  min-height: 72px;
+  white-space: normal;
+}
+
+.student-correction-card textarea {
+  min-height: 96px;
+}
+
+.admin-dashboard-shell {
+  padding: 0.65rem;
+}
+
+.admin-dashboard-header,
+.admin-dashboard-topbar,
+.admin-sidebar {
+  border-radius: 14px;
+}
+
+.admin-menu-button,
+.admin-sidebar-footer .mat-mdc-button-base,
+.admin-dashboard-main .mat-mdc-button-base {
+  min-height: 44px;
+}
+
+.admin-sidebar-link {
+  min-height: 56px;
+}
+
+.admin-dashboard-main :where(.report-table-shell, .saeko-table-shell, .csv-example) {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-inline: contain;
+  scrollbar-gutter: stable;
+}
+
+.admin-dashboard-main :where(.report-table, .saeko-table, .saeko-preview-table) th,
+.admin-dashboard-main :where(.report-table, .saeko-table, .saeko-preview-table) td {
+  white-space: normal;
+}
+
+.verification-card {
+  overflow: hidden;
+}
+
+.verification-state {
+  overflow-wrap: anywhere;
+}
+
+.verification-row {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.verification-row dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.institutional-dialog mat-dialog-actions .mat-mdc-button-base {
+  min-height: 44px;
+}
+
+@media (min-width: 480px) {
+  .login-form-card {
+    padding: 2rem !important;
+  }
+
+  .student-hero-actions .status-pill,
+  .student-hero-actions .mat-mdc-button-base {
+    width: auto;
+  }
+
+  .verification-row {
+    grid-template-columns: 130px minmax(0, 1fr);
+  }
+}
+
+@media (min-width: 640px) {
+  .student-portal-shell {
+    padding: 1.25rem !important;
+  }
+
+  .student-profile-card,
+  .student-status-card,
+  .student-alert-card,
+  .student-section-heading {
+    grid-template-columns: 48px minmax(0, 1fr);
+  }
+
+  .student-icon-card {
+    height: 44px;
+    width: 44px;
+  }
+
+  .admin-dashboard-shell {
+    padding: 1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 #credential-print-root {
   display: none;
 }
