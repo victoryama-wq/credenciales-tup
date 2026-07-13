@@ -173,6 +173,22 @@ Las fotos de credencial se comprimen en el navegador antes de subirse:
 - Objetivo aproximado: menor a 900 KB cuando sea posible.
 - Aplica a solicitudes nuevas, reposiciones y correcciones.
 
+Secuencia de experiencia durante la compresion:
+
+1. El componente conserva temporalmente el archivo original y crea su URL de
+   preview en cuanto el usuario lo selecciona.
+2. `waitForPreviewPaint()` espera un `requestAnimationFrame()` para permitir
+   que Angular pinte la vista previa antes de comenzar el procesamiento.
+3. Durante la compresion, la tarjeta muestra el estado `Optimizando` y un
+   `mat-progress-bar` indeterminado dentro de una region `status` con
+   `aria-live="polite"`.
+4. Al terminar, el archivo y el preview temporales se sustituyen por el JPEG
+   optimizado. Si ocurre un error, se limpian el archivo y la URL temporal.
+
+La misma secuencia se utiliza para la foto del formulario principal y para las
+fotos corregidas de solicitudes rechazadas. El comportamiento es comun para
+escritorio y movil.
+
 Los comprobantes no se comprimen por defecto para conservar legibilidad de
 recibos y documentos PDF.
 
@@ -234,6 +250,8 @@ Estructura visual:
   archivos.
 - Vista previa inmediata de la foto de credencial y del comprobante cuando es
   imagen.
+- Estado `Optimizando` y barra de progreso indeterminada mientras se procesa la
+  foto principal o una foto corregida, sin esperar al envio del formulario.
 - Las tarjetas de carga usan contenedores flexibles, truncado de nombres largos
   y ancho maximo para evitar desbordes en botones o previews.
 - Resumen de envio con boton principal.
@@ -348,6 +366,10 @@ Validaciones manuales recomendadas:
 - `/verify/token-invalido` muestra estado invalido.
 - QR real muestra credencial valida.
 - Carga de foto muestra preview.
+- Carga de foto muestra el preview antes de iniciar la compresion y mantiene
+  visible la barra de optimizacion hasta obtener el JPEG procesado.
+- Correccion de foto rechazada conserva el mismo preview inmediato e indicador
+  de optimizacion que el formulario principal.
 - Reposicion exige comprobante.
 - Lote de impresion genera vista imprimible.
 

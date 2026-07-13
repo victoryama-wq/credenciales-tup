@@ -36,9 +36,10 @@ URL publica: `https://credencial-tup.web.app`
 - Bloqueo de tramite por primera vez cuando ya existe credencial historica o
   solicitud previa.
 - Comprobante obligatorio en reposicion.
-- Guia de fotografia, carga desde camara o archivo, preview de imagen y limite
-  maximo de 10 MB.
-- Optimizacion automatica de foto de credencial antes de subirla a Storage.
+- Guia de fotografia, carga desde camara o archivo, preview inmediato de imagen
+  y limite maximo de 10 MB.
+- Optimizacion automatica de foto de credencial antes de subirla a Storage, con
+  una barra de progreso visible mientras se procesa la imagen.
 - Las tarjetas de foto y comprobante mantienen botones, previews y nombres de
   archivo dentro del card en escritorio y movil.
 - Seguimiento de solicitudes rechazadas con carga de correcciones.
@@ -106,3 +107,9 @@ firebase deploy --only hosting
   `correction-*` dentro de `credential-requests/{uid}/{requestId}`.
 - Las fotos de credencial se convierten a JPEG y se reducen en navegador; los
   comprobantes se conservan sin compresion para mantener legibilidad.
+- La foto seleccionada se muestra antes de iniciar la compresion. Una vez que
+  Angular pinta el preview, la interfaz muestra el estado `Optimizando` y una
+  barra de progreso hasta sustituir el archivo por el JPEG optimizado.
+- El preview inmediato y el indicador de optimizacion se aplican tanto a una
+  solicitud nueva o reposicion como a la foto corregida de una solicitud
+  rechazada, en escritorio y movil.
