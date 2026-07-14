@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, DestroyRef, OnDestroy, OnInit, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, DestroyRef, OnDestroy, OnInit, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -56,6 +56,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
   private institutionalProfileService = inject(InstitutionalProfileService);
   private dialogService = inject(InstitutionalDialogService);
   private imageCompressionService = inject(ImageCompressionService);
+  private changeDetectorRef = inject(ChangeDetectorRef);
   private destroyRef = inject(DestroyRef);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
@@ -300,12 +301,15 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
       return;
     }
 
+    input.value = '';
+
     if (type === 'photo') {
       this.photoFile = file;
       this.recentFirstTimeSubmitted = false;
       this.revokePhotoPreview();
       this.photoPreviewUrl = this.createPreviewUrl(file);
       this.optimizingPhoto = true;
+      this.refreshView();
       await this.waitForPreviewPaint();
 
       try {
@@ -313,13 +317,14 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
         this.photoFile = optimizedPhoto;
         this.revokePhotoPreview();
         this.photoPreviewUrl = this.createPreviewUrl(optimizedPhoto);
+        this.refreshView();
       } catch (error) {
         this.photoFile = null;
         this.revokePhotoPreview();
         this.showPhotoCompressionError(error);
       } finally {
         this.optimizingPhoto = false;
-        input.value = '';
+        this.refreshView();
       }
 
       return;
@@ -328,7 +333,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
     this.evidenceFile = file;
     this.revokeEvidencePreview();
     this.evidencePreviewUrl = this.createPreviewUrl(file);
-    input.value = '';
+    this.refreshView();
   }
 
   async setCorrectionFile(
@@ -348,11 +353,14 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
       return;
     }
 
+    input.value = '';
+
     if (type === 'photo') {
       this.correctionPhotoFiles[requestId] = file;
       this.revokeCorrectionPhotoPreview(requestId);
       this.correctionPhotoPreviewUrls[requestId] = this.createPreviewUrl(file);
       this.optimizingCorrectionPhotoIds[requestId] = true;
+      this.refreshView();
       await this.waitForPreviewPaint();
 
       try {
@@ -360,13 +368,14 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
         this.correctionPhotoFiles[requestId] = optimizedPhoto;
         this.revokeCorrectionPhotoPreview(requestId);
         this.correctionPhotoPreviewUrls[requestId] = this.createPreviewUrl(optimizedPhoto);
+        this.refreshView();
       } catch (error) {
         this.correctionPhotoFiles[requestId] = null;
         this.revokeCorrectionPhotoPreview(requestId);
         this.showPhotoCompressionError(error);
       } finally {
         delete this.optimizingCorrectionPhotoIds[requestId];
-        input.value = '';
+        this.refreshView();
       }
 
       return;
@@ -375,7 +384,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
     this.correctionEvidenceFiles[requestId] = file;
     this.revokeCorrectionEvidencePreview(requestId);
     this.correctionEvidencePreviewUrls[requestId] = this.createPreviewUrl(file);
-    input.value = '';
+    this.refreshView();
   }
 
   updateCorrectionNote(requestId: string, event: Event): void {
@@ -756,8 +765,14 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
 
   private waitForPreviewPaint(): Promise<void> {
     return new Promise((resolve) => {
-      requestAnimationFrame(() => resolve());
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
     });
+  }
+
+  private refreshView(): void {
+    if (!this.destroyRef.destroyed) {
+      this.changeDetectorRef.detectChanges();
+    }
   }
 
   private showPhotoCompressionError(error: unknown): void {

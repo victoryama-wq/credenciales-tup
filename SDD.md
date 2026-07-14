@@ -181,13 +181,20 @@ Secuencia de experiencia durante la compresion:
 
 1. El componente conserva temporalmente el archivo original y crea su URL de
    preview en cuanto el usuario lo selecciona.
-2. `waitForPreviewPaint()` espera un `requestAnimationFrame()` para permitir
-   que Angular pinte la vista previa antes de comenzar el procesamiento.
+2. El componente fuerza la deteccion de cambios y `waitForPreviewPaint()`
+   espera dos `requestAnimationFrame()` consecutivos para permitir que Angular
+   actualice el DOM y el navegador pinte la vista previa antes de comenzar el
+   procesamiento.
 3. Durante la compresion, la tarjeta muestra el estado `Optimizando` y un
    `mat-progress-bar` indeterminado dentro de una region `status` con
    `aria-live="polite"`.
 4. Al terminar, el archivo y el preview temporales se sustituyen por el JPEG
-   optimizado. Si ocurre un error, se limpian el archivo y la URL temporal.
+   optimizado y se refresca explicitamente la vista. Si ocurre un error, se
+   limpian el archivo y la URL temporal.
+
+El input de archivo se limpia inmediatamente despues de capturar la referencia
+al `File`, de modo que el usuario pueda volver a seleccionar la misma imagen si
+necesita reintentar, sin borrar cache ni reiniciar la sesion.
 
 La misma secuencia se utiliza para la foto del formulario principal y para las
 fotos corregidas de solicitudes rechazadas. El comportamiento es comun para
