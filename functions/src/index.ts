@@ -10,6 +10,11 @@ import {getStorage} from "firebase-admin/storage";
 import {setGlobalOptions} from "firebase-functions/v2";
 import {CallableOptions, onCall, HttpsError} from "firebase-functions/v2/https";
 import {toBuffer} from "qrcode";
+import {
+  isPrintBatchRequestStatusClosable,
+  shouldAdvancePrintBatchRequest,
+  shouldBlockIndividualPrintTransition,
+} from "./print-batch-policy";
 
 initializeApp({
   storageBucket: "credencial-tup.firebasestorage.app",
@@ -681,6 +686,32 @@ export const updateCredentialRequestStatus = onCall(callableOptions, async (requ
       );
     }
 
+    if (
+      before.status === "APPROVED_FOR_PRINT" &&
+      status === "PRINTED" &&
+      before.printBatchId
+    ) {
+      const batchSnapshot = await transaction.get(
+        printBatches.doc(before.printBatchId)
+      );
+      const printBatch = batchSnapshot.data() as StoredPrintBatch | undefined;
+
+      if (
+        batchSnapshot.exists &&
+        shouldBlockIndividualPrintTransition(
+          before.status,
+          status,
+          printBatch?.status
+        )
+      ) {
+        throw new HttpsError(
+          "failed-precondition",
+          `La solicitud pertenece al lote ${before.printBatchId}. ` +
+            "Marca el lote como impreso desde Lotes de impresion."
+        );
+      }
+    }
+
     const credentialIdentity = status === "APPROVED_FOR_PRINT" ?
       await ensureCredentialIdentity(transaction, before, now) :
       null;
@@ -917,10 +948,7 @@ export const markPrintBatchPrinted = onCall(callableOptions, async (request) => 
 
       const credential = snapshot.data() as StoredCredentialRequest;
 
-      if (
-        credential.status !== "APPROVED_FOR_PRINT" &&
-        credential.status !== "PRINTED"
-      ) {
+      if (!isPrintBatchRequestStatusClosable(credential.status)) {
         throw new HttpsError(
           "failed-precondition",
           "El lote contiene solicitudes que ya no estan listas para imprimir."
@@ -931,7 +959,7 @@ export const markPrintBatchPrinted = onCall(callableOptions, async (request) => 
     for (const snapshot of snapshots) {
       const before = snapshot.data() as StoredCredentialRequest;
 
-      if (before.status === "PRINTED") {
+      if (!shouldAdvancePrintBatchRequest(before.status)) {
         continue;
       }
 

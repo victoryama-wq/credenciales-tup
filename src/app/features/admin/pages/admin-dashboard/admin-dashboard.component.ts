@@ -30,7 +30,13 @@ import {
   credentialRequestStatuses,
   statusLabels,
 } from '../../../../core/models/credential-request.model';
-import { PrintBatch, printBatchStatusLabels } from '../../../../core/models/print-batch.model';
+import {
+  PrintBatch,
+  isIndividualPrintManagedByBatch,
+  printBatchStatusLabels,
+  summarizePrintBatchRequestStatuses,
+  type PrintBatchRequestStatusSummary,
+} from '../../../../core/models/print-batch.model';
 import {
   CredentialTemplateAsset,
   CredentialTemplateFieldKey,
@@ -299,6 +305,7 @@ export class AdminDashboardComponent implements OnInit {
   selectedBatchRequestIds = new Set<string>();
   creatingBatch = false;
   batchActionId = '';
+  batchPrintProgress = '';
   batchMessage = '';
   batchErrorMessage = '';
   notes: Record<string, string> = {};
@@ -1107,6 +1114,10 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   canMove(request: CredentialRequest, status: CredentialRequestStatus): boolean {
+    if (isIndividualPrintManagedByBatch(request.status, status, request.printBatchId)) {
+      return false;
+    }
+
     if (
       request.status === 'REJECTED' &&
       status === 'UNDER_REVIEW' &&
@@ -1357,15 +1368,39 @@ export class AdminDashboardComponent implements OnInit {
       .filter((request): request is CredentialRequest => Boolean(request));
   }
 
+  pendingBatchRequests(batch: PrintBatch): CredentialRequest[] {
+    return this.batchRequests(batch).filter((request) => request.status === 'APPROVED_FOR_PRINT');
+  }
+
+  batchRequestStatusSummary(batch: PrintBatch): PrintBatchRequestStatusSummary {
+    return summarizePrintBatchRequestStatuses(
+      this.batchRequests(batch).map((request) => request.status),
+    );
+  }
+
+  batchRequestStatusLabel(batch: PrintBatch): string {
+    const summary = this.batchRequestStatusSummary(batch);
+    const parts = [
+      summary.pending ? `${summary.pending} pendientes` : '',
+      summary.printed ? `${summary.printed} impresas` : '',
+      summary.readyForPickup ? `${summary.readyForPickup} listas` : '',
+      summary.delivered ? `${summary.delivered} entregadas` : '',
+      summary.incompatible ? `${summary.incompatible} incompatibles` : '',
+    ].filter(Boolean);
+
+    return parts.join(' · ') || 'Cargando solicitudes...';
+  }
+
   async printBatch(batch: PrintBatch): Promise<void> {
     if (this.printingBatchId) {
       return;
     }
 
-    const requests = this.batchRequests(batch);
+    const requests = this.pendingBatchRequests(batch);
 
     if (!requests.length) {
-      this.batchErrorMessage = 'El lote aun no tiene solicitudes cargadas para imprimir.';
+      this.batchErrorMessage =
+        'El lote no tiene credenciales pendientes de impresion. Puedes cerrarlo como impreso.';
       return;
     }
 
@@ -1383,54 +1418,56 @@ export class AdminDashboardComponent implements OnInit {
     this.batchErrorMessage = '';
     this.batchMessage = '';
     this.printingBatchId = batch.id;
+    this.batchPrintProgress = 'Preparando codigos QR...';
     this.changeDetectorRef.detectChanges();
+
+    let printRoot: HTMLElement | undefined;
+    let cleaned = false;
+    let mediaQuery: MediaQueryList | undefined;
+    let mediaHandler: ((event: MediaQueryListEvent) => void) | undefined;
+
+    const cleanup = () => {
+      if (cleaned) {
+        return;
+      }
+
+      cleaned = true;
+      mediaQuery?.removeEventListener('change', mediaHandler as EventListener);
+      window.removeEventListener('afterprint', cleanup);
+      printRoot?.remove();
+      document.body.classList.remove('credential-printing');
+      this.printingBatchId = '';
+      this.batchPrintProgress = '';
+      this.changeDetectorRef.detectChanges();
+    };
 
     try {
       await this.refreshQrImages(requests);
+      this.batchPrintProgress = 'Preparando diseno de credenciales...';
       this.changeDetectorRef.detectChanges();
       await this.nextPaint();
 
       const source = document.querySelector<HTMLElement>('.batch-print-selected');
 
       if (!source) {
-        this.batchErrorMessage = 'No fue posible preparar la vista de impresion del lote.';
-        this.printingBatchId = '';
-        this.changeDetectorRef.detectChanges();
-        return;
+        throw new Error('No fue posible preparar la vista de impresion del lote.');
       }
 
-      const printRoot = this.createCredentialPrintRoot(source);
+      printRoot = this.createCredentialPrintRoot(source);
 
       if (!printRoot.childElementCount) {
-        this.batchErrorMessage = 'El lote no genero tarjetas para imprimir.';
-        this.printingBatchId = '';
-        this.changeDetectorRef.detectChanges();
-        return;
+        throw new Error('El lote no genero tarjetas para imprimir.');
       }
 
       document.body.appendChild(printRoot);
       document.body.classList.add('credential-printing');
 
-      await this.waitForCredentialImages(printRoot);
+      this.batchPrintProgress = `Cargando recursos de ${requests.length} credenciales...`;
+      this.changeDetectorRef.detectChanges();
+      await this.waitForCredentialImages(printRoot, 20000, true);
+      this.batchPrintProgress = 'Abriendo vista de impresion...';
+      this.changeDetectorRef.detectChanges();
       await this.nextPaint();
-
-      let cleaned = false;
-      let mediaQuery: MediaQueryList | undefined;
-      let mediaHandler: ((event: MediaQueryListEvent) => void) | undefined;
-
-      const cleanup = () => {
-        if (cleaned) {
-          return;
-        }
-
-        cleaned = true;
-        mediaQuery?.removeEventListener('change', mediaHandler as EventListener);
-        window.removeEventListener('afterprint', cleanup);
-        printRoot.remove();
-        document.body.classList.remove('credential-printing');
-        this.printingBatchId = '';
-        this.changeDetectorRef.detectChanges();
-      };
 
       mediaQuery = window.matchMedia('print');
       mediaHandler = (event: MediaQueryListEvent) => {
@@ -1442,13 +1479,11 @@ export class AdminDashboardComponent implements OnInit {
       mediaQuery.addEventListener('change', mediaHandler);
       window.addEventListener('afterprint', cleanup);
       window.print();
+      window.setTimeout(cleanup, 0);
     } catch (error) {
       this.batchErrorMessage =
         error instanceof Error ? error.message : 'No fue posible preparar la impresion del lote.';
-      document.querySelector<HTMLElement>('#credential-print-root')?.remove();
-      document.body.classList.remove('credential-printing');
-      this.printingBatchId = '';
-      this.changeDetectorRef.detectChanges();
+      cleanup();
     }
   }
 
@@ -1465,6 +1500,7 @@ export class AdminDashboardComponent implements OnInit {
         error instanceof Error ? error.message : 'No fue posible cerrar el lote.';
     } finally {
       this.batchActionId = '';
+      this.changeDetectorRef.detectChanges();
     }
   }
 
@@ -2010,6 +2046,7 @@ export class AdminDashboardComponent implements OnInit {
     mediaQuery.addEventListener('change', mediaHandler);
     window.addEventListener('afterprint', cleanup);
     window.print();
+    window.setTimeout(cleanup, 0);
   }
 
   async loadSaekoFile(event: Event): Promise<void> {
@@ -2572,23 +2609,55 @@ export class AdminDashboardComponent implements OnInit {
     }
   }
 
-  private async waitForCredentialImages(root: HTMLElement): Promise<void> {
+  private async waitForCredentialImages(
+    root: HTMLElement,
+    timeoutMs = 20000,
+    failOnError = false,
+  ): Promise<void> {
     const images = Array.from(root.querySelectorAll('img'));
+    const loadImages = Promise.all(
+      images.map(
+        (image) =>
+          new Promise<void>((resolve, reject) => {
+            const fail = () => {
+              if (failOnError) {
+                reject(new Error('Una imagen de la credencial no pudo cargarse.'));
+              } else {
+                resolve();
+              }
+            };
 
-    await Promise.all(
-      images.map((image) => {
-        if (image.complete) {
-          return Promise.resolve();
-        }
+            if (image.complete) {
+              if (image.naturalWidth > 0) {
+                resolve();
+              } else {
+                fail();
+              }
 
-        return new Promise<void>((resolve) => {
-          const done = () => resolve();
+              return;
+            }
 
-          image.addEventListener('load', done, { once: true });
-          image.addEventListener('error', done, { once: true });
-        });
-      }),
+            image.addEventListener('load', () => resolve(), { once: true });
+            image.addEventListener('error', fail, { once: true });
+          }),
+      ),
     );
+    let timeoutId = 0;
+    const timeout = new Promise<void>((resolve, reject) => {
+      timeoutId = window.setTimeout(() => {
+        if (failOnError) {
+          reject(new Error('La carga de imagenes excedio 20 segundos. Intenta nuevamente.'));
+        } else {
+          resolve();
+        }
+      }, timeoutMs);
+    });
+
+    try {
+      await Promise.race([loadImages, timeout]);
+    } finally {
+      window.clearTimeout(timeoutId);
+    }
   }
 
   private loadTemplateLayouts(): CredentialTemplateLayouts {

@@ -245,6 +245,11 @@ Reglas criticas implementadas tambien en Functions:
 - Reposicion requiere comprobante.
 - `REJECTED` solo vuelve a `UNDER_REVIEW` cuando existe seguimiento del
   solicitante.
+- `APPROVED_FOR_PRINT` no puede avanzar individualmente a `PRINTED` cuando la
+  solicitud pertenece a un lote con estado `CREATED`.
+- El cierre de un lote reconcilia solicitudes ya avanzadas: conserva
+  `PRINTED`, `READY_FOR_PICKUP` y `DELIVERED`, y actualiza unicamente las que
+  siguen en `APPROVED_FOR_PRINT`.
 - Campos de folio, QR y estatus se controlan desde backend/rol autorizado.
 
 ## 8. Frontend solicitante
@@ -338,6 +343,12 @@ El render de impresion usa medida PVC:
 Las credenciales se imprimen por pagina y deben conservar posicion y tamano
 del diseñador.
 
+Para lotes, el frontend renderiza la fuente imprimible solo durante la
+preparacion del lote seleccionado. La impresion incluye unicamente solicitudes
+`APPROVED_FOR_PRINT`, muestra la etapa de preparacion, limita la espera de
+imagenes y limpia el estado de carga aunque el navegador no emita el evento
+`afterprint`.
+
 ## 11. Correo institucional
 
 Functions generan correos HTML institucionales en `mail`.
@@ -376,6 +387,7 @@ Comandos requeridos antes de versionar:
 ```bash
 npm run build
 npm test -- --watch=false
+npm --prefix functions test
 npm --prefix functions run lint
 npm --prefix functions run build
 ```

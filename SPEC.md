@@ -203,7 +203,14 @@ Reglas:
 
 - Solo entran solicitudes `APPROVED_FOR_PRINT`.
 - Al cerrar el lote como impreso, las solicitudes pasan a `PRINTED`.
+- Si una solicitud del lote ya avanzo a `PRINTED`, `READY_FOR_PICKUP` o
+  `DELIVERED`, el cierre conserva ese estado y solo marca como impresas las que
+  aun permanecen en `APPROVED_FOR_PRINT`.
+- Una solicitud vinculada a un lote activo no puede marcarse individualmente
+  como impresa; el cambio debe realizarse desde el lote.
 - El lote mantiene trazabilidad de solicitudes incluidas.
+- La vista de impresion incluye unicamente credenciales pendientes para evitar
+  reimpresiones accidentales de credenciales ya procesadas o entregadas.
 - La impresion debe respetar plantilla, medidas PVC 8.6 cm x 5.4 cm, datos y
   QR configurados.
 
@@ -268,6 +275,7 @@ llamado a accion. El area de entrega indicada es el area de sistemas.
 
 - Build Angular correcto.
 - Pruebas unitarias correctas.
+- Pruebas de politica de lotes en Functions correctas.
 - Lint y build de Functions correctos.
 - Rutas protegidas redirigen si no hay sesion.
 - Solicitud de estudiante exige matricula, programa, cuatrimestre, telefono y

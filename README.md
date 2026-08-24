@@ -79,6 +79,7 @@ URL publica: `https://credencial-tup.web.app`
 ```bash
 npm run build
 npm test -- --watch=false
+npm --prefix functions test
 npm --prefix functions run lint
 npm --prefix functions run build
 firebase emulators:start
