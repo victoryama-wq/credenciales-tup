@@ -39,7 +39,7 @@
     ]
   },
   "extensions": {
-    "trigger-email": "firebase/firestore-send-email@0.2.8"
+    "trigger-email": "firebase/firestore-send-email@0.2.10"
   },
   "storage": {
     "rules": "storage.rules"
