@@ -1,5 +1,13 @@
 {
   "projects": {
     "default": "credencial-tup"
+  },
+  "targets": {},
+  "etags": {
+    "credencial-tup": {
+      "extensionInstances": {
+        "trigger-email": "0536e0230588f2f4c4720e625974ee6e7c877a207076acd8b083772c8840ccd7"
+      }
+    }
   }
 }
