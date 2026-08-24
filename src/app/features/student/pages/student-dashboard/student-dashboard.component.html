@@ -57,7 +57,14 @@
           </p>
         </div>
         <div class="student-current-status-actions">
-          <a class="student-secondary-action" href="#student-requests">Ver seguimiento</a>
+          <button
+            type="button"
+            class="student-secondary-action"
+            aria-controls="student-requests"
+            (click)="scrollToTracking()"
+          >
+            Ver seguimiento
+          </button>
           <button type="button" class="student-action-button" (click)="toggleRequestForm()">
             {{ requestFormToggleLabel }}
           </button>
@@ -85,7 +92,14 @@
             reabrir la revision.
           </p>
         </div>
-        <a class="student-action-button" href="#student-requests"> Enviar correccion </a>
+        <button
+          type="button"
+          class="student-action-button"
+          aria-controls="student-requests"
+          (click)="scrollToTracking()"
+        >
+          Enviar correccion
+        </button>
       </section>
     }
 
@@ -622,7 +636,7 @@
             </span>
             <div class="min-w-0">
               <p class="student-card-kicker">Seguimiento</p>
-              <h2 id="student-requests-title">Mis solicitudes</h2>
+              <h2 id="student-requests-title" tabindex="-1">Mis solicitudes</h2>
               <p>Consulta el avance y atiende correcciones cuando se soliciten.</p>
             </div>
           </div>

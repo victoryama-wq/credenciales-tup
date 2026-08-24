@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+import { CommonModule, DOCUMENT } from '@angular/common';
 import { ChangeDetectorRef, Component, DestroyRef, OnDestroy, OnInit, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -58,6 +58,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
   private imageCompressionService = inject(ImageCompressionService);
   private changeDetectorRef = inject(ChangeDetectorRef);
   private destroyRef = inject(DestroyRef);
+  private document = inject(DOCUMENT);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
 
@@ -308,6 +309,17 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
 
   toggleRequestForm(): void {
     this.showRequestForm = !this.showRequestForm;
+  }
+
+  scrollToTracking(): void {
+    const trackingPanel = this.document.getElementById('student-requests');
+
+    if (!trackingPanel) {
+      return;
+    }
+
+    trackingPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    this.document.getElementById('student-requests-title')?.focus({ preventScroll: true });
   }
 
   nextStepFor(request: CredentialRequest): string {
