@@ -42,6 +42,9 @@ URL publica: `https://credencial-tup.web.app`
 - Comprobante obligatorio en reposicion.
 - Guia de fotografia, carga desde camara o archivo, preview inmediato de imagen
   y limite maximo de 10 MB.
+- Fotografia sintética de referencia con el encuadre correcto, optimizada para
+  teléfono y tableta; al seleccionar un archivo se sustituye por la vista
+  previa real del usuario.
 - Optimizacion automatica de foto de credencial antes de subirla a Storage, con
   una barra de progreso visible mientras se procesa la imagen.
 - Las tarjetas de foto y comprobante mantienen botones, previews y nombres de

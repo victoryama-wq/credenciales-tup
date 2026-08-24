@@ -146,3 +146,22 @@ todas sus solicitudes:
 
 Esta corrección no reescribe documentos históricos ni degrada estados; ajusta
 la clasificación visual usando las solicitudes como fuente operativa real.
+
+## 11. Referencia fotográfica y experiencia móvil
+
+Se generó una fotografía sintética, sin identidad real, para mostrar el
+encuadre correcto antes de que estudiantes, docentes o colaboradores carguen
+su archivo. La versión web se guardó en
+`public/photo-framing-reference.webp` con resolución 600 × 800 px y un peso
+aproximado de 20 KB.
+
+La referencia aparece en dos puntos:
+
+- En la guía de fotografía, acompañada por las reglas de encuadre y
+  presentación.
+- En el área de carga como estado inicial; al seleccionar o tomar una foto, se
+  sustituye por la vista previa real del usuario.
+
+En teléfono los elementos se muestran en una sola columna y los botones
+conservan el ancho completo. A partir de 640 px, la referencia y las acciones
+se organizan en dos columnas para aprovechar tabletas sin comprimir el texto.
