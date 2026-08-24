@@ -5,7 +5,9 @@ import printBatchPolicy from "../lib/print-batch-policy.js";
 
 const {
   isPrintBatchRequestStatusClosable,
+  isPrintBatchRequestStatusReadyForPickupCompatible,
   shouldAdvancePrintBatchRequest,
+  shouldAdvancePrintBatchRequestToReadyForPickup,
   shouldBlockIndividualPrintTransition,
 } = printBatchPolicy;
 
@@ -59,5 +61,21 @@ describe("print batch reconciliation policy", () => {
       ),
       false
     );
+  });
+
+  it("accepts only printed and downstream statuses for batch pickup readiness", () => {
+    for (const status of ["PRINTED", "READY_FOR_PICKUP", "DELIVERED"]) {
+      assert.equal(isPrintBatchRequestStatusReadyForPickupCompatible(status), true);
+    }
+
+    for (const status of ["SUBMITTED", "UNDER_REVIEW", "REJECTED", "APPROVED_FOR_PRINT"]) {
+      assert.equal(isPrintBatchRequestStatusReadyForPickupCompatible(status), false);
+    }
+  });
+
+  it("advances only printed requests when a batch becomes ready for pickup", () => {
+    assert.equal(shouldAdvancePrintBatchRequestToReadyForPickup("PRINTED"), true);
+    assert.equal(shouldAdvancePrintBatchRequestToReadyForPickup("READY_FOR_PICKUP"), false);
+    assert.equal(shouldAdvancePrintBatchRequestToReadyForPickup("DELIVERED"), false);
   });
 });

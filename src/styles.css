@@ -24,7 +24,15 @@ body {
 
 body {
   color: var(--tup-ink);
-  font-family: 'Arvo', Georgia, serif;
+  font-family: 'Segoe UI', Arial, sans-serif;
+}
+
+h1,
+h2,
+h3,
+h4,
+.mat-mdc-card-title {
+  font-family: 'Arvo', Georgia, serif !important;
 }
 
 button,
@@ -157,6 +165,171 @@ textarea,
   display: grid !important;
   gap: 1.25rem;
   padding: 1.25rem !important;
+}
+
+.request-status-toolbar {
+  align-items: center;
+  background: var(--tup-white);
+  border: 1px solid var(--tup-line);
+  border-left: var(--tup-card-accent);
+  border-radius: 8px;
+  box-shadow: var(--tup-card-shadow);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  padding: 0.75rem;
+}
+
+.request-status-filter {
+  align-items: center;
+  background: var(--tup-white);
+  border: 1px solid var(--tup-line);
+  border-radius: 8px;
+  color: var(--tup-muted);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  gap: 0.65rem;
+  min-height: 42px;
+  padding: 0.55rem 0.8rem;
+}
+
+.request-status-filter strong {
+  color: var(--tup-primary);
+  font-size: 1rem;
+}
+
+.request-status-filter:hover,
+.request-status-filter-active {
+  background: rgb(37 42 134 / 7%);
+  border-color: rgb(37 42 134 / 32%);
+  color: var(--tup-ink);
+}
+
+.request-status-filter-active {
+  box-shadow: inset 3px 0 0 var(--tup-primary);
+}
+
+.admin-workbench {
+  align-items: start;
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.admin-compact-list {
+  background: var(--tup-white);
+  border: 1px solid var(--tup-line);
+  border-left: var(--tup-card-accent);
+  border-radius: 8px;
+  box-shadow: var(--tup-card-shadow);
+  display: grid;
+  max-height: min(760px, calc(100vh - 11rem));
+  min-width: 0;
+  overflow-y: auto;
+}
+
+.admin-compact-list-header {
+  align-items: center;
+  background: var(--tup-white);
+  border-bottom: 1px solid var(--tup-line);
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  padding: 0.9rem 1rem;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.admin-compact-list-header h3 {
+  color: var(--tup-ink);
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin: 0.15rem 0 0;
+}
+
+.admin-compact-list-header > span {
+  color: var(--tup-muted);
+  font-size: 0.72rem;
+  text-align: right;
+}
+
+.admin-compact-row {
+  align-items: center;
+  background: var(--tup-white);
+  border: 0;
+  border-bottom: 1px solid var(--tup-line);
+  color: var(--tup-ink);
+  cursor: pointer;
+  display: grid;
+  font: inherit;
+  gap: 0.75rem;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  min-width: 0;
+  padding: 0.75rem;
+  text-align: left;
+}
+
+.admin-compact-row:last-child {
+  border-bottom: 0;
+}
+
+.admin-compact-row:hover,
+.admin-compact-row-active {
+  background: rgb(37 42 134 / 6%);
+}
+
+.admin-compact-row-active {
+  box-shadow: inset 4px 0 0 var(--tup-primary);
+}
+
+.admin-compact-row img {
+  aspect-ratio: 3 / 4;
+  border: 1px solid var(--tup-line);
+  border-radius: 6px;
+  height: 58px;
+  object-fit: cover;
+  width: 44px;
+}
+
+.admin-compact-row-copy {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.admin-compact-row-copy strong,
+.admin-compact-row-copy span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-compact-row-copy strong {
+  font-size: 0.9rem;
+}
+
+.admin-compact-row-copy span {
+  color: var(--tup-muted);
+  font-size: 0.75rem;
+}
+
+@media (min-width: 768px) {
+  .admin-dashboard-filters-wide {
+    grid-template-columns: minmax(260px, 1fr) minmax(190px, 0.7fr) minmax(220px, 0.8fr);
+  }
+}
+
+@media (min-width: 1180px) {
+  .admin-workbench {
+    grid-template-columns: minmax(310px, 380px) minmax(0, 1fr);
+  }
+
+  .admin-compact-list {
+    position: sticky;
+    top: 1rem;
+  }
 }
 
 @media (min-width: 1024px) {
@@ -514,6 +687,7 @@ textarea,
 .student-card,
 .student-alert-card,
 .student-status-card,
+.student-current-status,
 .student-submit-panel {
   background: var(--tup-white);
   border: 1px solid var(--student-line);
@@ -590,6 +764,66 @@ textarea,
   align-items: start;
   display: grid;
   gap: clamp(1rem, 2vw, 1.35rem);
+}
+
+.student-portal-grid-tracking-only {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.student-current-status {
+  align-items: center;
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding: clamp(1rem, 2.2vw, 1.25rem);
+}
+
+.student-current-status-copy {
+  min-width: 0;
+}
+
+.student-current-status-heading {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.student-current-status h2 {
+  color: var(--tup-ink);
+  font-size: clamp(1.3rem, 2vw, 1.7rem);
+  font-weight: 700;
+  line-height: 1.15;
+  margin: 0;
+}
+
+.student-current-status p:not(.student-card-kicker) {
+  color: var(--tup-muted);
+  line-height: 1.5;
+  margin: 0.45rem 0 0;
+}
+
+.student-current-status .student-current-status-date {
+  font-size: 0.76rem;
+}
+
+.student-current-status-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.student-secondary-action {
+  align-items: center;
+  border: 1px solid var(--tup-primary);
+  border-radius: 8px;
+  color: var(--tup-primary);
+  display: inline-flex;
+  font-weight: 700;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0.7rem 1rem;
+  text-decoration: none;
 }
 
 .student-form-flow {
@@ -1141,6 +1375,13 @@ textarea,
   color: var(--tup-ink);
 }
 
+.student-timeline time {
+  color: var(--tup-gray);
+  display: block;
+  font-size: 0.72rem;
+  margin-top: 0.1rem;
+}
+
 .student-correction-card {
   background: var(--tup-white);
   border: 1px solid var(--student-line);
@@ -1194,6 +1435,10 @@ textarea,
     grid-template-columns: 48px minmax(0, 1fr) auto;
   }
 
+  .student-current-status {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
   .student-profile-card .student-soft-pill {
     grid-column: auto;
     justify-self: end;
@@ -1236,9 +1481,17 @@ textarea,
     grid-template-columns: minmax(0, 1fr) minmax(350px, 420px);
   }
 
+  .student-portal-grid.student-portal-grid-tracking-only {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .student-requests-panel {
     position: sticky;
     top: 1rem;
+  }
+
+  .student-portal-grid-tracking-only .student-requests-panel {
+    position: static;
   }
 }
 
@@ -1456,11 +1709,19 @@ textarea,
 }
 
 .admin-sidebar-label {
+  border-top: 1px solid var(--tup-line);
   color: var(--tup-gray);
   font-size: 0.76rem;
   font-weight: 700;
-  margin: 0.2rem 0.3rem;
+  margin: 0.55rem 0.3rem 0.05rem;
+  padding-top: 0.75rem;
   text-transform: uppercase;
+}
+
+.admin-sidebar-label:first-child {
+  border-top: 0;
+  margin-top: 0;
+  padding-top: 0;
 }
 
 .admin-sidebar-link {
@@ -3236,6 +3497,7 @@ textarea,
 .student-card,
 .student-alert-card,
 .student-status-card,
+.student-current-status,
 .student-submit-panel,
 .student-correction-card {
   border-radius: 14px;

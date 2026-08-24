@@ -1,11 +1,12 @@
 import { Timestamp } from 'firebase/firestore';
 import type { CredentialRequestStatus } from './credential-request.model';
 
-export type PrintBatchStatus = 'CREATED' | 'PRINTED';
+export type PrintBatchStatus = 'CREATED' | 'PRINTED' | 'READY_FOR_PICKUP';
 
 export const printBatchStatusLabels: Record<PrintBatchStatus, string> = {
   CREATED: 'Creado',
   PRINTED: 'Impreso',
+  READY_FOR_PICKUP: 'Listo para entrega',
 };
 
 export interface PrintBatch {
@@ -19,6 +20,8 @@ export interface PrintBatch {
   updatedAt?: Timestamp;
   printedAt?: Timestamp;
   printedBy?: string;
+  readyForPickupAt?: Timestamp;
+  readyForPickupBy?: string;
 }
 
 export interface PrintBatchRequestStatusSummary {

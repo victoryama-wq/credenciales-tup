@@ -12,7 +12,9 @@ import {CallableOptions, onCall, HttpsError} from "firebase-functions/v2/https";
 import {toBuffer} from "qrcode";
 import {
   isPrintBatchRequestStatusClosable,
+  isPrintBatchRequestStatusReadyForPickupCompatible,
   shouldAdvancePrintBatchRequest,
+  shouldAdvancePrintBatchRequestToReadyForPickup,
   shouldBlockIndividualPrintTransition,
 } from "./print-batch-policy";
 
@@ -76,7 +78,7 @@ interface AdminUserData {
   name?: string;
 }
 
-type PrintBatchStatus = "CREATED" | "PRINTED";
+type PrintBatchStatus = "CREATED" | "PRINTED" | "READY_FOR_PICKUP";
 
 interface CreatePrintBatchData {
   requestIds?: string[];
@@ -84,6 +86,11 @@ interface CreatePrintBatchData {
 }
 
 interface MarkPrintBatchPrintedData {
+  batchId?: string;
+  note?: string;
+}
+
+interface MarkPrintBatchReadyForPickupData {
   batchId?: string;
   note?: string;
 }
@@ -203,6 +210,8 @@ interface StoredPrintBatch {
   updatedAt?: Timestamp;
   printedAt?: Timestamp;
   printedBy?: string;
+  readyForPickupAt?: Timestamp;
+  readyForPickupBy?: string;
 }
 
 interface NotificationCopy {
@@ -932,7 +941,7 @@ export const markPrintBatchPrinted = onCall(callableOptions, async (request) => 
 
     const printBatch = batchSnapshot.data() as StoredPrintBatch;
 
-    if (printBatch.status === "PRINTED") {
+    if (printBatch.status !== "CREATED") {
       throw new HttpsError("failed-precondition", "El lote ya fue marcado como impreso.");
     }
 
@@ -1004,6 +1013,126 @@ export const markPrintBatchPrinted = onCall(callableOptions, async (request) => 
         printedBy: auth.uid,
         updatedAt: now,
       },
+      "print_batches"
+    );
+  });
+
+  return {ok: true};
+});
+
+export const markPrintBatchReadyForPickup = onCall(callableOptions, async (request) => {
+  const auth = request.auth;
+
+  if (!auth) {
+    throw new HttpsError("unauthenticated", "Inicia sesion.");
+  }
+
+  if (!isAdmin(auth.token)) {
+    throw new HttpsError("permission-denied", "Requiere rol administrativo.");
+  }
+
+  const data = request.data as MarkPrintBatchReadyForPickupData;
+  const batchId = requireString(data.batchId, "batchId");
+  const cleanNote = cleanBoundedString(data.note, "nota", maxNoteLength);
+  const note = cleanNote ?
+    cleanNote :
+    `Credencial lista para entrega en lote ${batchId}.`;
+  const batchRef = printBatches.doc(batchId);
+  const now = Timestamp.now();
+
+  await db.runTransaction(async (transaction) => {
+    const batchSnapshot = await transaction.get(batchRef);
+
+    if (!batchSnapshot.exists) {
+      throw new HttpsError("not-found", "El lote no existe.");
+    }
+
+    const printBatch = batchSnapshot.data() as StoredPrintBatch;
+
+    if (printBatch.status === "READY_FOR_PICKUP") {
+      throw new HttpsError(
+        "failed-precondition",
+        "El lote ya fue marcado como listo para entrega."
+      );
+    }
+
+    if (printBatch.status !== "PRINTED") {
+      throw new HttpsError(
+        "failed-precondition",
+        "Primero debes marcar el lote como impreso."
+      );
+    }
+
+    const requestIds = requireRequestIds(printBatch.requestIds);
+    const snapshots = await Promise.all(
+      requestIds.map((requestId) => transaction.get(requests.doc(requestId)))
+    );
+
+    for (const snapshot of snapshots) {
+      if (!snapshot.exists) {
+        throw new HttpsError("not-found", "Una solicitud del lote no existe.");
+      }
+
+      const credential = snapshot.data() as StoredCredentialRequest;
+
+      if (!isPrintBatchRequestStatusReadyForPickupCompatible(credential.status)) {
+        throw new HttpsError(
+          "failed-precondition",
+          "El lote contiene solicitudes que aun no estan impresas."
+        );
+      }
+    }
+
+    for (const snapshot of snapshots) {
+      const before = snapshot.data() as StoredCredentialRequest;
+
+      if (!shouldAdvancePrintBatchRequestToReadyForPickup(before.status)) {
+        continue;
+      }
+
+      const changes = buildStatusChanges(
+        before,
+        "READY_FOR_PICKUP",
+        auth.uid,
+        note,
+        now,
+        null
+      );
+
+      changes.printBatchId = batchId;
+      transaction.update(snapshot.ref, changes);
+      writeAudit(
+        transaction,
+        auth.uid,
+        "credential_request.batch_ready_for_pickup",
+        snapshot.id,
+        before,
+        buildAuditAfter(before, changes)
+      );
+      queueStatusNotification(
+        transaction,
+        snapshot.id,
+        before,
+        "READY_FOR_PICKUP",
+        note,
+        now
+      );
+    }
+
+    const batchChanges = {
+      status: "READY_FOR_PICKUP" as const,
+      readyForPickupAt: now,
+      readyForPickupBy: auth.uid,
+      updatedAt: now,
+    };
+    transaction.update(batchRef, batchChanges);
+    writeAudit(
+      transaction,
+      auth.uid,
+      "print_batch.ready_for_pickup",
+      batchId,
+      printBatch,
+      {...printBatch, ...batchChanges},
       "print_batches"
     );
   });

@@ -27,8 +27,10 @@ export const auditActionLabels: Record<string, string> = {
   'credential_request.create': 'Solicitud creada',
   'credential_request.status_changed': 'Cambio de estatus',
   'credential_request.batch_printed': 'Credencial impresa por lote',
+  'credential_request.batch_ready_for_pickup': 'Credencial lista para entrega por lote',
   'print_batch.create': 'Lote creado',
   'print_batch.printed': 'Lote marcado como impreso',
+  'print_batch.ready_for_pickup': 'Lote listo para entrega',
   'institutional_profiles.import': 'Importacion Saeko',
   'legacy_credentials.import': 'Importacion historica',
 };

@@ -203,6 +203,11 @@ Reglas:
 
 - Solo entran solicitudes `APPROVED_FOR_PRINT`.
 - Al cerrar el lote como impreso, las solicitudes pasan a `PRINTED`.
+- Un lote `PRINTED` puede marcarse completo como `READY_FOR_PICKUP`.
+- Al marcar el lote listo para entrega, solo las solicitudes que permanecen en
+  `PRINTED` avanzan; las que ya están listas o entregadas conservan su estado.
+- Cada solicitud que avance a `READY_FOR_PICKUP` genera su notificación
+  individual al solicitante.
 - Si una solicitud del lote ya avanzo a `PRINTED`, `READY_FOR_PICKUP` o
   `DELIVERED`, el cierre conserva ese estado y solo marca como impresas las que
   aun permanecen en `APPROVED_FOR_PRINT`.

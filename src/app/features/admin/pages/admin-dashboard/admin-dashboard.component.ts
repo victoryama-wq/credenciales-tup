@@ -72,6 +72,7 @@ type AdminModule =
 
 type ImportTab = 'saeko' | 'legacy';
 type CredentialTemplateNumericMetric = 'x' | 'y' | 'w' | 'h' | 'fontSize';
+type RequestStatusFilter = CredentialRequestStatus | 'ALL' | 'ACTIONABLE';
 
 interface CredentialTemplateEditorField {
   key: CredentialTemplateFieldKey;
@@ -135,6 +136,12 @@ export class AdminDashboardComponent implements OnInit {
   readonly auditEntityLabels = auditEntityLabels;
   readonly academicStatusLabels = institutionalAcademicStatusLabels;
   readonly applicantTypes: CredentialApplicantType[] = ['STUDENT', 'TEACHER', 'STAFF'];
+  readonly requestOperationalStatuses: CredentialRequestStatus[] = [
+    'SUBMITTED',
+    'UNDER_REVIEW',
+    'REJECTED',
+    'APPROVED_FOR_PRINT',
+  ];
   readonly requestApplicantTabs: RequestApplicantTab[] = [
     {
       value: 'STUDENT',
@@ -204,63 +211,72 @@ export class AdminDashboardComponent implements OnInit {
     },
   };
   readonly statuses = credentialRequestStatuses;
-  readonly modules: { value: AdminModule; label: string; eyebrow: string; description: string }[] =
-    [
-      {
-        value: 'dashboard',
-        label: 'Dashboard',
-        eyebrow: 'Resumen ejecutivo',
-        description: 'Indicadores, avance y tiempos del flujo.',
-      },
-      {
-        value: 'reports',
-        label: 'Reportes',
-        eyebrow: 'Analitica operativa',
-        description: 'Filtra, consulta y exporta informacion clave.',
-      },
-      {
-        value: 'audit',
-        label: 'Auditoria',
-        eyebrow: 'Trazabilidad',
-        description: 'Bitacora de cambios administrativos y operativos.',
-      },
-      {
-        value: 'admins',
-        label: 'Administradores',
-        eyebrow: 'Permisos',
-        description: 'Alta y baja de accesos administrativos.',
-      },
-      {
-        value: 'requests',
-        label: 'Solicitudes',
-        eyebrow: 'Operacion',
-        description: 'Revision, estatus e impresion de credenciales.',
-      },
-      {
-        value: 'batches',
-        label: 'Lotes de impresion',
-        eyebrow: 'Produccion',
-        description: 'Agrupa, imprime y cierra credenciales listas.',
-      },
-      {
-        value: 'delivery',
-        label: 'Entrega de credenciales',
-        eyebrow: 'Ventanilla',
-        description: 'Control de credenciales listas y entregadas.',
-      },
-      {
-        value: 'saeko',
-        label: 'Importacion',
-        eyebrow: 'Control Escolar',
-        description: 'Perfiles Saeko y credenciales historicas.',
-      },
-      {
-        value: 'templates',
-        label: 'Diseño credencial',
-        eyebrow: 'Motor de credencial',
-        description: 'Ajuste visual de foto, datos y QR.',
-      },
-    ];
+  readonly modules: {
+    value: AdminModule;
+    label: string;
+    eyebrow: string;
+    description: string;
+    groupLabel?: string;
+  }[] = [
+    {
+      value: 'dashboard',
+      label: 'Dashboard',
+      eyebrow: 'Resumen ejecutivo',
+      description: 'Indicadores, avance y tiempos del flujo.',
+      groupLabel: 'Resumen',
+    },
+    {
+      value: 'reports',
+      label: 'Reportes',
+      eyebrow: 'Analitica operativa',
+      description: 'Filtra, consulta y exporta informacion clave.',
+    },
+    {
+      value: 'requests',
+      label: 'Solicitudes',
+      eyebrow: 'Operacion',
+      description: 'Revision, estatus e impresion de credenciales.',
+      groupLabel: 'Operacion diaria',
+    },
+    {
+      value: 'batches',
+      label: 'Lotes de impresion',
+      eyebrow: 'Produccion',
+      description: 'Agrupa, imprime y cierra credenciales listas.',
+    },
+    {
+      value: 'delivery',
+      label: 'Entrega de credenciales',
+      eyebrow: 'Ventanilla',
+      description: 'Control de credenciales listas y entregadas.',
+    },
+    {
+      value: 'saeko',
+      label: 'Importacion',
+      eyebrow: 'Control Escolar',
+      description: 'Perfiles Saeko y credenciales historicas.',
+      groupLabel: 'Configuracion',
+    },
+    {
+      value: 'templates',
+      label: 'Diseño credencial',
+      eyebrow: 'Motor de credencial',
+      description: 'Ajuste visual de foto, datos y QR.',
+    },
+    {
+      value: 'audit',
+      label: 'Auditoria',
+      eyebrow: 'Trazabilidad',
+      description: 'Bitacora de cambios administrativos y operativos.',
+      groupLabel: 'Administracion',
+    },
+    {
+      value: 'admins',
+      label: 'Administradores',
+      eyebrow: 'Permisos',
+      description: 'Alta y baja de accesos administrativos.',
+    },
+  ];
 
   activeModule: AdminModule = 'dashboard';
   sidebarVisible = false;
@@ -269,11 +285,14 @@ export class AdminDashboardComponent implements OnInit {
   errorMessage = '';
   importErrorMessage = '';
   importSuccessMessage = '';
-  statusFilter: CredentialRequestStatus | 'ALL' = 'ALL';
+  statusFilter: RequestStatusFilter = 'ACTIONABLE';
   requestApplicantTab: CredentialApplicantType = 'STUDENT';
   requestSearchTerm = '';
-  deliveryStatusFilter: CredentialRequestStatus | 'ALL' = 'ALL';
+  selectedRequestId = '';
+  deliveryStatusFilter: CredentialRequestStatus | 'ALL' = 'READY_FOR_PICKUP';
   deliveryApplicantFilter: CredentialApplicantType | 'ALL' = 'ALL';
+  deliverySearchTerm = '';
+  selectedDeliveryRequestId = '';
   reportStatusFilter: CredentialRequestStatus | 'ALL' = 'ALL';
   reportApplicantFilter: CredentialApplicantType | 'ALL' = 'ALL';
   reportStartDate = '';
@@ -335,8 +354,10 @@ export class AdminDashboardComponent implements OnInit {
         next: (requests) => {
           this.requests = requests;
           this.requestsById = new Map(requests.map((item) => [item.id, item]));
+          this.syncSelectedRequest();
+          this.syncSelectedDeliveryRequest();
           if (this.activeModule === 'requests') {
-            void this.refreshQrImages(this.visibleFilteredRequests);
+            void this.refreshSelectedRequestQr();
           }
           this.loading = false;
         },
@@ -422,7 +443,11 @@ export class AdminDashboardComponent implements OnInit {
 
   get filteredRequests(): CredentialRequest[] {
     return this.requestTabRequests.filter((request) => {
-      const matchesStatus = this.statusFilter === 'ALL' || request.status === this.statusFilter;
+      const matchesStatus =
+        this.statusFilter === 'ALL' ||
+        (this.statusFilter === 'ACTIONABLE'
+          ? this.isRequestActionable(request)
+          : request.status === this.statusFilter);
       const matchesSearch = this.matchesRequestSearch(request);
 
       return matchesStatus && matchesSearch;
@@ -430,7 +455,7 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   get visibleFilteredRequests(): CredentialRequest[] {
-    return this.filteredRequests.slice(0, 50);
+    return this.filteredRequests.slice(0, 30);
   }
 
   get hiddenFilteredRequestsCount(): number {
@@ -440,6 +465,13 @@ export class AdminDashboardComponent implements OnInit {
   get requestTabRequests(): CredentialRequest[] {
     return this.requests.filter(
       (request) => (request.applicantType || 'STUDENT') === this.requestApplicantTab,
+    );
+  }
+
+  get selectedRequest(): CredentialRequest | undefined {
+    return (
+      this.visibleFilteredRequests.find((request) => request.id === this.selectedRequestId) ||
+      this.visibleFilteredRequests[0]
     );
   }
 
@@ -456,11 +488,11 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   get activePrintBatches(): PrintBatch[] {
-    return this.printBatches.filter((batch) => batch.status !== 'PRINTED');
+    return this.printBatches.filter((batch) => batch.status !== 'READY_FOR_PICKUP');
   }
 
   get completedPrintBatches(): PrintBatch[] {
-    return this.printBatches.filter((batch) => batch.status === 'PRINTED');
+    return this.printBatches.filter((batch) => batch.status === 'READY_FOR_PICKUP');
   }
 
   get deliveryRequests(): CredentialRequest[] {
@@ -470,9 +502,31 @@ export class AdminDashboardComponent implements OnInit {
       const matchesApplicant =
         this.deliveryApplicantFilter === 'ALL' ||
         (request.applicantType || 'STUDENT') === this.deliveryApplicantFilter;
+      const matchesSearch = this.matchesSearchTerm(request, this.deliverySearchTerm);
 
-      return this.deliveryStatuses.includes(request.status) && matchesStatus && matchesApplicant;
+      return (
+        this.deliveryStatuses.includes(request.status) &&
+        matchesStatus &&
+        matchesApplicant &&
+        matchesSearch
+      );
     });
+  }
+
+  get visibleDeliveryRequests(): CredentialRequest[] {
+    return this.deliveryRequests.slice(0, 50);
+  }
+
+  get hiddenDeliveryRequestsCount(): number {
+    return Math.max(this.deliveryRequests.length - this.visibleDeliveryRequests.length, 0);
+  }
+
+  get selectedDeliveryRequest(): CredentialRequest | undefined {
+    return (
+      this.visibleDeliveryRequests.find(
+        (request) => request.id === this.selectedDeliveryRequestId,
+      ) || this.visibleDeliveryRequests[0]
+    );
   }
 
   get reportRequests(): CredentialRequest[] {
@@ -594,6 +648,10 @@ export class AdminDashboardComponent implements OnInit {
 
   get dashboardTotalRequests(): number {
     return this.requests.length;
+  }
+
+  get dashboardActionableRequests(): number {
+    return this.requests.filter((request) => this.isRequestActionable(request)).length;
   }
 
   get dashboardActiveRequests(): number {
@@ -777,7 +835,12 @@ export class AdminDashboardComponent implements OnInit {
     this.legacyImportSuccessMessage = '';
 
     if (module === 'requests') {
-      void this.refreshQrImages(this.visibleFilteredRequests);
+      this.syncSelectedRequest();
+      void this.refreshSelectedRequestQr();
+    }
+
+    if (module === 'delivery') {
+      this.syncSelectedDeliveryRequest();
     }
 
     if (module === 'admins' && !this.adminsLoaded) {
@@ -913,19 +976,60 @@ export class AdminDashboardComponent implements OnInit {
     return this.requests.filter((request) => (request.applicantType || 'STUDENT') === type).length;
   }
 
+  get actionableRequestCount(): number {
+    return this.requestTabRequests.filter((request) => this.isRequestActionable(request)).length;
+  }
+
   setRequestApplicantTab(type: CredentialApplicantType): void {
     this.requestApplicantTab = type;
-    void this.refreshQrImages(this.visibleFilteredRequests);
+    this.selectedRequestId = '';
+    this.syncSelectedRequest();
+    void this.refreshSelectedRequestQr();
   }
 
   updateRequestSearch(event: Event): void {
     const input = event.target as HTMLInputElement;
     this.requestSearchTerm = input.value;
-    void this.refreshQrImages(this.visibleFilteredRequests);
+    this.selectedRequestId = '';
+    this.syncSelectedRequest();
+    void this.refreshSelectedRequestQr();
   }
 
   onRequestFiltersChanged(): void {
-    void this.refreshQrImages(this.visibleFilteredRequests);
+    this.selectedRequestId = '';
+    this.syncSelectedRequest();
+    void this.refreshSelectedRequestQr();
+  }
+
+  setRequestStatusFilter(filter: RequestStatusFilter): void {
+    this.statusFilter = filter;
+    this.onRequestFiltersChanged();
+  }
+
+  selectRequest(request: CredentialRequest): void {
+    this.selectedRequestId = request.id;
+    void this.refreshQrImages([request]);
+  }
+
+  updateDeliverySearch(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.deliverySearchTerm = input.value;
+    this.selectedDeliveryRequestId = '';
+    this.syncSelectedDeliveryRequest();
+  }
+
+  onDeliveryFiltersChanged(): void {
+    this.selectedDeliveryRequestId = '';
+    this.syncSelectedDeliveryRequest();
+  }
+
+  setDeliveryStatusFilter(status: CredentialRequestStatus): void {
+    this.deliveryStatusFilter = status;
+    this.onDeliveryFiltersChanged();
+  }
+
+  selectDeliveryRequest(request: CredentialRequest): void {
+    this.selectedDeliveryRequestId = request.id;
   }
 
   deliveryCountByStatus(status: CredentialRequestStatus): number {
@@ -1138,7 +1242,11 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   private matchesRequestSearch(request: CredentialRequest): boolean {
-    const term = this.normalizeSearchTerm(this.requestSearchTerm);
+    return this.matchesSearchTerm(request, this.requestSearchTerm);
+  }
+
+  private matchesSearchTerm(request: CredentialRequest, rawTerm: string): boolean {
+    const term = this.normalizeSearchTerm(rawTerm);
 
     if (!term) {
       return true;
@@ -1155,6 +1263,37 @@ export class AdminDashboardComponent implements OnInit {
       this.applicantLabel(request.applicantType),
       this.statusLabels[request.status],
     ].some((value) => this.normalizeSearchTerm(value).includes(term));
+  }
+
+  private isRequestActionable(request: CredentialRequest): boolean {
+    return (
+      request.status === 'SUBMITTED' ||
+      request.status === 'UNDER_REVIEW' ||
+      (request.status === 'REJECTED' && request.studentFollowUpPending === true) ||
+      (request.status === 'APPROVED_FOR_PRINT' && !request.printBatchId)
+    );
+  }
+
+  private syncSelectedRequest(): void {
+    if (!this.visibleFilteredRequests.some((request) => request.id === this.selectedRequestId)) {
+      this.selectedRequestId = this.visibleFilteredRequests[0]?.id || '';
+    }
+  }
+
+  private syncSelectedDeliveryRequest(): void {
+    if (
+      !this.visibleDeliveryRequests.some((request) => request.id === this.selectedDeliveryRequestId)
+    ) {
+      this.selectedDeliveryRequestId = this.visibleDeliveryRequests[0]?.id || '';
+    }
+  }
+
+  private async refreshSelectedRequestQr(): Promise<void> {
+    const request = this.selectedRequest;
+
+    if (request) {
+      await this.refreshQrImages([request]);
+    }
   }
 
   private normalizeSearchTerm(value: string): string {
@@ -1391,6 +1530,22 @@ export class AdminDashboardComponent implements OnInit {
     return parts.join(' · ') || 'Cargando solicitudes...';
   }
 
+  printBatchLabel(batch: PrintBatch): string {
+    return `Lote ${batch.createdAt.toDate().toLocaleDateString('es-MX', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    })} · ${batch.id.slice(0, 8)}`;
+  }
+
+  credentialCountLabel(total: number): string {
+    return `${total} ${total === 1 ? 'credencial' : 'credenciales'}`;
+  }
+
+  requestCountLabel(total: number): string {
+    return `${total} ${total === 1 ? 'solicitud' : 'solicitudes'}`;
+  }
+
   async printBatch(batch: PrintBatch): Promise<void> {
     if (this.printingBatchId) {
       return;
@@ -1498,6 +1653,27 @@ export class AdminDashboardComponent implements OnInit {
     } catch (error) {
       this.batchErrorMessage =
         error instanceof Error ? error.message : 'No fue posible cerrar el lote.';
+    } finally {
+      this.batchActionId = '';
+      this.changeDetectorRef.detectChanges();
+    }
+  }
+
+  async markBatchReadyForPickup(batch: PrintBatch): Promise<void> {
+    this.batchActionId = batch.id;
+    this.batchErrorMessage = '';
+    this.batchMessage = '';
+
+    try {
+      await this.printBatchService.markReadyForPickup(batch.id);
+      this.batchMessage =
+        `${this.printBatchLabel(batch)} marcado como listo para entrega. ` +
+        'Se generaron las notificaciones individuales correspondientes.';
+    } catch (error) {
+      this.batchErrorMessage =
+        error instanceof Error
+          ? error.message
+          : 'No fue posible marcar el lote como listo para entrega.';
     } finally {
       this.batchActionId = '';
       this.changeDetectorRef.detectChanges();
@@ -1617,12 +1793,20 @@ export class AdminDashboardComponent implements OnInit {
       return `Credencial marcada como impresa en lote ${this.auditText(after['printBatchId']) || '-'}.`;
     }
 
+    if (log.action === 'credential_request.batch_ready_for_pickup') {
+      return `Credencial marcada como lista para entrega en lote ${this.auditText(after['printBatchId']) || '-'}.`;
+    }
+
     if (log.action === 'print_batch.create') {
       return `Lote creado con ${this.auditText(after['total']) || '0'} credenciales.`;
     }
 
     if (log.action === 'print_batch.printed') {
       return `Lote cerrado como impreso con ${this.auditText(after['total']) || '0'} credenciales.`;
+    }
+
+    if (log.action === 'print_batch.ready_for_pickup') {
+      return `Lote marcado como listo para entrega con ${this.auditText(after['total']) || '0'} credenciales.`;
     }
 
     if (log.action === 'institutional_profiles.import') {

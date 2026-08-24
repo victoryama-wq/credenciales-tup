@@ -125,10 +125,12 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
   correctionSubmittingId = '';
   recentFirstTimeSubmitted = false;
   requests: CredentialRequest[] = [];
+  showRequestForm = true;
   detectedApplicantType: CredentialApplicantType = 'STUDENT';
   institutionalProfile: InstitutionalProfile | null = null;
   currentUserEmail = '';
   private blockedProfileModalShownFor = '';
+  private formVisibilityInitialized = false;
 
   form = this.fb.nonNullable.group({
     applicantType: ['STUDENT' as CredentialApplicantType, Validators.required],
@@ -183,6 +185,30 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
     return this.requests.find(
       (request) => request.status === 'REJECTED' && !request.studentFollowUpPending,
     );
+  }
+
+  get currentRequest(): CredentialRequest | undefined {
+    return this.requests[0];
+  }
+
+  get portalTitle(): string {
+    return this.currentRequest ? 'Seguimiento de credencial' : 'Solicitud de credencial';
+  }
+
+  get requestFormTitle(): string {
+    return this.selectedRequestType === 'REPLACEMENT'
+      ? 'Solicitud de reposición'
+      : 'Solicitud por primera vez';
+  }
+
+  get requestFormToggleLabel(): string {
+    if (this.showRequestForm) {
+      return 'Ocultar formulario';
+    }
+
+    return this.currentRequest?.status === 'DELIVERED'
+      ? 'Solicitar reposición'
+      : 'Mostrar formulario';
   }
 
   get profileSummary(): string {
@@ -264,6 +290,10 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (requests) => {
           this.requests = requests;
+          if (!this.formVisibilityInitialized) {
+            this.showRequestForm = requests.length === 0;
+            this.formVisibilityInitialized = true;
+          }
           if (this.hasFirstTimeRequest && this.selectedRequestType === 'FIRST_TIME') {
             this.form.controls.requestType.setValue('REPLACEMENT');
           }
@@ -274,6 +304,31 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
           this.loading = false;
         },
       });
+  }
+
+  toggleRequestForm(): void {
+    this.showRequestForm = !this.showRequestForm;
+  }
+
+  nextStepFor(request: CredentialRequest): string {
+    switch (request.status) {
+      case 'SUBMITTED':
+        return 'Recibimos tu solicitud. No necesitas realizar otra acción por ahora.';
+      case 'UNDER_REVIEW':
+        return 'El área administrativa está validando tus datos, fotografía y documentos.';
+      case 'REJECTED':
+        return request.studentFollowUpPending
+          ? 'Tu corrección fue enviada. Espera a que el área administrativa retome la revisión.'
+          : 'Revisa el motivo indicado y envía la fotografía o documentos corregidos.';
+      case 'APPROVED_FOR_PRINT':
+        return 'Tu solicitud fue aprobada y está en espera de entrar a impresión.';
+      case 'PRINTED':
+        return 'Tu credencial ya fue impresa. Espera la confirmación antes de acudir por ella.';
+      case 'READY_FOR_PICKUP':
+        return 'Tu credencial está lista. Acude al área indicada por la institución para recogerla.';
+      case 'DELIVERED':
+        return 'El trámite concluyó y la entrega quedó registrada.';
+    }
   }
 
   ngOnDestroy(): void {

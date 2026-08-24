@@ -22,6 +22,10 @@ URL publica: `https://credencial-tup.web.app`
 - [SPEC.md](SPEC.md): especificacion funcional del producto.
 - [SDD.md](SDD.md): diseno tecnico y arquitectura.
 - [AUDITORIA_MODULOS_2026-06-01.md](AUDITORIA_MODULOS_2026-06-01.md): auditoria operativa reciente.
+- [CAMBIOS_LOTES_IMPRESION_2026-08-24.md](CAMBIOS_LOTES_IMPRESION_2026-08-24.md):
+  diagnostico, correccion, validacion y despliegue de lotes de impresion.
+- [MEJORAS_VISTAS_Y_FLUJO_LOTES_2026-08-24.md](MEJORAS_VISTAS_Y_FLUJO_LOTES_2026-08-24.md):
+  reorganizacion visual por tipo de usuario y liberacion de lotes para entrega.
 
 ## Modulos principales
 
@@ -45,6 +49,9 @@ URL publica: `https://credencial-tup.web.app`
 - Seguimiento de solicitudes rechazadas con carga de correcciones.
 - Interfaz responsive por secciones: perfil detectado, datos, fotografia,
   comprobante cuando aplica, resumen de envio y seguimiento de solicitudes.
+- El estado actual, la ultima actualizacion y el siguiente paso aparecen antes
+  del formulario. Cuando ya existe una solicitud, el formulario queda plegado
+  para priorizar el seguimiento.
 - Refinamiento visual accesible: foco visible, mensajes `alert/status`, iconos
   SVG decorativos ocultos a lectores de pantalla y selector de tramite con
   etiqueta accesible.
@@ -60,6 +67,8 @@ URL publica: `https://credencial-tup.web.app`
 - Flujo de estatus: enviada, en revision, rechazada, aprobada para impresion,
   impresa, lista para entrega y entregada.
 - Lotes de impresion.
+- Liberacion completa de lotes impresos a `Lista para entrega`, conservando
+  estados posteriores y generando una notificacion por solicitud actualizada.
 - Entrega de credenciales.
 - Importacion de perfiles Saeko e historico de credenciales entregadas.
 - Reportes exportables.

@@ -25,6 +25,11 @@ interface MarkPrintBatchPrintedPayload {
   note?: string;
 }
 
+interface MarkPrintBatchReadyForPickupPayload {
+  batchId: string;
+  note?: string;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -43,7 +48,7 @@ export class PrintBatchService {
 
           this.zone.run(() => subscriber.next(batches));
         },
-        (error) => this.zone.run(() => subscriber.error(error))
+        (error) => this.zone.run(() => subscriber.error(error)),
       );
 
       return unsubscribe;
@@ -53,7 +58,7 @@ export class PrintBatchService {
   async createBatch(requestIds: string[], note?: string): Promise<string> {
     const createPrintBatch = httpsCallable<CreatePrintBatchPayload, CreatePrintBatchResponse>(
       functions,
-      'createPrintBatch'
+      'createPrintBatch',
     );
     const result = await createPrintBatch({ requestIds, note });
 
@@ -63,10 +68,19 @@ export class PrintBatchService {
   async markPrinted(batchId: string, note?: string): Promise<void> {
     const markPrintBatchPrinted = httpsCallable<MarkPrintBatchPrintedPayload, { ok: boolean }>(
       functions,
-      'markPrintBatchPrinted'
+      'markPrintBatchPrinted',
     );
 
     await markPrintBatchPrinted({ batchId, note });
+  }
+
+  async markReadyForPickup(batchId: string, note?: string): Promise<void> {
+    const markPrintBatchReadyForPickup = httpsCallable<
+      MarkPrintBatchReadyForPickupPayload,
+      { ok: boolean }
+    >(functions, 'markPrintBatchReadyForPickup');
+
+    await markPrintBatchReadyForPickup({ batchId, note });
   }
 
   private fromSnapshot(snapshot: QueryDocumentSnapshot<DocumentData>): PrintBatch {

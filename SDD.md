@@ -96,6 +96,12 @@ Campos principales:
 - `updatedAt`
 - `reviewedAt`
 - `printedAt`
+- `printedBy`
+- `readyForPickupAt`
+- `readyForPickupBy`
+
+Estados del lote: `CREATED`, `PRINTED`, `READY_FOR_PICKUP`.
+
 - `readyForPickupAt`
 - `deliveredAt`
 - `source`
