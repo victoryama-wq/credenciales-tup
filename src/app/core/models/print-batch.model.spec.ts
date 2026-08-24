@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  derivePrintBatchLifecycle,
   isIndividualPrintManagedByBatch,
   summarizePrintBatchRequestStatuses,
 } from './print-batch.model';
@@ -34,5 +35,31 @@ describe('print batch request status summary', () => {
     expect(isIndividualPrintManagedByBatch('APPROVED_FOR_PRINT', 'PRINTED', 'batch-1')).toBe(true);
     expect(isIndividualPrintManagedByBatch('APPROVED_FOR_PRINT', 'PRINTED')).toBe(false);
     expect(isIndividualPrintManagedByBatch('PRINTED', 'READY_FOR_PICKUP', 'batch-1')).toBe(false);
+  });
+
+  it('moves a legacy printed batch to history when every credential was delivered manually', () => {
+    expect(derivePrintBatchLifecycle('PRINTED', 3, ['DELIVERED', 'DELIVERED', 'DELIVERED'])).toBe(
+      'DELIVERED',
+    );
+  });
+
+  it('moves a legacy printed batch to history when every credential reached delivery stages', () => {
+    expect(
+      derivePrintBatchLifecycle('PRINTED', 3, [
+        'READY_FOR_PICKUP',
+        'DELIVERED',
+        'READY_FOR_PICKUP',
+      ]),
+    ).toBe('READY_FOR_PICKUP');
+  });
+
+  it('keeps the batch in process while at least one credential is still printed', () => {
+    expect(
+      derivePrintBatchLifecycle('PRINTED', 3, ['READY_FOR_PICKUP', 'PRINTED', 'DELIVERED']),
+    ).toBe('IN_PROGRESS');
+  });
+
+  it('keeps the batch visible when not every referenced request has loaded', () => {
+    expect(derivePrintBatchLifecycle('PRINTED', 3, ['DELIVERED', 'DELIVERED'])).toBe('IN_PROGRESS');
   });
 });

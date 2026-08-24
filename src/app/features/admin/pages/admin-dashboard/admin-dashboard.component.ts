@@ -32,10 +32,12 @@ import {
 } from '../../../../core/models/credential-request.model';
 import {
   PrintBatch,
+  derivePrintBatchLifecycle,
   isIndividualPrintManagedByBatch,
   printBatchStatusLabels,
   summarizePrintBatchRequestStatuses,
   type PrintBatchRequestStatusSummary,
+  type PrintBatchLifecycle,
 } from '../../../../core/models/print-batch.model';
 import {
   CredentialTemplateAsset,
@@ -488,11 +490,11 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   get activePrintBatches(): PrintBatch[] {
-    return this.printBatches.filter((batch) => batch.status !== 'READY_FOR_PICKUP');
+    return this.printBatches.filter((batch) => this.batchLifecycle(batch) === 'IN_PROGRESS');
   }
 
   get completedPrintBatches(): PrintBatch[] {
-    return this.printBatches.filter((batch) => batch.status === 'READY_FOR_PICKUP');
+    return this.printBatches.filter((batch) => this.batchLifecycle(batch) !== 'IN_PROGRESS');
   }
 
   get deliveryRequests(): CredentialRequest[] {
@@ -1514,6 +1516,49 @@ export class AdminDashboardComponent implements OnInit {
   batchRequestStatusSummary(batch: PrintBatch): PrintBatchRequestStatusSummary {
     return summarizePrintBatchRequestStatuses(
       this.batchRequests(batch).map((request) => request.status),
+    );
+  }
+
+  batchLifecycle(batch: PrintBatch): PrintBatchLifecycle {
+    return derivePrintBatchLifecycle(
+      batch.status,
+      batch.requestIds.length,
+      this.batchRequests(batch).map((request) => request.status),
+    );
+  }
+
+  batchLifecycleLabel(batch: PrintBatch): string {
+    const lifecycle = this.batchLifecycle(batch);
+
+    if (lifecycle === 'DELIVERED') {
+      return 'Entregado';
+    }
+
+    if (lifecycle === 'READY_FOR_PICKUP') {
+      return 'Listo para entrega';
+    }
+
+    return this.printBatchStatusLabels[batch.status];
+  }
+
+  batchHistoryDate(batch: PrintBatch): Date {
+    return (
+      batch.readyForPickupAt ||
+      batch.updatedAt ||
+      batch.printedAt ||
+      batch.createdAt
+    ).toDate();
+  }
+
+  canMarkBatchReadyForPickup(batch: PrintBatch): boolean {
+    const summary = this.batchRequestStatusSummary(batch);
+
+    return (
+      batch.status === 'PRINTED' &&
+      this.batchRequests(batch).length === batch.requestIds.length &&
+      summary.printed > 0 &&
+      summary.pending === 0 &&
+      summary.incompatible === 0
     );
   }
 

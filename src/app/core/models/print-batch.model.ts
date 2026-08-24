@@ -2,6 +2,7 @@ import { Timestamp } from 'firebase/firestore';
 import type { CredentialRequestStatus } from './credential-request.model';
 
 export type PrintBatchStatus = 'CREATED' | 'PRINTED' | 'READY_FOR_PICKUP';
+export type PrintBatchLifecycle = 'IN_PROGRESS' | 'READY_FOR_PICKUP' | 'DELIVERED';
 
 export const printBatchStatusLabels: Record<PrintBatchStatus, string> = {
   CREATED: 'Creado',
@@ -58,6 +59,31 @@ export function summarizePrintBatchRequestStatuses(
   }
 
   return summary;
+}
+
+export function derivePrintBatchLifecycle(
+  batchStatus: PrintBatchStatus,
+  expectedRequests: number,
+  statuses: CredentialRequestStatus[],
+): PrintBatchLifecycle {
+  const allRequestsResolved = expectedRequests > 0 && statuses.length === expectedRequests;
+
+  if (allRequestsResolved && statuses.every((status) => status === 'DELIVERED')) {
+    return 'DELIVERED';
+  }
+
+  if (
+    allRequestsResolved &&
+    statuses.every((status) => status === 'READY_FOR_PICKUP' || status === 'DELIVERED')
+  ) {
+    return 'READY_FOR_PICKUP';
+  }
+
+  if (batchStatus === 'READY_FOR_PICKUP') {
+    return 'READY_FOR_PICKUP';
+  }
+
+  return 'IN_PROGRESS';
 }
 
 export function isIndividualPrintManagedByBatch(

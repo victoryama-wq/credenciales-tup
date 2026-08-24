@@ -1373,7 +1373,7 @@
                       </p>
                     </div>
                     <span class="status-pill rounded-full px-3 py-1 text-xs font-semibold">
-                      {{ printBatchStatusLabels[batch.status] }}
+                      {{ batchLifecycleLabel(batch) }}
                     </span>
                   </div>
 
@@ -1432,7 +1432,9 @@
                         color="primary"
                         type="button"
                         class="!h-10 !rounded-md"
-                        [disabled]="batchActionId === batch.id"
+                        [disabled]="
+                          batchActionId === batch.id || !canMarkBatchReadyForPickup(batch)
+                        "
                         (click)="markBatchReadyForPickup(batch)"
                       >
                         @if (batchActionId === batch.id) {
@@ -1548,12 +1550,12 @@
                   <div class="flex flex-wrap items-center justify-between gap-2">
                     <p class="font-bold text-[var(--tup-ink)]">{{ printBatchLabel(batch) }}</p>
                     <span class="status-pill rounded-full px-3 py-1 text-xs font-semibold">
-                      {{ printBatchStatusLabels[batch.status] }}
+                      {{ batchLifecycleLabel(batch) }}
                     </span>
                   </div>
                   <p class="mt-1 text-sm text-[var(--tup-muted)]">
                     {{ credentialCountLabel(batch.total) }} ·
-                    {{ batch.readyForPickupAt?.toDate() | date: 'd MMM y, h:mm a' }}
+                    {{ batchHistoryDate(batch) | date: 'd MMM y, h:mm a' }}
                   </p>
                 </article>
               }

@@ -125,3 +125,24 @@ el despliegue o un entorno de prueba con usuario emulado.
 - Desplegar Functions y Hosting solo con autorizacion explicita.
 - Validar en un entorno autenticado el paso de un lote de prueba de `PRINTED`
   a `READY_FOR_PICKUP` y confirmar la cola de notificaciones.
+
+## 10. Correccion posterior: lotes históricos entregados
+
+Después del primer despliegue se detectó que la sección `Lotes en proceso`
+clasificaba los registros solamente por `print_batches.status`. Por eso, lotes
+históricos cuyo documento seguía en `PRINTED` aparecían pendientes aunque todas
+sus credenciales ya se hubieran marcado manualmente como listas o entregadas.
+
+La clasificación ahora combina el estado del lote con los estados actuales de
+todas sus solicitudes:
+
+- Si todas están en `DELIVERED`, el lote pasa al historial como `Entregado`.
+- Si todas están en `READY_FOR_PICKUP` o `DELIVERED`, pasa al historial como
+  `Listo para entrega`.
+- Si al menos una permanece en `PRINTED` o en una etapa anterior, continúa en
+  `Lotes en proceso`.
+- Si aún no se han resuelto todas las referencias del lote, se conserva en
+  proceso para evitar ocultarlo durante la carga.
+
+Esta corrección no reescribe documentos históricos ni degrada estados; ajusta
+la clasificación visual usando las solicitudes como fuente operativa real.
